@@ -12,7 +12,7 @@ const supabase = getDb();
 export async function findUserById(uid: string): Promise<AppUser | null> {
     try {
         const { data, error } = await supabase.from('users').select().eq('uid', uid).single();
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error;
         return data as AppUser | null;
     } catch (error) {
         console.error("findUserById failed:", error);
@@ -23,7 +23,7 @@ export async function findUserById(uid: string): Promise<AppUser | null> {
 export async function findUserByUsername(username: string): Promise<AppUser | null> {
     try {
         const { data, error } = await supabase.from('users').select().ilike('username', username).single();
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') throw error; // Throw if it's a real error, not just no rows
         return data as AppUser | null;
     } catch (error) {
         console.error("findUserByUsername failed:", error);
@@ -48,7 +48,7 @@ export async function getAllUsers(): Promise<AppUser[]> {
 
 async function getVacationWithUser(vacationId: string): Promise<Vacation | null> {
     const { data: vacationData, error: vacationError } = await supabase.from('vacations').select('*, user:users(*)').eq('id', vacationId).single();
-    if (vacationError) throw vacationError;
+    if (vacationError && vacationError.code !== 'PGRST116') throw vacationError;
     return vacationData as Vacation | null;
 }
 
@@ -90,7 +90,7 @@ export async function deleteVacation(vacationId: string): Promise<void> {
 export async function updateVacationStatus(vacationId: string, status: VacationStatus): Promise<Vacation> {
     const { data: existingVacation, error: existingVacationError } = await supabase.from('vacations').select('userId, patientName, status').eq('id', vacationId).single();
 
-    if (existingVacationError) throw existingVacationError;
+    if (existingVacationError && existingVacationError.code !== 'PGRST116') throw existingVacationError;
     if (!existingVacation) {
         throw new Error('Vacation not found');
     }
@@ -127,7 +127,7 @@ export async function updateVacationStatus(vacationId: string, status: VacationS
 
 async function getSetting(key: string): Promise<string | null> {
     const { data, error } = await supabase.from('settings').select('value').eq('key', key).single();
-    if (error) return null;
+    if (error && error.code !== 'PGRST116') return null;
     return data?.value ?? null;
 }
 
