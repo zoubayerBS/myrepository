@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/lib/auth';
@@ -37,12 +36,7 @@ export default function MessagesPage() {
     if (user) {
       setLoading(true);
       setError(null);
-      let apiUrl = `/api/messages?userId=${user.uid}`;
-      if (type === 'sent') {
-        apiUrl = `/api/messages/sent?userId=${user.uid}`;
-      } else if (type === 'archived') {
-        apiUrl = `/api/messages/archived?userId=${user.uid}`;
-      }
+      let apiUrl = `/api/messages?userId=${user.uid}&type=${type}`;
 
       fetch(apiUrl)
         .then((res) => {
