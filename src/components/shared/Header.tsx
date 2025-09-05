@@ -69,7 +69,7 @@ export function Header() {
                   <span className="sr-only">Messages</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-80 p-2" align="end">
+              <DropdownMenuContent className="w-80 p-2 sm:w-auto" align="end">
                 <div className="font-bold px-2 py-1">Messages non lus ({unreadMessageCount})</div>
                 <DropdownMenuSeparator />
                 {messagePreviews.length > 0 ? (

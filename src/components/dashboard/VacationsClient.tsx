@@ -45,7 +45,7 @@ export function VacationsClient({
   const { toast } = useToast();
 
   const fetchVacations = useCallback(async () => {
-    if (!user) return; // Don't fetch if no user
+    if (!user) return;
     setIsLoading(true);
     try {
       let fetchedVacations: Vacation[];
@@ -153,7 +153,7 @@ export function VacationsClient({
       {isAdminView ? (
          <h2 className="text-2xl font-bold font-sans">Toutes les vacations</h2>
       ) : (
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-3xl font-bold font-sans">Mes vacations</h1>
             <p className="text-muted-foreground">Gérez vos vacations enregistrées.</p>
