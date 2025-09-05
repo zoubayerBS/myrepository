@@ -11,7 +11,7 @@ const supabase = getDb();
 
 export async function findUserById(uid: string): Promise<AppUser | null> {
     try {
-        const { data, error } = await supabase.from('users').select().eq('uid', uid).single();
+        const { data, error } = await supabase.from('users').select('*, password').eq('uid', uid).single();
         if (error && error.code !== 'PGRST116') throw error;
         return data as AppUser | null;
     } catch (error) {
@@ -22,7 +22,7 @@ export async function findUserById(uid: string): Promise<AppUser | null> {
 
 export async function findUserByUsername(username: string): Promise<AppUser | null> {
     try {
-        const { data, error } = await supabase.from('users').select().ilike('username', username).single();
+        const { data, error } = await supabase.from('users').select('*, password').ilike('username', username).single();
         if (error && error.code !== 'PGRST116') throw error; // Throw if it's a real error, not just no rows
         return data as AppUser | null;
     } catch (error) {
