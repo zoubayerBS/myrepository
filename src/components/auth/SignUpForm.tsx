@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import CryptoJS from 'crypto-js'; // Import CryptoJS
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -65,12 +64,10 @@ export function SignUpForm() {
         return;
       }
       
-      const hashedPassword = CryptoJS.MD5(values.password).toString(); // MD5 hash
-      
       const newUser: AppUser = {
         uid: `${Date.now()}-${values.username}`,
         username: values.username,
-        password: hashedPassword,
+        password: values.password,
         email: `${values.username}@vacationease.app`,
         role: 'user',
       };

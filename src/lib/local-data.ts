@@ -3,7 +3,6 @@
 import { getDb } from './db';
 import type { AppUser, Vacation, VacationStatus, Surgeon } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import CryptoJS from 'crypto-js'; // Import CryptoJS
 
 const supabase = getDb();
 
@@ -32,8 +31,7 @@ export async function findUserByUsername(username: string): Promise<AppUser | nu
 }
 
 export async function addUser(user: AppUser): Promise<AppUser> {
-    const hashedPassword = CryptoJS.MD5(user.password!).toString(); // MD5 hash
-    const { data, error } = await supabase.from('users').insert({ ...user, password: hashedPassword }).select().single();
+    const { data, error } = await supabase.from('users').insert({ ...user }).select().single();
     if (error) throw error;
     return data as AppUser;
 }
