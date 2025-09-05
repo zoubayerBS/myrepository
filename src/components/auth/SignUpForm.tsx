@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import * as bcrypt from 'bcryptjs';
+import CryptoJS from 'crypto-js'; // Import CryptoJS
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -65,8 +65,7 @@ export function SignUpForm() {
         return;
       }
       
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(values.password, salt);
+      const hashedPassword = CryptoJS.MD5(values.password).toString(); // MD5 hash
       
       const newUser: AppUser = {
         uid: `${Date.now()}-${values.username}`,

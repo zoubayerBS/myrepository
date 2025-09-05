@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import * as bcrypt from 'bcrypt';
+import CryptoJS from 'crypto-js'; // Import CryptoJS
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -65,7 +65,7 @@ export function LoginForm() {
         return;
       }
 
-      const isPasswordValid = await bcrypt.compare(values.password, user.password);
+      const isPasswordValid = (CryptoJS.MD5(values.password).toString() === user.password);
 
       if (!isPasswordValid) {
         toast({
