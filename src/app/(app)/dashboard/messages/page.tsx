@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useAuth } from '@/lib/auth';
@@ -290,7 +289,7 @@ export default function MessagesPage() {
               </div>
             )}
           </div>
-        }
+        
       </Tabs>
       <NewMessageModal
         open={isModalOpen}
