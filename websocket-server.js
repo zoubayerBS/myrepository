@@ -1,22 +1,8 @@
-
 const { WebSocketServer } = require('ws');
-const Database = require('better-sqlite3');
+const { supabase } = require('./src/lib/supabase-node');
 const { randomUUID } = require('crypto');
-const path = require('path');
 
 const WEBSOCKET_PORT = 8080;
-
-// --- Database Setup ---
-// Re-implementing DB connection here because we can't import the TS module easily.
-const dbPath = path.resolve(__dirname, 'src/db/db.sqlite');
-let db;
-try {
-  db = new Database(dbPath);
-  console.log('Successfully connected to the database.');
-} catch (error) {
-  console.error('Failed to connect to the database:', error);
-  process.exit(1);
-}
 
 // --- WebSocket Server Setup ---
 const wss = new WebSocketServer({ port: WEBSOCKET_PORT });
@@ -67,7 +53,7 @@ wss.on('connection', (ws) => {
 });
 
 // --- Business Logic ---
-function handlePrivateMessage(payload) {
+async function handlePrivateMessage(payload) {
   const { conversationId, senderId, content } = payload;
 
   if (!conversationId || !senderId || !content) {
@@ -80,27 +66,23 @@ function handlePrivateMessage(payload) {
   const messageId = randomUUID();
 
   try {
-    db.transaction(() => {
-      db.prepare(
-        'INSERT INTO messages (id, conversationId, senderId, content, createdAt) VALUES (?, ?, ?, ?, ?)'
-      ).run(messageId, conversationId, senderId, content, now);
+    const { data: messageData, error: messageError } = await supabase.from('messages').insert({ id: messageId, conversationId, senderId, content, createdAt: now }).select().single();
+    if(messageError) throw messageError;
 
-      db.prepare('UPDATE conversations SET updatedAt = ? WHERE id = ?').run(now, conversationId);
-    })();
+    const { error: convError } = await supabase.from('conversations').update({ updatedAt: now }).eq('id', conversationId);
+    if(convError) throw convError;
+
+    const { data: sender, error: senderError } = await supabase.from('users').select('username').eq('uid', senderId).single();
+    if(senderError) throw senderError;
 
     const newMessage = {
-        id: messageId,
-        conversationId,
-        senderId,
-        content,
-        createdAt: now,
-        senderName: db.prepare('SELECT username FROM users WHERE uid = ?').get(senderId)?.username
+        ...messageData,
+        senderName: sender.username
     };
 
     // 2. Find participants of the conversation
-    const participants = db.prepare(
-      'SELECT userId FROM conversation_participants WHERE conversationId = ?'
-    ).all(conversationId);
+    const { data: participants, error: participantsError } = await supabase.from('conversation_participants').select('userId').eq('conversationId', conversationId);
+    if(participantsError) throw participantsError;
 
     // 3. Forward the message to connected participants
     participants.forEach(({ userId }) => {
