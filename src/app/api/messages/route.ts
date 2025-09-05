@@ -17,7 +17,18 @@ export async function GET(request: Request) {
   try {
     let query = supabase
       .from('messages')
-      .select('*, sender:users!senderId(username), receiver:users!receiverId(username)');
+      .select(`
+        id,
+        senderId,
+        receiverId,
+        subject,
+        content,
+        read,
+        isArchived,
+        createdAt,
+        sender:users!senderId(username),
+        receiver:users!receiverId(username)
+      `);
 
     switch (type) {
       case 'received':
@@ -37,7 +48,14 @@ export async function GET(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json(messages);
+    // Map the data to ensure senderName and receiverName are always strings
+    const formattedMessages = messages.map(msg => ({
+      ...msg,
+      senderName: msg.sender?.username || '',
+      receiverName: msg.receiver?.username || '',
+    }));
+
+    return NextResponse.json(formattedMessages);
   } catch (error) {
     console.error('Failed to fetch messages:', error);
     return NextResponse.json({ error: 'Failed to fetch messages' }, { status: 500 });
