@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useAuth } from '@/lib/auth';
@@ -46,7 +47,12 @@ export default function MessagesPage() {
             return res.json();
         })
         .then((data) => {
-          setMessages(data);
+          if (Array.isArray(data)) { // Ensure data is an array
+            setMessages(data);
+          } else {
+            console.error("API returned non-array data:", data);
+            setMessages([]); // Set to empty array to prevent errors
+          }
           setLoading(false);
         })
         .catch(err => {
@@ -131,7 +137,9 @@ export default function MessagesPage() {
                     Aucun message reçu.
                   </div>
                 )}
-                {messages.map((msg) => (
+                {messages.map((msg) => {
+                  if (!msg) return null; // Add check for undefined message
+                  return (
                   <div
                     key={msg.id}
                     onClick={() => handleMessageClick(msg)}
@@ -154,7 +162,7 @@ export default function MessagesPage() {
                       </p>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </TabsContent>
             <TabsContent value="sent" className="flex-1 flex flex-col data-[state=inactive]:hidden">
@@ -164,7 +172,9 @@ export default function MessagesPage() {
                     Aucun message envoyé.
                   </div>
                 )}
-                {messages.map((msg) => (
+                {messages.map((msg) => {
+                  if (!msg) return null; // Add check for undefined message
+                  return (
                   <div
                     key={msg.id}
                     onClick={() => handleMessageClick(msg)}
@@ -187,7 +197,7 @@ export default function MessagesPage() {
                       </p>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </TabsContent>
             <TabsContent value="archived" className="flex-1 flex flex-col data-[state=inactive]:hidden">
@@ -197,7 +207,9 @@ export default function MessagesPage() {
                     Aucun message archivé.
                   </div>
                 )}
-                {messages.map((msg) => (
+                {messages.map((msg) => {
+                  if (!msg) return null; // Add check for undefined message
+                  return (
                   <div
                     key={msg.id}
                     onClick={() => handleMessageClick(msg)}
@@ -220,7 +232,7 @@ export default function MessagesPage() {
                       </p>
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             </TabsContent>
           </div>
@@ -278,7 +290,7 @@ export default function MessagesPage() {
               </div>
             )}
           </div>
-        </div>
+        }
       </Tabs>
       <NewMessageModal
         open={isModalOpen}
