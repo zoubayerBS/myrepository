@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+const supabase = getDb();
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -10,13 +12,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available.");
+    const { count, error } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('userId', userId)
+      .eq('read', 0);
 
-    const stmt = db.prepare('SELECT COUNT(*) as count FROM notifications WHERE userId = ? AND read = 0');
-    const result = stmt.get(userId) as { count: number };
+    if (error) throw error;
 
-    return NextResponse.json({ count: result.count });
+    return NextResponse.json({ count });
   } catch (error) {
     console.error('Failed to fetch unread notification count:', error);
     return NextResponse.json({ error: 'Failed to fetch unread notification count' }, { status: 500 });

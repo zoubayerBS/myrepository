@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
+const supabase = getDb();
+
 // GET all messages for a user (inbox)
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -13,38 +15,27 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available.");
-
-    let query = `
-      SELECT m.id, m.senderId, m.receiverId, m.subject, m.content, m.read, m.createdAt, m.isArchived,
-             u_sender.username as senderName, u_receiver.username as receiverName
-      FROM messages m
-      JOIN users u_sender ON m.senderId = u_sender.uid
-      LEFT JOIN users u_receiver ON m.receiverId = u_receiver.uid
-    `;
-    let params: string[] = [];
+    let query = supabase
+      .from('messages')
+      .select('*, sender:users!senderId(username), receiver:users!receiverId(username)');
 
     switch (type) {
       case 'received':
-        query += ' WHERE m.receiverId = ? AND m.isArchived = 0';
-        params.push(userId);
+        query = query.eq('receiverId', userId).eq('isArchived', 0);
         break;
       case 'sent':
-        query += ' WHERE m.senderId = ? AND m.isArchived = 0';
-        params.push(userId);
+        query = query.eq('senderId', userId).eq('isArchived', 0);
         break;
       case 'archived':
-        query += ' WHERE (m.receiverId = ? OR m.senderId = ?) AND m.isArchived = 1';
-        params.push(userId, userId);
+        query = query.or(`receiverId.eq.${userId},senderId.eq.${userId}`).eq('isArchived', 1);
         break;
       default:
         return NextResponse.json({ error: 'Invalid message type' }, { status: 400 });
     }
 
-    query += ' ORDER BY m.createdAt DESC';
+    const { data: messages, error } = await query.order('createdAt', { ascending: false });
 
-    const messages = db.prepare(query).all(...params);
+    if (error) throw error;
 
     return NextResponse.json(messages);
   } catch (error) {
@@ -62,9 +53,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const db = await getDb();
-    if (!db) throw new Error("Database not available.");
-
     const newMessage = {
       id: uuidv4(),
       conversationId: uuidv4(),
@@ -77,21 +65,11 @@ export async function POST(request: Request) {
       createdAt: new Date().toISOString(),
     };
 
-    db.prepare(
-      'INSERT INTO messages (id, conversationId, senderId, receiverId, subject, content, read, isArchived, createdAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).run(
-      newMessage.id,
-      newMessage.conversationId,
-      newMessage.senderId,
-      newMessage.receiverId,
-      newMessage.subject,
-      newMessage.content,
-      newMessage.read,
-      newMessage.isArchived,
-      newMessage.createdAt
-    );
+    const { data, error } = await supabase.from('messages').insert(newMessage).select().single();
 
-    return NextResponse.json(newMessage, { status: 201 });
+    if (error) throw error;
+
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error('Failed to send message:', error);
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });

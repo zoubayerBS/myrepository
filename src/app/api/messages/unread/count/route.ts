@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+const supabase = getDb();
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -10,13 +12,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = await getDb(); // AWAIT here
-    if (!db) throw new Error("Database not available.");
+    const { count, error } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('receiverId', userId)
+      .eq('read', 0);
 
-    const stmt = db.prepare('SELECT COUNT(*) as count FROM messages WHERE receiverId = ? AND read = 0');
-    const result = stmt.get(userId) as { count: number };
+    if (error) throw error;
 
-    return NextResponse.json({ count: result.count });
+    return NextResponse.json({ count });
   } catch (error) {
     console.error('Failed to fetch unread message count:', error);
     return NextResponse.json({ error: 'Failed to fetch unread message count' }, { status: 500 });

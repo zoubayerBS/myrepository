@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+const supabase = getDb();
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -11,17 +13,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = await getDb(); // AWAIT here
-    if (!db) throw new Error("Database not available.");
+    const { data: messages, error } = await supabase
+      .from('messages')
+      .select('id, senderId, subject, content, createdAt, sender:users!senderId(username)')
+      .eq('receiverId', userId)
+      .eq('read', 0)
+      .order('createdAt', { ascending: false })
+      .limit(limit);
 
-    const messages = db.prepare(`
-      SELECT m.id, m.senderId, m.subject, m.content, m.createdAt, u.username as senderName
-      FROM messages m
-      JOIN users u ON m.senderId = u.uid
-      WHERE m.receiverId = ? AND m.read = 0
-      ORDER BY m.createdAt DESC
-      LIMIT ?
-    `).all(userId, limit);
+    if (error) throw error;
 
     return NextResponse.json(messages);
   } catch (error) {

@@ -11,6 +11,8 @@
 import { z } from 'zod';
 import { getDb } from '@/lib/db'; // Using direct DB access
 
+const supabase = getDb();
+
 const CalculateVacationTotalsInputSchema = z.object({
   userId: z.string().describe('The ID of the user.'),
   startDate: z.string().describe('The start date of the period (YYYY-MM-DD).'),
@@ -29,26 +31,22 @@ export async function calculateVacationTotals(input: CalculateVacationTotalsInpu
   const { userId, startDate, endDate } = input;
 
   try {
-    const db = await getDb(); // AWAIT here
-    if (!db) throw new Error("Database not available."); // Add a check for safety
-
-    // Dates need to be in ISO 8601 format for string comparison in SQLite.
-    // Ensure the end date includes the entire day.
     const startIso = new Date(`${startDate}T00:00:00.000Z`).toISOString();
     const endIso = new Date(`${endDate}T23:59:59.999Z`).toISOString();
 
-    const stmt = db.prepare(`
-        SELECT SUM(amount) as totalAmount
-        FROM vacations
-        WHERE userId = ?
-          AND status = 'Validée'
-          AND date >= ?
-          AND date <= ?
-    `);
+    const { data, error } = await supabase
+        .from('vacations')
+        .select('amount')
+        .eq('userId', userId)
+        .eq('status', 'Validée')
+        .gte('date', startIso)
+        .lte('date', endIso);
 
-    const result = stmt.get(userId, startIso, endIso) as { totalAmount: number | null };
+    if (error) throw error;
 
-    return { totalAmount: result.totalAmount ?? 0 };
+    const totalAmount = data.reduce((sum, record) => sum + record.amount, 0);
+
+    return { totalAmount: totalAmount ?? 0 };
 
   } catch (error) {
     console.error("Error calculating from database:", error);

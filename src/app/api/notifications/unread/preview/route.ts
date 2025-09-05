@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+const supabase = getDb();
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -11,16 +13,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available.");
+    const { data: notifications, error } = await supabase
+      .from('notifications')
+      .select('id, type, message, relatedId, createdAt')
+      .eq('userId', userId)
+      .eq('read', 0)
+      .order('createdAt', { ascending: false })
+      .limit(limit);
 
-    const notifications = db.prepare(`
-      SELECT id, type, message, relatedId, createdAt
-      FROM notifications
-      WHERE userId = ? AND read = 0
-      ORDER BY createdAt DESC
-      LIMIT ?
-    `).all(userId, limit);
+    if (error) throw error;
 
     return NextResponse.json(notifications);
   } catch (error) {

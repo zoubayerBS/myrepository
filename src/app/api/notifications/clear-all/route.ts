@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+const supabase = getDb();
+
 export async function PUT(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -10,13 +12,15 @@ export async function PUT(request: Request) {
   }
 
   try {
-    const db = await getDb();
-    if (!db) throw new Error("Database not available.");
+    const { count, error } = await supabase
+      .from('notifications')
+      .update({ read: 1 })
+      .eq('userId', userId)
+      .eq('read', 0);
 
-    const stmt = db.prepare('UPDATE notifications SET read = 1 WHERE userId = ? AND read = 0');
-    const result = stmt.run(userId);
+    if (error) throw error;
 
-    return NextResponse.json({ message: `Marked ${result.changes} notifications as read` });
+    return NextResponse.json({ message: `Marked ${count} notifications as read` });
   } catch (error) {
     console.error(`Failed to clear all notifications for user ${userId}:`, error);
     return NextResponse.json({ error: 'Failed to clear all notifications' }, { status: 500 });
