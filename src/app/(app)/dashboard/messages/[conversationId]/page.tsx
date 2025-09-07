@@ -137,7 +137,7 @@ export default function ConversationClientPage({ conversationId }: ConversationC
     <div className="flex flex-col h-full">
         <div className="flex items-center p-4 border-b">
             <Avatar className="h-10 w-10 mr-4">
-                <AvatarFallback>{conversation?.otherParticipantName[0].toUpperCase()}</AvatarFallback>
+                <AvatarFallback>{conversation?.otherParticipantName ? conversation.otherParticipantName[0].toUpperCase() : '?'}</AvatarFallback>
             </Avatar>
             <h2 className="text-xl font-semibold">{conversation?.otherParticipantName || 'Conversation'}</h2>
         </div>
@@ -148,7 +148,7 @@ export default function ConversationClientPage({ conversationId }: ConversationC
                 key={msg.id}
                 className={`flex items-start gap-4 ${msg.senderId === user?.uid ? 'flex-row-reverse' : ''}`}>
                 <Avatar className="h-10 w-10">
-                    <AvatarFallback>{msg.senderName[0].toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{msg.senderName ? msg.senderName[0].toUpperCase() : '?'}</AvatarFallback>
                 </Avatar>
                 <div className={`flex flex-col gap-1 ${msg.senderId === user?.uid ? 'items-end' : ''}`}>
                     <div className={`p-4 rounded-2xl max-w-md lg:max-w-lg xl:max-w-2xl ${msg.senderId === user?.uid ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white rounded-bl-none shadow-md'}`}>
