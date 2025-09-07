@@ -1,4 +1,3 @@
-
 import { VacationsClient } from '@/components/dashboard/VacationsClient';
 import { TotalCalculator } from '@/components/dashboard/TotalCalculator';
 import { UserStats } from '@/components/dashboard/UserStats';
@@ -17,7 +16,7 @@ export default async function DashboardPage() {
     const placeholderUser: AppUser = { uid: 'loading', username: 'loading', role: 'user', email: '' };
 
     return (
-    <div className="container mx-auto p-4 md:p-8">
+    <div className="container mx-auto p-4 md:p-8 max-w-full overflow-x-hidden">
         <UserStats userId="" />
         <div className="grid gap-8 md:grid-cols-3 mt-8">
             <div className="md:col-span-2">

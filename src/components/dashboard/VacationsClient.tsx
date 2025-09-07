@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -14,9 +15,22 @@ import { useRouter } from 'next/navigation';
 import { VacationForm } from './VacationForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
+// ✅ Hook utilitaire pour détecter si on est sur mobile
+function useIsMobile(breakpoint: number = 768): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [breakpoint]);
+
+  return isMobile;
+}
 
 interface VacationsClientProps {
-  currentUser: AppUser; // This can be a placeholder from server
+  currentUser: AppUser;
   isAdminView: boolean;
   initialVacations: Vacation[];
   allUsers?: AppUser[];
@@ -27,11 +41,11 @@ export function VacationsClient({
   initialVacations,
   allUsers = [],
 }: VacationsClientProps) {
-  const { user, userData } = useAuth(); // Use the current user from auth context
+  const { user, userData } = useAuth();
   const router = useRouter();
   const [vacations, setVacations] = useState<Vacation[]>(initialVacations);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
-  
+  const [isLoading, setIsLoading] = useState(true);
+
   // Form Modal State
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [vacationToEdit, setVacationToEdit] = useState<Vacation | null>(null);
@@ -41,7 +55,7 @@ export function VacationsClient({
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   const fetchVacations = useCallback(async () => {
@@ -51,9 +65,9 @@ export function VacationsClient({
       let fetchedVacations: Vacation[];
       if (isAdminView) {
         if (userData?.role !== 'admin') {
-            toast({ variant: 'destructive', title: 'Erreur', description: 'Accès non autorisé.' });
-            setIsLoading(false);
-            return;
+          toast({ variant: 'destructive', title: 'Erreur', description: 'Accès non autorisé.' });
+          setIsLoading(false);
+          return;
         }
         const response = await fetch('/api/vacations');
         fetchedVacations = await response.json();
@@ -62,7 +76,6 @@ export function VacationsClient({
         fetchedVacations = await response.json();
       }
       setVacations(fetchedVacations);
-
     } catch (error) {
       console.error("Erreur lors de la récupération des vacations: ", error);
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les vacations.' });
@@ -71,14 +84,12 @@ export function VacationsClient({
   }, [isAdminView, user, userData?.role, toast]);
 
   useEffect(() => {
-    // If we have a user, fetch their data.
     if(user){
       fetchVacations();
     } else {
-      setIsLoading(false); // No user, stop loading
+      setIsLoading(false);
     }
   }, [user, fetchVacations]);
-
 
   const handleEdit = (vacation: Vacation) => {
     setVacationToEdit(vacation);
@@ -92,12 +103,8 @@ export function VacationsClient({
   
   const handleDelete = async (vacationId: string) => {
     try {
-      const response = await fetch(`/api/vacations/${vacationId}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete vacation');
-      }
+      const response = await fetch(`/api/vacations/${vacationId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Failed to delete vacation');
       toast({ title: 'Succès', description: 'Vacation supprimée.' });
       setVacations(prev => prev.filter(v => v.id !== vacationId));
     } catch (error) {
@@ -108,23 +115,20 @@ export function VacationsClient({
 
   const handleStatusChange = async (vacationId: string, status: VacationStatus) => {
     try {
-        const response = await fetch(`/api/vacations/${vacationId}/status`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status }),
-        });
-        if (!response.ok) {
-            throw new Error('Failed to update vacation status');
-        }
-        const updatedVacation = await response.json();
-        toast({ title: 'Succès', description: `Statut de la vacation mis à jour.` });
-        setVacations(prev => prev.map(v => v.id === vacationId ? updatedVacation : v));
+      const response = await fetch(`/api/vacations/${vacationId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error('Failed to update vacation status');
+      const updatedVacation = await response.json();
+      toast({ title: 'Succès', description: `Statut de la vacation mis à jour.` });
+      setVacations(prev => prev.map(v => v.id === vacationId ? updatedVacation : v));
     } catch (error) {
-        console.error("Erreur lors de la mise à jour du statut: ", error);
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de changer le statut.' });
+      console.error("Erreur lors de la mise à jour du statut: ", error);
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de changer le statut.' });
     }
   };
-
 
   const filteredVacations = useMemo(() => {
     return vacations.filter(v => {
@@ -136,16 +140,16 @@ export function VacationsClient({
   }, [vacations, userFilter, typeFilter, statusFilter, isAdminView]);
   
   if (!user || !userData) {
-      return (
-          <div className="flex h-48 items-center justify-center">
-              <p>Chargement des données utilisateur...</p>
-          </div>
-      );
+    return (
+      <div className="flex h-48 items-center justify-center">
+        <p>Chargement des données utilisateur...</p>
+      </div>
+    );
   }
 
   const handleFormSuccess = async () => {
     setIsFormOpen(false);
-    await fetchVacations(); // Refetch all data to ensure consistency
+    await fetchVacations();
   };
 
   return (
@@ -171,7 +175,7 @@ export function VacationsClient({
         </div>
       )}
 
-
+      {/* Filtres */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -226,7 +230,7 @@ export function VacationsClient({
         </CardContent>
       </Card>
 
-
+      {/* Tableau */}
       {isLoading ? (
         <div className="text-center p-8">Chargement des vacations...</div>
       ) : (
@@ -238,22 +242,44 @@ export function VacationsClient({
           onStatusChange={handleStatusChange}
         />
       )}
-       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className="sm:max-w-xl">
+
+      {/* Formulaire modal */}
+      <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
+        <DialogContent className={cn("sm:max-w-xl", isMobile && "w-full h-full")}>
           <DialogHeader>
             <DialogTitle className="font-sans">
-                {vacationToEdit ? 'Modifier la vacation' : 'Ajouter une nouvelle vacation'}
+              {vacationToEdit ? 'Modifier la vacation' : 'Ajouter une nouvelle vacation'}
             </DialogTitle>
             <DialogDescription>
-                {vacationToEdit ? 'Mettez à jour les détails de la vacation.' : 'Remplissez le formulaire pour ajouter une vacation.'}
+              {vacationToEdit ? 'Mettez à jour les détails de la vacation.' : 'Remplissez le formulaire pour ajouter une vacation.'}
             </DialogDescription>
           </DialogHeader>
-           {user && <VacationForm
-                userId={user.uid}
-                vacationToEdit={vacationToEdit}
-                onSuccess={handleFormSuccess}
-                onCancel={() => setIsFormOpen(false)}
-            />}
+
+          {user && (
+            <VacationForm
+              userId={user.uid}
+              vacationToEdit={vacationToEdit}
+              onSuccess={handleFormSuccess}
+              onCancel={() => setIsFormOpen(false)}
+            />
+          )}
+
+          {/* ✅ Footer scrollable en mode mobile */}
+    {/*       <div
+            className={cn(
+              "mt-4 flex gap-2",
+              isMobile ? "overflow-x-auto pb-2 -mx-2 px-2" : "justify-end"
+            )}
+          >
+            <div className="flex gap-2 min-w-max">
+              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" form="vacation-form">
+                {vacationToEdit ? "Mettre à jour" : "Enregistrer"}
+              </Button>
+            </div>
+          </div> */}
         </DialogContent>
       </Dialog>
     </div>

@@ -203,7 +203,7 @@ export function VacationForm({
   }
 
   return (
-    <ScrollArea className="max-h-[80vh] pr-6">
+    <ScrollArea className="max-h-[80vh] pr-6 overflow-x-auto">
       <div className="py-4 px-1">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -415,10 +415,10 @@ export function VacationForm({
             />
           
             <div className="pt-4 flex justify-between">
-                <Button type="button" variant="outline" onClick={fillWithTestData}>
+              {/*   <Button type="button" variant="outline" onClick={fillWithTestData}>
                     <Beaker className="mr-2 h-4 w-4"/>
                     Données de test
-                </Button>
+                </Button> */}
                 <div className="flex gap-2">
                     <Button type="button" variant="secondary" onClick={onCancel}>
                         Annuler

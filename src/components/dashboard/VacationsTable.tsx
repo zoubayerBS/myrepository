@@ -36,6 +36,8 @@ import {
 import { cn } from '@/lib/utils';
 import { sendMessage } from '@/lib/actions/message-actions'; // MODIFIED IMPORT
 import { useAuth } from '@/lib/auth';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 interface VacationsTableProps {
   vacations: Vacation[];
@@ -54,6 +56,7 @@ export function VacationsTable({
 }: VacationsTableProps) {
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
   const { user: adminUser } = useAuth();
+  const isMobile = useIsMobile();
 
   const confirmDelete = () => {
     if (vacationToDelete) {
@@ -148,103 +151,175 @@ export function VacationsTable({
           Exporter en CSV
         </Button>
       </div>
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              {isAdminView && <TableHead>Utilisateur</TableHead>}
-              <TableHead>Date</TableHead>
-              <TableHead>Patient</TableHead>
-              <TableHead>Opération</TableHead>
-              <TableHead>Motif</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Statut</TableHead>
-              <TableHead className="text-right">Montant (DT)</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {vacations.length > 0 ? (
-              vacations.map((vacation) => (
-                <TableRow key={vacation.id}>
-                  {isAdminView && (
-                    <TableCell className="font-medium">
-                      {vacation.user?.username ?? 'N/A'}
-                    </TableCell>
-                  )}
-                  <TableCell>
-                    {format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}
-                  </TableCell>
-                   <TableCell>{vacation.patientName}</TableCell>
-                   <TableCell>{vacation.operation}</TableCell>
-                   <TableCell>{vacation.reason}</TableCell>
-                  <TableCell>
-                    <Badge variant={vacation.type === 'acte' ? 'default' : 'secondary'}>
-                      {vacation.type === 'acte' ? 'Acte' : 'Forfait'}
-                    </Badge>
-                  </TableCell>
-                   <TableCell>
-                    <Badge className={cn('capitalize', getStatusClasses(vacation.status))}>
-                      {vacation.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{vacation.amount.toFixed(2)}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Ouvrir le menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {isAdminView && (
-                           <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                           <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                           {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
-                         </DropdownMenuItem>
-                        )}
-                        {isAdminView && (
-                           <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                           <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                           {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                         </DropdownMenuItem>
-                        )}
-                        {isAdminView && <DropdownMenuSeparator />}
-                        <DropdownMenuItem 
-                            onClick={() => onEdit(vacation)}
-                            disabled={vacation.status !== 'En attente'}
-                        >
-                          <FilePenLine className="mr-2 h-4 w-4" />
-                          Modifier
+      
+      {isMobile ? (
+        <div className="space-y-4">
+          {vacations.length > 0 ? (
+            vacations.map((vacation) => (
+              <Card key={vacation.id} className="p-4 w-full">
+                <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
+                  <CardTitle className="text-lg font-bold">
+                    {vacation.patientName} ({vacation.operation})
+                  </CardTitle>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="h-8 w-8 p-0">
+                        <span className="sr-only">Ouvrir le menu</span>
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                      {isAdminView && (
+                        <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                          <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                          {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive"
-                          onClick={() => setVacationToDelete(vacation)}
+                      )}
+                      {isAdminView && (
+                        <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                          <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                          {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                        </DropdownMenuItem>
+                      )}
+                      {isAdminView && <DropdownMenuSeparator />}
+                      <DropdownMenuItem 
+                          onClick={() => onEdit(vacation)}
                           disabled={vacation.status !== 'En attente'}
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Supprimer
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      >
+                        <FilePenLine className="mr-2 h-4 w-4" />
+                        Modifier
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        className="text-destructive"
+                        onClick={() => setVacationToDelete(vacation)}
+                        disabled={vacation.status !== 'En attente'}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Supprimer
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </CardHeader>
+                <CardContent className="p-0 text-sm overflow-x-auto">
+                  {isAdminView && (
+                    <div className="text-muted-foreground break-words">Utilisateur: <span className="font-medium text-foreground">{vacation.user?.username ?? 'N/A'}</span></div>
+                  )}
+                  <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}</span></div>
+                  <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{vacation.time}</span></div>
+                  <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{vacation.reason}</span></div>
+                  <div className="text-muted-foreground break-words">Type: <Badge variant={vacation.type === 'acte' ? 'default' : 'secondary'} className="max-w-full overflow-hidden">{vacation.type === 'acte' ? 'Acte' : 'Forfait'}</Badge></div>
+                  <div className="text-muted-foreground break-words">Statut: <Badge className={cn('capitalize', getStatusClasses(vacation.status), "max-w-full overflow-hidden")}>{vacation.status}</Badge></div>
+                  <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{vacation.amount.toFixed(2)} DT</span></div>
+                </CardContent>
+              </Card>
+            )) 
+          ) : (
+            <div className="text-center p-4 text-gray-500">
+              Aucune vacation trouvée.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {isAdminView && <TableHead>Utilisateur</TableHead>}
+                <TableHead>Date</TableHead>
+                <TableHead>Patient</TableHead>
+                <TableHead>Opération</TableHead>
+                <TableHead>Motif</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Statut</TableHead>
+                <TableHead className="text-right">Montant (DT)</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {vacations.length > 0 ? (
+                vacations.map((vacation) => (
+                  <TableRow key={vacation.id}>
+                    {isAdminView && (
+                      <TableCell className="font-medium">
+                        {vacation.user?.username ?? 'N/A'}
+                      </TableCell>
+                    )}
+                    <TableCell>
+                      {format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}
+                    </TableCell>
+                     <TableCell>{vacation.patientName}</TableCell>
+                     <TableCell>{vacation.operation}</TableCell>
+                     <TableCell>{vacation.reason}</TableCell>
+                    <TableCell>
+                      <Badge variant={vacation.type === 'acte' ? 'default' : 'secondary'}>
+                        {vacation.type === 'acte' ? 'Acte' : 'Forfait'}
+                      </Badge>
+                    </TableCell>
+                     <TableCell>
+                      <Badge className={cn('capitalize', getStatusClasses(vacation.status))}>
+                        {vacation.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">{vacation.amount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Ouvrir le menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          {isAdminView && (
+                             <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                             <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                             {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                           </DropdownMenuItem>
+                          )}
+                          {isAdminView && (
+                             <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                             <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                             {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                           </DropdownMenuItem>
+                          )}
+                          {isAdminView && <DropdownMenuSeparator />}
+                          <DropdownMenuItem 
+                              onClick={() => onEdit(vacation)}
+                              disabled={vacation.status !== 'En attente'}
+                          >
+                            <FilePenLine className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setVacationToDelete(vacation)}
+                            disabled={vacation.status !== 'En attente'}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )) 
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={isAdminView ? 9 : 8} className="h-24 text-center">
+                    Aucune vacation trouvée.
                   </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={isAdminView ? 9 : 8} className="h-24 text-center">
-                  Aucune vacation trouvée.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
 
       <AlertDialog open={!!vacationToDelete} onOpenChange={(open) => !open && setVacationToDelete(null)}>
         <AlertDialogContent>
