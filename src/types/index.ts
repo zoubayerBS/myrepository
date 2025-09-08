@@ -4,6 +4,9 @@ export interface AppUser {
   username: string;
   password?: string; // WARNING: Insecure, for prototype only
   role: 'user' | 'admin';
+  nom: string;
+  prenom: string;
+  fonction: 'technicien d\'anesthesie' | 'instrumentiste' | 'panseur';
 }
 
 export type VacationStatus = 'En attente' | 'Validée' | 'Refusée';

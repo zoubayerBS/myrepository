@@ -28,10 +28,22 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 const formSchema = z.object({
-  username: z.string().min(3, { message: 'Le nom d\'utilisateur doit contenir au moins 3 caractères.' }),
-  password: z.string().min(6, { message: 'Le mot de passe doit contenir au moins 6 caractères.' }),
+  prenom: z.string().min(2, { message: "Le prénom doit contenir au moins 2 caractères." }),
+  nom: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
+  username: z.string().min(3, { message: "Le nom d'utilisateur doit contenir au moins 3 caractères." }),
+  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères." }),
+  fonction: z.enum(['technicien d\'anesthesie', 'instrumentiste', 'panseur'], {
+    errorMap: () => ({ message: "Veuillez sélectionner une fonction." }),
+  }),
 });
 
 export function SignUpForm() {
@@ -43,8 +55,11 @@ export function SignUpForm() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      prenom: '',
+      nom: '',
       username: '',
       password: '',
+      fonction: undefined,
     },
   });
 
@@ -70,6 +85,9 @@ export function SignUpForm() {
         password: values.password,
         email: `${values.username}@vacationease.app`,
         role: 'user',
+        prenom: values.prenom,
+        nom: values.nom,
+        fonction: values.fonction,
       };
 
       const addUserResponse = await fetch('/api/users', {
@@ -107,6 +125,34 @@ export function SignUpForm() {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="prenom"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Prénom</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Jean" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="nom"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Dupont" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="username"
@@ -129,6 +175,28 @@ export function SignUpForm() {
                   <FormControl>
                     <Input type="password" placeholder="••••••••" {...field} autoComplete="off" />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="fonction"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Fonction</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sélectionnez votre fonction" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="technicien d'anesthesie">Technicien d'anesthésie</SelectItem>
+                      <SelectItem value="instrumentiste">Instrumentiste</SelectItem>
+                      <SelectItem value="panseur">Panseur</SelectItem>
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
