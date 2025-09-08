@@ -27,6 +27,8 @@ export interface Vacation {
   status: VacationStatus;
   user?: { // Optional, denormalized for admin view
     username?: string;
+    nom?: string; // Added
+    prenom?: string; // Added
   };
 }
 

@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Filter, RefreshCw } from 'lucide-react';
+import { PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { VacationsTable } from './VacationsTable';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
@@ -14,20 +14,43 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useRouter } from 'next/navigation';
 import { VacationForm } from './VacationForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { useSwipeable } from 'react-swipeable';
 
 // ✅ Hook utilitaire pour détecter si on est sur mobile
 function useIsMobile(breakpoint: number = 768): boolean {
   const [isMobile, setIsMobile] = useState(false);
-
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, [breakpoint]);
-
   return isMobile;
 }
+
+// ✅ Classes pour le statut
+const getStatusClasses = (status: VacationStatus) => {
+  switch (status) {
+    case 'Validée':
+      return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100';
+    case 'Refusée':
+      return 'bg-red-100 text-red-800 border-red-800 hover:bg-red-100';
+    case 'En attente':
+    default:
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
+  }
+};
 
 interface VacationsClientProps {
   currentUser: AppUser;
@@ -57,6 +80,10 @@ export function VacationsClient({
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
+
+  // Pagination State for mobile view
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 3; // Show 2 cards per page on mobile
 
   const fetchVacations = useCallback(async () => {
     if (!user) return;
@@ -139,6 +166,23 @@ export function VacationsClient({
     });
   }, [vacations, userFilter, typeFilter, statusFilter, isAdminView]);
   
+  // Pagination logic for mobile view
+  const totalPages = Math.ceil(filteredVacations.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentMobileVacations = filteredVacations.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlers = useSwipeable({
+    onSwipedLeft: () => {
+      if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+    },
+    onSwipedRight: () => {
+      if (currentPage > 1) setCurrentPage(prev => prev - 1);
+    },
+    preventScrollOnSwipe: true,
+    trackMouse: true,
+  });
+
   if (!user || !userData) {
     return (
       <div className="flex h-48 items-center justify-center">
@@ -230,17 +274,117 @@ export function VacationsClient({
         </CardContent>
       </Card>
 
-      {/* Tableau */}
+      {/* Tableau / Cards mobile */}
       {isLoading ? (
         <div className="text-center p-8">Chargement des vacations...</div>
       ) : (
-        <VacationsTable 
-          vacations={filteredVacations} 
-          isAdminView={isAdminView} 
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          onStatusChange={handleStatusChange}
-        />
+        isMobile ? (
+          <div className="relative">
+            <div className="space-y-4" {...handlers} style={{ minHeight: '250px' }}>
+              {currentMobileVacations.length > 0 ? currentMobileVacations.map((vacation) => (
+                <Card key={vacation.id} className="p-4 w-full">
+                  <CardHeader className="p-0 pb-2 flex justify-between">
+                    <CardTitle className="text-lg font-bold">{vacation.patientName} ({vacation.operation})</CardTitle>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Ouvrir le menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        {isAdminView && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                            <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                            {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                          </DropdownMenuItem>
+                        )}
+                        {isAdminView && (
+                          <DropdownMenuItem onClick={() => handleStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                            <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                            {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                          </DropdownMenuItem>
+                        )}
+                        {isAdminView && <DropdownMenuSeparator />}
+                        <DropdownMenuItem 
+                            onClick={() => handleEdit(vacation)}
+                            disabled={vacation.status !== 'En attente'}
+                        >
+                          <FilePenLine className="mr-2 h-4 w-4" />
+                          Modifier
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive"
+                          onClick={() => handleDelete(vacation.id)}
+                          disabled={vacation.status !== 'En attente'}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Supprimer
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CardHeader>
+                  <CardContent className="p-0 text-sm overflow-x-auto">
+                    {isAdminView && (
+                      <div className="text-muted-foreground break-words">Employé: <span className="font-medium text-foreground">{vacation.user?.prenom} {vacation.user?.nom}</span></div>
+                    )}
+                    <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}</span></div>
+                    <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{vacation.time}</span></div>
+                    <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{vacation.reason}</span></div>
+                    <div className="text-muted-foreground break-words">Type: <Badge variant={vacation.type === 'acte' ? 'default' : 'secondary'} className="max-w-full overflow-hidden">{vacation.type === 'acte' ? 'Acte' : 'Forfait'}</Badge></div>
+                    <div className="text-muted-foreground break-words">Statut: <Badge className={cn('capitalize', getStatusClasses(vacation.status), "max-w-full overflow-hidden")}>{vacation.status}</Badge></div>
+                    <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{vacation.amount.toFixed(2)} DT</span></div>
+                  </CardContent>
+                </Card>
+              )) : (
+                <div className="text-center p-4 text-gray-500">Aucune vacation trouvée.</div>
+              )}
+            </div>
+
+            {/* Flèches */}
+          {/*   {totalPages > 1 && (
+              <>
+                {currentPage > 1 && (
+                  <button
+                    className="absolute top-1/2 left-2 -translate-y-1/2 p-2 bg-gray-200 rounded-full"
+                    onClick={() => setCurrentPage(prev => prev - 1)}
+                  >◀</button>
+                )}
+                {currentPage < totalPages && (
+                  <button
+                    className="absolute top-1/2 right-2 -translate-y-1/2 p-2 bg-gray-200 rounded-full"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                  >▶</button>
+                )}
+              </>
+            )} */}
+
+            {/* Dots */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-2 space-x-1">
+                {Array.from({ length: totalPages }).map((_, index) => (
+                  <span
+                    key={index}
+                    className={cn(
+                      "w-2 h-2 rounded-full transition-colors",
+                      currentPage === index + 1 ? "bg-blue-500" : "bg-gray-300"
+                    )}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : (
+          <VacationsTable 
+            vacations={filteredVacations} 
+            isAdminView={isAdminView} 
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onStatusChange={handleStatusChange}
+          />
+        )
       )}
 
       {/* Formulaire modal */}
@@ -263,23 +407,6 @@ export function VacationsClient({
               onCancel={() => setIsFormOpen(false)}
             />
           )}
-
-          {/* ✅ Footer scrollable en mode mobile */}
-    {/*       <div
-            className={cn(
-              "mt-4 flex gap-2",
-              isMobile ? "overflow-x-auto pb-2 -mx-2 px-2" : "justify-end"
-            )}
-          >
-            <div className="flex gap-2 min-w-max">
-              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
-                Annuler
-              </Button>
-              <Button type="submit" form="vacation-form">
-                {vacationToEdit ? "Mettre à jour" : "Enregistrer"}
-              </Button>
-            </div>
-          </div> */}
         </DialogContent>
       </Dialog>
     </div>
