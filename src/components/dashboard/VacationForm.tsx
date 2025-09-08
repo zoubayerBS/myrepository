@@ -139,6 +139,11 @@ export function VacationForm({
         throw new Error('User not found');
       }
 
+      console.log('currentUser.fonction:', currentUser.fonction);
+      console.log('values.reason:', values.reason);
+      console.log('values.type:', values.type);
+      console.log('vacationAmounts:', vacationAmounts);
+
       const selectedAmount = vacationAmounts.find(
         (va) => va.fonction === currentUser.fonction && va.motif === values.reason && va.type === values.type
       );
@@ -161,7 +166,7 @@ export function VacationForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...vacationData,
-            amount: vacationToEdit.amount, // Keep original amount
+            amount: amount, // Use the newly calculated amount
             userId: vacationToEdit.userId,
             status: vacationToEdit.status,
           }),

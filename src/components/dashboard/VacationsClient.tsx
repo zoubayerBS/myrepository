@@ -30,27 +30,27 @@ import { useSwipeable } from 'react-swipeable';
 // ✅ Hook utilitaire pour détecter si on est sur mobile
 function useIsMobile(breakpoint: number = 768): boolean {
   const [isMobile, setIsMobile] = useState(false);
+
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < breakpoint);
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, [breakpoint]);
+
   return isMobile;
 }
-
-// ✅ Classes pour le statut
-const getStatusClasses = (status: VacationStatus) => {
-  switch (status) {
-    case 'Validée':
-      return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100';
-    case 'Refusée':
-      return 'bg-red-100 text-red-800 border-red-800 hover:bg-red-100';
-    case 'En attente':
-    default:
-      return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
-  }
-};
+  const getStatusClasses = (status: VacationStatus) => {
+    switch (status) {
+      case 'Validée':
+        return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100';
+      case 'Refusée':
+        return 'bg-red-100 text-red-800 border-red-800 hover:bg-red-100';
+      case 'En attente':
+      default:
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
+    }
+  };
 
 interface VacationsClientProps {
   currentUser: AppUser;
@@ -83,7 +83,7 @@ export function VacationsClient({
 
   // Pagination State for mobile view
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 3; // Show 2 cards per page on mobile
+  const itemsPerPage = 2; // Show 2 cards per page on mobile
 
   const fetchVacations = useCallback(async () => {
     if (!user) return;
@@ -172,12 +172,28 @@ export function VacationsClient({
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentMobileVacations = filteredVacations.slice(indexOfFirstItem, indexOfLastItem);
 
+  const getStatusClasses = (status: VacationStatus) => {
+    switch (status) {
+      case 'Validée':
+        return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100';
+      case 'Refusée':
+        return 'bg-red-100 text-red-800 border-red-800 hover:bg-red-100';
+      case 'En attente':
+      default:
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
+    }
+  };
+
   const handlers = useSwipeable({
     onSwipedLeft: () => {
-      if (currentPage < totalPages) setCurrentPage(prev => prev + 1);
+      if (currentPage < totalPages) {
+        setCurrentPage(prev => prev + 1);
+      }
     },
     onSwipedRight: () => {
-      if (currentPage > 1) setCurrentPage(prev => prev - 1);
+      if (currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      }
     },
     preventScrollOnSwipe: true,
     trackMouse: true,
@@ -274,18 +290,20 @@ export function VacationsClient({
         </CardContent>
       </Card>
 
-      {/* Tableau / Cards mobile */}
+      {/* Tableau */}
       {isLoading ? (
         <div className="text-center p-8">Chargement des vacations...</div>
       ) : (
         isMobile ? (
-          <div className="relative">
-            <div className="space-y-4" {...handlers} style={{ minHeight: '250px' }}>
-              {currentMobileVacations.length > 0 ? currentMobileVacations.map((vacation) => (
+          <div className="space-y-4" {...handlers}>
+            {currentMobileVacations.length > 0 ? (
+              currentMobileVacations.map((vacation) => (
                 <Card key={vacation.id} className="p-4 w-full">
-                  <CardHeader className="p-0 pb-2 flex justify-between">
-                    <CardTitle className="text-lg font-bold">{vacation.patientName} ({vacation.operation})</CardTitle>
-                    <DropdownMenu>
+                  <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className="text-lg font-bold truncate"> {/* Added truncate */}
+                      {vacation.patientName} ({vacation.operation})
+                    </CardTitle>
+                    <DropdownMenu className="flex-shrink-0"> {/* Added flex-shrink-0 */}
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Ouvrir le menu</span>
@@ -338,37 +356,20 @@ export function VacationsClient({
                     <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{vacation.amount.toFixed(2)} DT</span></div>
                   </CardContent>
                 </Card>
-              )) : (
-                <div className="text-center p-4 text-gray-500">Aucune vacation trouvée.</div>
-              )}
-            </div>
-
-            {/* Flèches */}
-          {/*   {totalPages > 1 && (
-              <>
-                {currentPage > 1 && (
-                  <button
-                    className="absolute top-1/2 left-2 -translate-y-1/2 p-2 bg-gray-200 rounded-full"
-                    onClick={() => setCurrentPage(prev => prev - 1)}
-                  >◀</button>
-                )}
-                {currentPage < totalPages && (
-                  <button
-                    className="absolute top-1/2 right-2 -translate-y-1/2 p-2 bg-gray-200 rounded-full"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                  >▶</button>
-                )}
-              </>
-            )} */}
-
-            {/* Dots */}
+              ))
+            ) : (
+              <div className="text-center p-4 text-gray-500">
+                Aucune vacation trouvée.
+              </div>
+            )}
+            {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="flex justify-center mt-2 space-x-1">
-                {Array.from({ length: totalPages }).map((_, index) => (
+              <div className="flex justify-center space-x-2 mt-4">
+                {Array.from({ length: totalPages }, (_, index) => (
                   <span
                     key={index}
                     className={cn(
-                      "w-2 h-2 rounded-full transition-colors",
+                      "block h-2 w-2 rounded-full",
                       currentPage === index + 1 ? "bg-blue-500" : "bg-gray-300"
                     )}
                   />
@@ -407,6 +408,23 @@ export function VacationsClient({
               onCancel={() => setIsFormOpen(false)}
             />
           )}
+
+          {/* ✅ Footer scrollable en mode mobile */}
+    {/*       <div
+            className={cn(
+              "mt-4 flex gap-2",
+              isMobile ? "overflow-x-auto pb-2 -mx-2 px-2" : "justify-end"
+            )}
+          >
+            <div className="flex gap-2 min-w-max">
+              <Button variant="outline" onClick={() => setIsFormOpen(false)}>
+                Annuler
+              </Button>
+              <Button type="submit" form="vacation-form">
+                {vacationToEdit ? "Mettre à jour" : "Enregistrer"}
+              </Button>
+            </div>
+          </div> */}
         </DialogContent>
       </Dialog>
     </div>
