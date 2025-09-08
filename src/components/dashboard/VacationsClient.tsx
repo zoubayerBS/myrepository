@@ -321,7 +321,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
             <DialogTitle>{vacationToEdit ? 'Modifier la vacation' : 'Ajouter une nouvelle vacation'}</DialogTitle>
             <DialogDescription>{vacationToEdit ? 'Mettez à jour les détails de la vacation.' : 'Remplissez le formulaire pour ajouter une vacation.'}</DialogDescription>
           </DialogHeader>
-          {user && <VacationForm userId={user.uid} vacationToEdit={vacationToEdit} onSuccess={handleFormSuccess} onCancel={() => setIsFormOpen(false)} />}
+          {user && <VacationForm userId={user.uid} vacationToEdit={vacationToEdit} onSuccess={handleFormSuccess} onCancel={() => setIsFormOpen(false)} isAdmin={isAdminView} />}
         </DialogContent>
       </Dialog>
 

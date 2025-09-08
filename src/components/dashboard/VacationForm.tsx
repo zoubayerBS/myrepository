@@ -54,6 +54,7 @@ const formSchema = z.object({
   type: z.enum(['acte', 'forfait'], {
     required_error: 'Le type de vacation est requis.',
   }),
+  exceptionalAmount: z.number().optional(),
 });
 
 interface VacationFormProps {
@@ -61,6 +62,7 @@ interface VacationFormProps {
   vacationToEdit?: Vacation | null;
   onSuccess: () => void;
   onCancel: () => void;
+  isAdmin: boolean;
 }
 
 export function VacationForm({
@@ -68,7 +70,9 @@ export function VacationForm({
   vacationToEdit,
   onSuccess,
   onCancel,
+  isAdmin,
 }: VacationFormProps) {
+  console.log("VacationForm isAdmin:", isAdmin);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [surgeons, setSurgeons] = React.useState<Surgeon[]>([]);
@@ -86,6 +90,7 @@ export function VacationForm({
       operation: vacationToEdit?.operation ?? '',
       reason: vacationToEdit?.reason ?? 'Necessite du travail',
       type: vacationToEdit?.type ?? 'forfait',
+      exceptionalAmount: vacationToEdit?.amount,
     },
   });
 
@@ -117,6 +122,7 @@ export function VacationForm({
         operation: vacationToEdit.operation,
         reason: vacationToEdit.reason,
         type: vacationToEdit.type,
+        exceptionalAmount: vacationToEdit.amount,
       });
     } else {
         form.reset({
@@ -128,6 +134,7 @@ export function VacationForm({
             operation: '',
             reason: 'Necessite du travail',
             type: 'forfait',
+            exceptionalAmount: undefined,
       });
     }
   }, [vacationToEdit, form]);
@@ -139,23 +146,23 @@ export function VacationForm({
         throw new Error('User not found');
       }
 
-      console.log('currentUser.fonction:', currentUser.fonction);
-      console.log('values.reason:', values.reason);
-      console.log('values.type:', values.type);
-      console.log('vacationAmounts:', vacationAmounts);
+      let amount;
+      if (isAdmin && values.exceptionalAmount !== undefined && values.exceptionalAmount !== null) {
+        amount = values.exceptionalAmount;
+      } else {
+        const selectedAmount = vacationAmounts.find(
+          (va) => va.fonction === currentUser.fonction && va.motif === values.reason && va.type === values.type
+        );
 
-      const selectedAmount = vacationAmounts.find(
-        (va) => va.fonction === currentUser.fonction && va.motif === values.reason && va.type === values.type
-      );
-
-      if (!selectedAmount) {
-        throw new Error('Amount for function, reason, and type not found');
+        if (!selectedAmount) {
+          throw new Error('Amount for function, reason, and type not found');
+        }
+        amount = selectedAmount.amount;
       }
-
-      const amount = selectedAmount.amount;
       
+      const { exceptionalAmount, ...rest } = values; // Destructure exceptionalAmount
       const vacationData = {
-        ...values,
+        ...rest, // Use rest to exclude exceptionalAmount
         date: values.date.toISOString(),
         amount,
       };
@@ -166,7 +173,6 @@ export function VacationForm({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ...vacationData,
-            amount: amount, // Use the newly calculated amount
             userId: vacationToEdit.userId,
             status: vacationToEdit.status,
           }),
@@ -415,6 +421,28 @@ export function VacationForm({
                 </FormItem>
               )}
             />
+
+            {isAdmin && (
+              <FormField
+                control={form.control}
+                name="exceptionalAmount"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Montant Exceptionnel</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number"
+                        placeholder="Laisser vide pour le calcul auto"
+                        {...field}
+                        onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
+                        value={field.value ?? ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
           
             <div className="pt-4 flex justify-between">
                 <div className="flex gap-2">
