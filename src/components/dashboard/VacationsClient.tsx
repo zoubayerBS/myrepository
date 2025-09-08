@@ -36,6 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSwipeable } from 'react-swipeable';
+import { sendMessage } from '@/lib/actions/message-actions';
 
 // Hook mobile
 function useIsMobile(breakpoint: number = 768): boolean {
@@ -126,14 +127,34 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
   };
 
   const handleStatusChange = async (vacationId: string, status: VacationStatus) => {
+    const vacation = vacations.find(v => v.id === vacationId);
+    if (!vacation || !user || !userData) return;
+
     try {
-      const response = await fetch(`/api/vacations/${vacationId}/status`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
-      if (!response.ok) throw new Error();
+      const response = await fetch(`/api/vacations/${vacationId}/status`, { 
+        method: 'PUT', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ status }) 
+      });
+      if (!response.ok) throw new Error('Failed to update status');
+      
       const updatedVacation = await response.json();
-      setVacations(prev => prev.map(v => v.id === vacationId ? updatedVacation : v));
+      setVacations(prev => prev.map(v => (v.id === vacationId ? updatedVacation : v)));
       toast({ title: 'Succès', description: 'Statut mis à jour.' });
+
+      const subject = `Mise à jour du statut de votre vacation`;
+      const content = `Votre demande de vacation pour le ${format(new Date(vacation.date), 'dd/MM/yyyy', { locale: fr })} a été ${status.toLowerCase()} par ${userData.username}.`;
+      
+      await sendMessage({
+        senderId: user.uid,
+        receiverId: vacation.userId,
+        subject,
+        content,
+      });
+
     } catch (error) {
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de changer le statut.' });
+      console.error("Error changing status or sending notification:", error);
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de changer le statut ou d\'envoyer la notification.' });
     }
   };
 
