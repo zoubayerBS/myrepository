@@ -154,3 +154,13 @@ export async function updateVacationAmounts(amounts: VacationAmount[]): Promise<
     const { error } = await supabase.from('vacation_amounts_full').upsert(amounts);
     if (error) throw error;
 }
+
+// --- Settings Functions ---
+
+export async function getSettings(): Promise<VacationAmount[]> {
+    return getVacationAmounts();
+}
+
+export async function updateSettings(amounts: VacationAmount[]): Promise<void> {
+    return updateVacationAmounts(amounts);
+}
