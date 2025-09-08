@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import type { Vacation, Surgeon } from '@/types';
+import type { Vacation, Surgeon, AppUser, VacationAmount } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -38,8 +38,6 @@ import {
   CommandItem,
   CommandList,
 } from '@/components/ui/command';
-  
-
 
 const formSchema = z.object({
   date: z.date({
@@ -74,6 +72,8 @@ export function VacationForm({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [surgeons, setSurgeons] = React.useState<Surgeon[]>([]);
+  const [currentUser, setCurrentUser] = React.useState<AppUser | null>(null);
+  const [vacationAmounts, setVacationAmounts] = React.useState<VacationAmount[]>([]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -90,13 +90,21 @@ export function VacationForm({
   });
 
   React.useEffect(() => {
-    async function fetchSurgeons() {
-        const response = await fetch('/api/surgeons');
-        const fetchedSurgeons = await response.json();
-        setSurgeons(fetchedSurgeons);
+    async function fetchData() {
+      const surgeonsResponse = await fetch('/api/surgeons');
+      const fetchedSurgeons = await surgeonsResponse.json();
+      setSurgeons(fetchedSurgeons);
+
+      const userResponse = await fetch(`/api/users?uid=${userId}`);
+      const fetchedUser = await userResponse.json();
+      setCurrentUser(fetchedUser);
+
+      const amountsResponse = await fetch('/api/vacation-amounts');
+      const fetchedAmounts = await amountsResponse.json();
+      setVacationAmounts(fetchedAmounts);
     }
-    fetchSurgeons();
-  }, []);
+    fetchData();
+  }, [userId]);
 
   React.useEffect(() => {
     if (vacationToEdit) {
@@ -124,25 +132,22 @@ export function VacationForm({
     }
   }, [vacationToEdit, form]);
 
-  const fillWithTestData = () => {
-    form.reset({
-      date: new Date(),
-      time: '14:30',
-      patientName: 'John Doe (Test)',
-      matricule: 'T123456',
-      surgeon: surgeons.length > 0 ? surgeons[0].name : 'Dr. Test',
-      operation: 'Appendicectomie (Test)',
-      reason: 'Necessite du travail',
-      type: 'acte',
-    });
-  };
-
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const settingsResponse = await fetch('/api/settings');
-      const settings = await settingsResponse.json();
-      const amount = values.type === 'acte' ? settings.acteAmount : settings.forfaitAmount;
+      if (!currentUser) {
+        throw new Error('User not found');
+      }
+
+      const selectedAmount = vacationAmounts.find(
+        (va) => va.fonction === currentUser.fonction && va.motif === values.reason && va.type === values.type
+      );
+
+      if (!selectedAmount) {
+        throw new Error('Amount for function, reason, and type not found');
+      }
+
+      const amount = selectedAmount.amount;
       
       const vacationData = {
         ...values,
@@ -180,14 +185,6 @@ export function VacationForm({
         }
         const addedVacation = await response.json();
         toast({ title: 'Succès', description: 'Vacation ajoutée et en attente de validation.' });
-
-        // Notify admin
-        const adminsResponse = await fetch('/api/users');
-        const admins = await adminsResponse.json();
-        const adminUser = admins.find((u: { role: string; }) => u.role === 'admin');
-        if (adminUser) {
-            // Notification removed as per user request
-        }
       }
       onSuccess();
     } catch (error) {
@@ -415,10 +412,6 @@ export function VacationForm({
             />
           
             <div className="pt-4 flex justify-between">
-              {/*   <Button type="button" variant="outline" onClick={fillWithTestData}>
-                    <Beaker className="mr-2 h-4 w-4"/>
-                    Données de test
-                </Button> */}
                 <div className="flex gap-2">
                     <Button type="button" variant="secondary" onClick={onCancel}>
                         Annuler

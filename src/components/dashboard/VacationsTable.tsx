@@ -78,7 +78,7 @@ export function VacationsTable({
 
   const exportToCSV = () => {
     const headers = isAdminView 
-      ? ['Utilisateur', 'Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)']
+      ? ['Nom Complet', 'Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)']
       : ['Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)'];
     
     const rows = vacations.map(v => {
@@ -95,7 +95,7 @@ export function VacationsTable({
         v.amount.toFixed(2)
       ];
       return isAdminView 
-        ? [v.user?.username ?? 'N/A', ...commonData]
+        ? [`${v.user?.prenom ?? ''} ${v.user?.nom ?? ''}`.trim(), ...commonData]
         : commonData;
     });
 
@@ -204,7 +204,7 @@ export function VacationsTable({
                 </CardHeader>
                 <CardContent className="p-0 text-sm overflow-x-auto">
                   {isAdminView && (
-                    <div className="text-muted-foreground break-words">Utilisateur: <span className="font-medium text-foreground">{vacation.user?.username ?? 'N/A'}</span></div>
+                    <div className="text-muted-foreground break-words">Utilisateur: <span className="font-medium text-foreground">{vacation.user?.prenom} {vacation.user?.nom}</span></div>
                   )}
                   <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}</span></div>
                   <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{vacation.time}</span></div>
@@ -226,7 +226,7 @@ export function VacationsTable({
           <Table>
             <TableHeader>
               <TableRow>
-                {isAdminView && <TableHead>Utilisateur</TableHead>}
+                {isAdminView && <TableHead>Nom Complet</TableHead>}
                 <TableHead>Date</TableHead>
                 <TableHead>Patient</TableHead>
                 <TableHead>Opération</TableHead>
@@ -245,7 +245,7 @@ export function VacationsTable({
                   <TableRow key={vacation.id}>
                     {isAdminView && (
                       <TableCell className="font-medium">
-                        {vacation.user?.username ?? 'N/A'}
+                        {vacation.user?.prenom} {vacation.user?.nom}
                       </TableCell>
                     )}
                     <TableCell>

@@ -1,7 +1,7 @@
 'use server';
 
 import { getDb } from './db';
-import type { AppUser, Vacation, VacationStatus, Surgeon } from '@/types';
+import type { AppUser, Vacation, VacationStatus, Surgeon, VacationAmount } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 
 const supabase = getDb();
@@ -37,7 +37,7 @@ export async function addUser(user: AppUser): Promise<AppUser> {
 }
 
 export async function getAllUsers(): Promise<AppUser[]> {
-    const { data, error } = await supabase.from('users').select('uid, username, email, role');
+    const { data, error } = await supabase.from('users').select('uid, username, email, role, nom, prenom');
     if (error) throw error;
     return data as AppUser[];
 }
@@ -121,31 +121,7 @@ export async function updateVacationStatus(vacationId: string, status: VacationS
     return updatedVacation;
 }
 
-// --- Settings Functions ---
 
-async function getSetting(key: string): Promise<string | null> {
-    const { data, error } = await supabase.from('settings').select('value').eq('key', key).single();
-    if (error && error.code !== 'PGRST116') return null;
-    return data?.value ?? null;
-}
-
-export async function getSettings(): Promise<{ acteAmount: number; forfaitAmount: number }> {
-    const acteAmountStr = await getSetting('acteAmount');
-    const forfaitAmountStr = await getSetting('forfaitAmount');
-    
-    return {
-        acteAmount: acteAmountStr ? parseFloat(acteAmountStr) : 35,
-        forfaitAmount: forfaitAmountStr ? parseFloat(forfaitAmountStr) : 25,
-    };
-}
-
-export async function updateSettings(settings: { acteAmount: number; forfaitAmount: number }): Promise<void> {
-    const { error } = await supabase.from('settings').upsert([
-        { key: 'acteAmount', value: settings.acteAmount.toString() },
-        { key: 'forfaitAmount', value: settings.forfaitAmount.toString() },
-    ]);
-    if (error) throw error;
-}
 
 // --- Surgeon Functions ---
 
@@ -163,5 +139,18 @@ export async function addSurgeon(name: string): Promise<Surgeon> {
 
 export async function deleteSurgeon(id: number): Promise<void> {
     const { error } = await supabase.from('surgeons').delete().eq('id', id);
+    if (error) throw error;
+}
+
+// --- Vacation Amount Functions ---
+
+export async function getVacationAmounts(): Promise<VacationAmount[]> {
+    const { data, error } = await supabase.from('vacation_amounts_full').select('*');
+    if (error) throw error;
+    return data as VacationAmount[];
+}
+
+export async function updateVacationAmounts(amounts: VacationAmount[]): Promise<void> {
+    const { error } = await supabase.from('vacation_amounts_full').upsert(amounts);
     if (error) throw error;
 }

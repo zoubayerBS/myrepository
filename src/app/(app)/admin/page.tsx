@@ -1,16 +1,16 @@
-
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Clock, CheckCircle, Hourglass, BarChart, FileText, Settings, Trophy, Stethoscope } from 'lucide-react';
 import { VacationsClient } from '@/components/dashboard/VacationsClient';
 import { AdminVacationChart } from '@/components/dashboard/AdminVacationChart';
 import { ReportGenerator } from '@/components/dashboard/ReportGenerator';
-import { SettingsForm } from '@/components/dashboard/SettingsForm';
+
 import { EmployeeLeaderboard } from '@/components/dashboard/EmployeeLeaderboard';
 import type { AppUser, Vacation } from '@/types';
 import { getAllUsers, findAllVacations } from '@/lib/local-data';
 import { SurgeonManager } from '@/components/dashboard/SurgeonManager';
 import { Separator } from '@/components/ui/separator';
+import { VacationAmountManager } from '@/components/dashboard/VacationAmountManager';
 
 export const revalidate = 0; // Disable caching
 
@@ -117,11 +117,17 @@ export default async function AdminPage() {
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-6">
-                        <SettingsForm />
-                        <Separator />
+                        
                         <SurgeonManager />
+                        <Separator />
+                        
                     </CardContent>
                 </Card>
+            </div>
+
+            {/* New row for VacationAmountManager */}
+            <div className="mb-8">
+                <VacationAmountManager />
             </div>
 
             <VacationsClient 

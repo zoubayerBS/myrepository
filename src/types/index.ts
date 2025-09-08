@@ -48,3 +48,10 @@ export interface Message {
   createdAt: string;
   senderName: string;
 }
+
+export interface VacationAmount {
+  fonction: 'technicien d\'anesthesie' | 'instrumentiste' | 'panseur';
+  motif: 'Astreinte A.M' | 'Necessite du travail' | 'Astreinte nuit' | 'Astreinte matin';
+  type: 'acte' | 'forfait';
+  amount: number;
+}

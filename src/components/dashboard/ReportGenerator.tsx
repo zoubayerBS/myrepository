@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -67,20 +66,20 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
     doc.text('Filtres Appliqués', 14, 40);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    const userText = `Employé: ${selectedUser ? selectedUser.username : 'Tous les employés'}`;
+    const userText = `Employé: ${selectedUser ? `${selectedUser.prenom} ${selectedUser.nom}` : 'Tous les employés'}`;
     const periodText = `Période: Du ${format(dateRange.from, 'dd/MM/yyyy')} au ${format(dateRange.to, 'dd/MM/yyyy')}`;
     doc.text(userText, 14, 46);
     doc.text(periodText, 14, 52);
 
 
     // Table
-    const tableColumn = ["Date", "Employé", "Patient", "Opération", "Type", "Statut", "Montant (DT)"];
+    const tableColumn = ["Date", "Nom Complet", "Patient", "Opération", "Type", "Statut", "Montant (DT)"];
     const tableRows: (string | number)[][] = [];
 
     filteredData.forEach(vacation => {
         const vacationData = [
             format(new Date(vacation.date), 'dd/MM/yy'),
-            vacation.user?.username ?? 'N/A',
+            `${vacation.user?.prenom ?? ''} ${vacation.user?.nom ?? ''}`.trim(),
             vacation.patientName,
             vacation.operation,
             vacation.type === 'acte' ? 'Acte' : 'Forfait',
