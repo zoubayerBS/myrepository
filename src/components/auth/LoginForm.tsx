@@ -77,6 +77,10 @@ export function LoginForm() {
       }
 
       await login(user.uid);
+      toast({
+        title: 'Connexion réussie',
+        description: 'Bienvenue sur votre tableau de bord.',
+      });
       router.push('/dashboard');
     } catch (error: any) {
       toast({
