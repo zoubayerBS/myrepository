@@ -4,7 +4,7 @@
 import { useMemo } from 'react';
 import { startOfMonth, startOfWeek, endOfWeek, endOfMonth, isWithinInterval } from 'date-fns';
 import type { AppUser, Vacation } from '@/types';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -64,10 +64,9 @@ export function EmployeeLeaderboard({ vacations, users }: EmployeeLeaderboardPro
           {leaderboard.map((entry, index) => (
             <li key={entry.user.uid} className="flex items-center gap-4">
                <div className="font-bold text-lg text-primary w-4">{index + 1}.</div>
-              <Avatar className="h-9 w-9">
-                <AvatarImage src={`/avatars/${entry.user.username}.png`} alt={entry.user.username} />
-                <AvatarFallback>{(entry.user.username?.[0] ?? '').toUpperCase()}</AvatarFallback>
-              </Avatar>
+              <div className="relative h-9 w-9 rounded-full flex items-center justify-center text-gray-800 text-base font-semibold">
+                {(entry.user.username?.[0] ?? '').toUpperCase()}
+              </div>
               <div className="flex-1">
                 <p className="text-sm font-medium leading-none">{entry.user.username}</p>
                  <p className="text-xs text-muted-foreground">

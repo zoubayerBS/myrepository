@@ -126,7 +126,7 @@ export function SurgeonManager() {
                 render={({ field }) => (
                     <FormItem className="flex-1">
                     <FormControl>
-                        <Input placeholder="Nom du nouveau chirurgien" {...field} />
+                        <Input autoComplete='off' placeholder="Nom du nouveau chirurgien" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>

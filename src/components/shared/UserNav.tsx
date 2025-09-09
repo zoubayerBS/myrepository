@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { LayoutDashboard, LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -36,10 +36,9 @@ export function UserNav() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src="/placeholder-user.jpg" alt={userData.username} />
-            <AvatarFallback>{initials}</AvatarFallback>
-          </Avatar>
+          <div className="relative h-10 w-10 rounded-full flex items-center justify-center text-gray-800 text-xl font-semibold">
+            {initials}
+          </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>

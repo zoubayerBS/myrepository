@@ -72,7 +72,6 @@ export function VacationForm({
   onCancel,
   isAdmin,
 }: VacationFormProps) {
-  console.log("VacationForm isAdmin:", isAdmin);
   const { toast } = useToast();
   const [isLoading, setIsLoading] = React.useState(false);
   const [surgeons, setSurgeons] = React.useState<Surgeon[]>([]);

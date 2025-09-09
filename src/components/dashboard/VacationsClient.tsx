@@ -37,6 +37,10 @@ import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { useSwipeable } from 'react-swipeable';
 import { sendMessage } from '@/lib/actions/message-actions';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
+import { Check } from 'lucide-react';
 
 // Hook mobile
 function useIsMobile(breakpoint: number = 768): boolean {
@@ -69,12 +73,13 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
   const [userFilter, setUserFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 2;
+  const itemsPerPage = 5;
 
   const fetchVacations = useCallback(async () => {
     if (!user) return;
@@ -127,6 +132,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
   };
 
   const handleStatusChange = async (vacationId: string, status: VacationStatus) => {
+    console.log(`handleStatusChange called for vacationId: ${vacationId}, status: ${status}`);
     const vacation = vacations.find(v => v.id === vacationId);
     if (!vacation || !user || !userData) return;
 
@@ -158,12 +164,30 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
     }
   };
 
-  const filteredVacations = useMemo(() => vacations.filter(v => {
-    const userMatch = !isAdminView || userFilter === 'all' || v.userId === userFilter;
-    const typeMatch = typeFilter === 'all' || v.type === typeFilter;
-    const statusMatch = statusFilter === 'all' || v.status === statusFilter;
-    return userMatch && typeMatch && statusMatch;
-  }), [vacations, userFilter, typeFilter, statusFilter, isAdminView]);
+  const filteredVacations = useMemo(() => {
+    let filtered = vacations.filter(v => {
+      const userMatch = !isAdminView || userFilter === 'all' || v.userId === userFilter;
+      const typeMatch = typeFilter === 'all' || v.type === typeFilter;
+      const statusMatch = statusFilter === 'all' || v.status === statusFilter;
+      return userMatch && typeMatch && statusMatch;
+    });
+
+    if (searchQuery) {
+      const lowerCaseQuery = searchQuery.toLowerCase();
+      filtered = filtered.filter(v =>
+        v.patientName.toLowerCase().includes(lowerCaseQuery) ||
+        v.matricule.toLowerCase().includes(lowerCaseQuery) ||
+        v.surgeon.toLowerCase().includes(lowerCaseQuery) ||
+        v.operation.toLowerCase().includes(lowerCaseQuery) ||
+        v.reason.toLowerCase().includes(lowerCaseQuery) ||
+        v.type.toLowerCase().includes(lowerCaseQuery) ||
+        v.user?.username?.toLowerCase().includes(lowerCaseQuery) || // Search by username if available
+        v.user?.nom?.toLowerCase().includes(lowerCaseQuery) || // Search by user's last name
+        v.user?.prenom?.toLowerCase().includes(lowerCaseQuery) // Search by user's first name
+      );
+    }
+    return filtered;
+  }, [vacations, userFilter, typeFilter, statusFilter, isAdminView, searchQuery]);
 
   const totalPages = Math.ceil(filteredVacations.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -216,6 +240,18 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
             <CardTitle className="flex items-center gap-2"><Filter className="h-5 w-5" />Filtres</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex-1 col-span-full"> {/* Make search span full width */}
+              <Label htmlFor="search">Recherche</Label>
+              <Input
+                id="search"
+                type="text"
+                autoComplete='off'
+                placeholder="Rechercher une vacation..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="mt-1"
+              />
+            </div>
             {isAdminView && (
               <div className="flex-1">
                 <Label>Utilisateur</Label>
@@ -309,7 +345,34 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
             {totalPages > 1 && <div className="flex justify-center space-x-2 mt-4">{Array.from({ length: totalPages }, (_, i) => <span key={i} className={cn("block h-2 w-2 rounded-full", currentPage === i+1?"bg-blue-500":"bg-gray-300")}></span>)}</div>}
           </div>
         ) : (
-          <VacationsTable vacations={filteredVacations} isAdminView={isAdminView} onEdit={handleEdit} onDelete={handleDelete} onStatusChange={handleStatusChange} />
+          <>
+            <VacationsTable
+              vacations={filteredVacations.slice(indexOfFirstItem, indexOfLastItem)} // Apply pagination here
+              isAdminView={isAdminView}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onStatusChange={handleStatusChange}
+            />
+            {totalPages > 1 && (
+              <div className="flex justify-between items-center mt-4">
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  variant="outline"
+                >
+                  Précédent
+                </Button>
+                <span>Page {currentPage} sur {totalPages}</span>
+                <Button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  variant="outline"
+                >
+                  Suivant
+                </Button>
+              </div>
+            )}
+          </>
         )}
       </div>
       
