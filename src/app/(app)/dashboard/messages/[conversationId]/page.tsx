@@ -7,7 +7,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Loader2, Send } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 
 const WEBSOCKET_URL = 'ws://localhost:8080';
 
@@ -136,9 +136,9 @@ export default function ConversationClientPage({ conversationId }: ConversationC
   return (
     <div className="flex flex-col h-full">
         <div className="flex items-center p-4 border-b">
-            <Avatar className="h-10 w-10 mr-4">
-                <AvatarFallback>{conversation?.otherParticipantName ? conversation.otherParticipantName[0].toUpperCase() : '?'}</AvatarFallback>
-            </Avatar>
+            <div className="relative h-10 w-10 rounded-full flex items-center justify-center text-gray-800 text-xl font-semibold mr-4">
+                {conversation?.otherParticipantName ? conversation.otherParticipantName[0].toUpperCase() : '?'}
+            </div>
             <h2 className="text-xl font-semibold">{conversation?.otherParticipantName || 'Conversation'}</h2>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gray-50">
@@ -147,9 +147,9 @@ export default function ConversationClientPage({ conversationId }: ConversationC
             <div
                 key={msg.id}
                 className={`flex items-start gap-4 ${msg.senderId === user?.uid ? 'flex-row-reverse' : ''}`}>
-                <Avatar className="h-10 w-10">
-                    <AvatarFallback>{msg.senderName ? msg.senderName[0].toUpperCase() : '?'}</AvatarFallback>
-                </Avatar>
+                <div className="relative h-10 w-10 rounded-full flex items-center justify-center text-gray-800 text-xl font-semibold">
+                    {msg.senderName ? msg.senderName[0].toUpperCase() : '?'}
+                </div>
                 <div className={`flex flex-col gap-1 ${msg.senderId === user?.uid ? 'items-end' : ''}`}>
                     <div className={`p-4 rounded-2xl max-w-md lg:max-w-lg xl:max-w-2xl ${msg.senderId === user?.uid ? 'bg-blue-500 text-white rounded-br-none' : 'bg-white rounded-bl-none shadow-md'}`}>
                         <p className="font-medium text-sm mb-1">{msg.senderName}</p>
