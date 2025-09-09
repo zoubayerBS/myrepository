@@ -5,7 +5,7 @@ import { Message } from '@/types';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, FilePlus, Archive, ArchiveRestore } from 'lucide-react';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -308,11 +308,9 @@ export default function MessagesPage() {
                 </div>
 
                 <div className="flex items-center gap-4 mt-2 p-4">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>
-                      {selectedMessage.senderName[0].toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
+                  <div className="relative h-10 w-10 rounded-full flex items-center justify-center text-gray-800 text-xl font-semibold">
+                    {selectedMessage.senderName[0].toUpperCase()}
+                  </div>
                   <div>
                     <p className="font-semibold">{selectedMessage.senderName}</p>
                     <p className="text-sm text-gray-500">À: moi</p>
