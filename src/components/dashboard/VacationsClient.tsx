@@ -11,6 +11,7 @@ import { useAuth } from '@/lib/auth';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { Pagination } from '@/components/ui/pagination';
 import { useRouter } from 'next/navigation';
 import { VacationForm } from './VacationForm';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -198,7 +199,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
     switch (status) {
       case 'Validée': return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100';
       case 'Refusée': return 'bg-red-100 text-red-800 border-red-800 hover:bg-red-100';
-      default: return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
+      default: return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100 animate-blink';
     }
   };
 
@@ -295,7 +296,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
         {isLoading ? (
           <div className="text-center p-8">Chargement...</div>
         ) : isMobile ? (
-          <div className="space-y-4 px-4" {...handlers}>
+          <div className="space-y-4" {...handlers}>
             {currentMobileVacations.map(v => (
               <Card key={v.id} className="p-4 max-w-full">
                 <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
@@ -339,6 +340,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                   <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(v.date), 'd MMMM yyyy', { locale: fr })}</span></div>
                   <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{v.time}</span></div>
                   <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{v.reason}</span></div>
+                  <div className="text-muted-foreground break-words">Acte: <span className="font-medium text-foreground">{v.operation}</span></div>
                   <div className="text-muted-foreground break-words">Type: <Badge variant={v.type==='acte'?'default':'secondary'}>{v.type==='acte'?'Acte':'Forfait'}</Badge></div>
                   <div className="text-muted-foreground break-words">Statut: <Badge className={cn(getStatusClasses(v.status))}>{v.status}</Badge></div>
                   <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{v.amount.toFixed(2)} DT</span></div>
@@ -357,23 +359,11 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
               onStatusChange={handleStatusChange}
             />
             {totalPages > 1 && (
-              <div className="flex justify-between items-center mt-4">
-                <Button
-                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                  disabled={currentPage === 1}
-                  variant="outline"
-                >
-                  Précédent
-                </Button>
-                <span>Page {currentPage} sur {totalPages}</span>
-                <Button
-                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                  disabled={currentPage === totalPages}
-                  variant="outline"
-                >
-                  Suivant
-                </Button>
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             )}
           </>
         )}
