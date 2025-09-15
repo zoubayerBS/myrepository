@@ -39,6 +39,8 @@ import {
   CommandList,
 } from '@/components/ui/command';
 
+import { Checkbox } from '@/components/ui/checkbox';
+
 const formSchema = z.object({
   date: z.date({
     required_error: 'La date est requise.',
@@ -55,6 +57,16 @@ const formSchema = z.object({
     required_error: 'Le type de vacation est requis.',
   }),
   exceptionalAmount: z.number().optional(),
+  isCec: z.boolean().optional(),
+  cecType: z.enum(['Assistance CEC', 'CEC Clinique']).optional(),
+}).refine(data => {
+  if (data.isCec) {
+    return !!data.cecType;
+  }
+  return true;
+}, {
+  message: "Le type CEC est requis.",
+  path: ["cecType"],
 });
 
 interface VacationFormProps {
@@ -90,8 +102,12 @@ export function VacationForm({
       reason: vacationToEdit?.reason ?? 'Necessite du travail',
       type: vacationToEdit?.type ?? 'forfait',
       exceptionalAmount: vacationToEdit?.amount,
+      isCec: vacationToEdit?.isCec ?? false,
+      cecType: vacationToEdit?.cecType,
     },
   });
+
+  const isCec = form.watch('isCec');
 
   React.useEffect(() => {
     async function fetchData() {
@@ -122,6 +138,8 @@ export function VacationForm({
         reason: vacationToEdit.reason,
         type: vacationToEdit.type,
         exceptionalAmount: vacationToEdit.amount,
+        isCec: vacationToEdit.isCec,
+        cecType: vacationToEdit.cecType,
       });
     } else {
         form.reset({
@@ -134,6 +152,8 @@ export function VacationForm({
             reason: 'Necessite du travail',
             type: 'forfait',
             exceptionalAmount: undefined,
+            isCec: false,
+            cecType: undefined,
       });
     }
   }, [vacationToEdit, form]);
@@ -146,7 +166,16 @@ export function VacationForm({
       }
 
       let amount;
-      if (isAdmin && values.exceptionalAmount !== undefined && values.exceptionalAmount !== null) {
+      if (values.isCec) {
+        if (values.cecType === 'Assistance CEC') {
+          amount = 100;
+        } else if (values.cecType === 'CEC Clinique') {
+          amount = 300;
+        } else {
+          // This case should ideally be prevented by form validation
+          throw new Error('Le type CEC est requis lorsque la vacation CEC est cochée.');
+        }
+      } else if (isAdmin && values.exceptionalAmount !== undefined && values.exceptionalAmount !== null) {
         amount = values.exceptionalAmount;
       } else {
         const selectedAmount = vacationAmounts.find(
@@ -420,6 +449,53 @@ export function VacationForm({
                 </FormItem>
               )}
             />
+
+            {currentUser?.uid === '1757098998603-zoubaier_bs' && (
+              <>
+                <FormField
+                  control={form.control}
+                  name="isCec"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Vacation CEC
+                        </FormLabel>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                {isCec && (
+                  <FormField
+                    control={form.control}
+                    name="cecType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type CEC</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Sélectionner un type CEC" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="Assistance CEC">Assistance CEC</SelectItem>
+                            <SelectItem value="CEC Clinique">CEC Clinique</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </>
+            )}
 
             {isAdmin && (
               <FormField

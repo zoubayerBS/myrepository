@@ -71,39 +71,89 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
     doc.text(userText, 14, 46);
     doc.text(periodText, 14, 52);
 
+    let finalY = 60;
 
-    // Table
-    const tableColumn = ["Date", "Nom Complet", "Patient", "Opération", "Type", "Statut", "Montant (DT)"];
-    const tableRows: (string | number)[][] = [];
+    if (selectedUser) {
+        // Single user report
+        const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+        const tableRows: (string | number)[][] = [];
 
-    filteredData.forEach(vacation => {
-        const vacationData = [
-            format(new Date(vacation.date), 'dd/MM/yy'),
-            `${vacation.user?.prenom ?? ''} ${vacation.user?.nom ?? ''}`.trim(),
-            vacation.patientName,
-            vacation.operation,
-            vacation.type === 'acte' ? 'Acte' : 'Forfait',
-            vacation.status,
-            vacation.amount.toFixed(2),
-        ];
-        tableRows.push(vacationData);
-    });
+        filteredData.forEach(vacation => {
+            const vacationData = [
+                format(new Date(vacation.date), 'dd/MM/yy'),
+                vacation.patientName,
+                vacation.operation,
+                vacation.reason,
+                vacation.type === 'acte' ? 'Acte' : 'Forfait',
+                vacation.status,
+                vacation.amount.toFixed(2),
+            ];
+            tableRows.push(vacationData);
+        });
 
-    autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: 60,
-        theme: 'striped',
-        headStyles: { fillColor: [41, 41, 41] }, // Dark gray for black & white look
-    });
+        autoTable(doc, {
+            head: [tableColumn],
+            body: tableRows,
+            startY: finalY,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 41, 41] },
+        });
 
-    let finalY = (doc as any).lastAutoTable.finalY || 80;
+        finalY = (doc as any).lastAutoTable.finalY || finalY + 20;
+
+    } else {
+        // All users report
+        const groupedByUser = filteredData.reduce((acc, v) => {
+            acc[v.userId] = [...(acc[v.userId] || []), v];
+            return acc;
+        }, {} as Record<string, Vacation[]>);
+
+        Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
+            const user = allUsers.find(u => u.uid === userId);
+            if (!user) return;
+
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(`${user.prenom} ${user.nom}`, 14, finalY);
+            finalY += 8;
+
+            const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+            const tableRows: (string | number)[][] = [];
+            let userTotal = 0;
+
+            userVacations.forEach(vacation => {
+                const vacationData = [
+                    format(new Date(vacation.date), 'dd/MM/yy'),
+                    vacation.patientName,
+                    vacation.operation,
+                    vacation.reason,
+                    vacation.type === 'acte' ? 'Acte' : 'Forfait',
+                    vacation.status,
+                    vacation.amount.toFixed(2),
+                ];
+                tableRows.push(vacationData);
+                userTotal += vacation.amount;
+            });
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: finalY,
+                theme: 'striped',
+                headStyles: { fillColor: [41, 41, 41] },
+                foot: [[`Total pour ${user.prenom}`, ' ', ' ', ' ', ' ', ' ', `${userTotal.toFixed(2)} DT`]],
+                footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
+            });
+
+            finalY = (doc as any).lastAutoTable.finalY + 10;
+        });
+    }
 
     // Summary
     const totalAmount = filteredData.reduce((sum, v) => sum + v.amount, 0);
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-    doc.text('Résumé', 14, finalY + 15);
+    doc.text('Résumé Global', 14, finalY + 15);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.text(`Nombre total de vacations: ${filteredData.length}`, 14, finalY + 21);
@@ -181,7 +231,7 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
                 <SelectContent>
                   <SelectItem value="all">Tous les utilisateurs</SelectItem>
                   {allUsers.map(user => (
-                    <SelectItem key={user.uid} value={user.uid}>{user.username}</SelectItem>
+                    <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

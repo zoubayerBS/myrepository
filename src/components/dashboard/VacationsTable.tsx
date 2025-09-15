@@ -242,7 +242,7 @@ export function VacationsTable({
             <TableBody>
               {vacations.length > 0 ? (
                 vacations.map((vacation) => (
-                  <TableRow key={vacation.id}>
+                  <TableRow key={vacation.id} className={cn(vacation.isCec && 'bg-green-100')}>
                     {isAdminView && (
                       <TableCell className="font-medium">
                         {vacation.user?.prenom} {vacation.user?.nom}

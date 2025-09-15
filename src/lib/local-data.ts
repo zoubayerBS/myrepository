@@ -37,9 +37,14 @@ export async function addUser(user: AppUser): Promise<AppUser> {
 }
 
 export async function getAllUsers(): Promise<AppUser[]> {
-    const { data, error } = await supabase.from('users').select('uid, username, email, role, nom, prenom');
+    const { data, error } = await supabase.from('users').select('uid, username, email, role, nom, prenom, fonction');
     if (error) throw error;
     return data as AppUser[];
+}
+
+export async function deleteUser(userId: string): Promise<void> {
+    const { error } = await supabase.from('users').delete().eq('uid', userId);
+    if (error) throw error;
 }
 
 // --- Vacation Functions ---

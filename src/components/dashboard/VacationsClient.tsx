@@ -259,7 +259,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                   <SelectTrigger><SelectValue placeholder="Filtrer par utilisateur" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Tous les utilisateurs</SelectItem>
-                    {allUsers.map(user => <SelectItem key={user.uid} value={user.uid}>{user.username}</SelectItem>)}
+                    {allUsers.map(user => <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -299,7 +299,10 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
             {currentMobileVacations.map(v => (
               <Card key={v.id} className="p-4 max-w-full">
                 <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg font-bold truncate">{v.patientName}</CardTitle>
+                  <CardTitle className="text-lg font-bold truncate">
+                    {v.patientName}
+                    {v.isCec && <span className="ml-2 text-green-500 animate-blink">CEC</span>}
+                  </CardTitle>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild >
                       <Button variant="ghost" className="h-8 w-8 p-0 ml-2">

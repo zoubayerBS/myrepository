@@ -1,9 +1,13 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { redirect } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Clock, CheckCircle, Hourglass, BarChart, FileText, Settings, Trophy, Stethoscope } from 'lucide-react';
 import { VacationsClient } from '@/components/dashboard/VacationsClient';
 import { AdminVacationChart } from '@/components/dashboard/AdminVacationChart';
 import { ReportGenerator } from '@/components/dashboard/ReportGenerator';
+import { UsersListModal } from '@/components/dashboard/UsersListModal';
 
 import { EmployeeLeaderboard } from '@/components/dashboard/EmployeeLeaderboard';
 import type { AppUser, Vacation } from '@/types';
@@ -12,19 +16,45 @@ import { SurgeonManager } from '@/components/dashboard/SurgeonManager';
 import { Separator } from '@/components/ui/separator';
 import { VacationAmountManager } from '@/components/dashboard/VacationAmountManager';
 
-export const revalidate = 0; // Disable caching
+export default function AdminPage() {
+    const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
+    const [allVacations, setAllVacations] = useState<Vacation[]>([]);
+    const [allUsers, setAllUsers] = useState<AppUser[]>([]);
+    const [loading, setLoading] = useState(true);
 
-export default async function AdminPage() {
-    
-    const allVacations = await findAllVacations();
-    const allUsers = await getAllUsers();
+    const handleUserDelete = async (userId: string) => {
+        const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+        if (response.ok) {
+            setAllUsers(allUsers.filter(user => user.uid !== userId));
+        } else {
+            // Handle error
+            console.error('Failed to delete user');
+        }
+    };
+
+    useEffect(() => {
+        async function fetchData() {
+            const [vacations, users] = await Promise.all([
+                findAllVacations(),
+                getAllUsers(),
+            ]);
+            setAllVacations(vacations);
+            setAllUsers(users);
+            setLoading(false);
+        }
+        fetchData();
+    }, []);
     
     const totalVacations = allVacations.length;
     const pendingVacations = allVacations.filter(v => v.status === 'En attente').length;
     const validatedVacations = allVacations.filter(v => v.status === 'Validée');
     const totalValidatedAmount = validatedVacations.reduce((sum, v) => sum + v.amount, 0);
 
-    const placeholderUser: AppUser = { uid: '', username: '', role: 'admin', email: '' };
+    const placeholderUser: AppUser = { uid: '', username: '', nom: '', prenom: '', fonction: 'panseur', role: 'admin', email: '' };
+
+    if (loading) {
+        return <div>Chargement...</div>
+    }
 
     return (
         <div className="container mx-auto p-4 md:p-8">
@@ -60,7 +90,7 @@ export default async function AdminPage() {
                         <p className="text-xs text-muted-foreground">En attente de validation</p>
                     </CardContent>
                 </Card>
-                 <Card>
+                 <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => setIsUsersModalOpen(true)}>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Utilisateurs Actifs</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -136,6 +166,6 @@ export default async function AdminPage() {
                 allUsers={allUsers}
                 isAdminView={true}
             />
+            <UsersListModal isOpen={isUsersModalOpen} onClose={() => setIsUsersModalOpen(false)} users={allUsers} onUserDelete={handleUserDelete} />
         </div>
     );
-}

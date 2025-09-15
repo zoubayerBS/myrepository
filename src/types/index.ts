@@ -25,6 +25,8 @@ export interface Vacation {
   type: 'acte' | 'forfait';
   amount: number;
   status: VacationStatus;
+  isCec?: boolean;
+  cecType?: 'Assistance CEC' | 'CEC Clinique';
   user?: { // Optional, denormalized for admin view
     username?: string;
     nom?: string; // Added
