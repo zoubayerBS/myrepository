@@ -169,3 +169,4 @@ export default function AdminPage() {
             <UsersListModal isOpen={isUsersModalOpen} onClose={() => setIsUsersModalOpen(false)} users={allUsers} onUserDelete={handleUserDelete} />
         </div>
     );
+}
