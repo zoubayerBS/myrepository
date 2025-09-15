@@ -15,6 +15,7 @@ import { getAllUsers, findAllVacations } from '@/lib/local-data';
 import { SurgeonManager } from '@/components/dashboard/SurgeonManager';
 import { Separator } from '@/components/ui/separator';
 import { VacationAmountManager } from '@/components/dashboard/VacationAmountManager';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export default function AdminPage() {
     const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
@@ -102,63 +103,98 @@ export default function AdminPage() {
                 </Card>
             </div>
             
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 mb-8">
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <BarChart className="h-5 w-5" />
-                          Analyse Mensuelle
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="pl-2">
-                        <AdminVacationChart data={allVacations} />
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Trophy className="h-5 w-5" />
-                            Performance des Employés
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                       <EmployeeLeaderboard vacations={validatedVacations} users={allUsers} />
-                    </CardContent>
-                </Card>
-            </div>
-            
-            <div className="grid gap-8 md:grid-cols-2 mb-8">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <FileText className="h-5 w-5" />
-                            Générateur de Rapports
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                       <ReportGenerator allVacations={allVacations} allUsers={allUsers} />
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Settings className="h-5 w-5" />
-                            Utilitaires
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                        
-                        <SurgeonManager />
-                        <Separator />
-                        
-                    </CardContent>
-                </Card>
-            </div>
+            <Card className="mb-8">
+                <CardHeader className="bg-primary text-white rounded-t-lg">
+                    <div className="flex items-center gap-2">
+                        <FileText className="h-6 w-6" />
+                        <CardTitle className="text-2xl font-bold font-sans">Gestion et Rapports</CardTitle>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Accordion type="multiple" className="w-full">
+                        <AccordionItem value="item-1">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2">
+                                    <BarChart className="h-5 w-5" />
+                                    <CardTitle className="text-xl">Analyse Mensuelle</CardTitle>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <Card className="lg:col-span-2 border-none shadow-none">
+                                    <CardContent className="pl-2">
+                                        <AdminVacationChart data={allVacations} />
+                                    </CardContent>
+                                </Card>
+                            </AccordionContent>
+                        </AccordionItem>
 
-            {/* New row for VacationAmountManager */}
-            <div className="mb-8">
-                <VacationAmountManager />
-            </div>
+                        <AccordionItem value="item-2">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2">
+                                    <Trophy className="h-5 w-5" />
+                                    <CardTitle className="text-xl">Performance des Employés</CardTitle>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <Card className="border-none shadow-none">
+                                    <CardContent>
+                                        <EmployeeLeaderboard vacations={validatedVacations} users={allUsers} />
+                                    </CardContent>
+                                </Card>
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="item-3">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2">
+                                    <FileText className="h-5 w-5" />
+                                    <CardTitle className="text-xl">Générateur de Rapports</CardTitle>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <Card className="border-none shadow-none">
+                                    <CardContent>
+                                        <ReportGenerator allVacations={allVacations} allUsers={allUsers} />
+                                    </CardContent>
+                                </Card>
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="item-4">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2">
+                                    <Settings className="h-5 w-5" />
+                                    <CardTitle className="text-xl">Utilitaires</CardTitle>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <Card className="border-none shadow-none">
+                                    <CardContent className="space-y-6">
+                                        <SurgeonManager />
+                                        <Separator />
+                                    </CardContent>
+                                </Card>
+                            </AccordionContent>
+                        </AccordionItem>
+
+                        <AccordionItem value="item-5">
+                            <AccordionTrigger>
+                                <div className="flex items-center gap-2">
+                                    <Stethoscope className="h-5 w-5" />
+                                    <CardTitle className="text-xl">Gestion des Montants par Fonction, Motif et Type</CardTitle>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                <Card className="border-none shadow-none">
+                                    <CardContent>
+                                        <VacationAmountManager />
+                                    </CardContent>
+                                </Card>
+                            </AccordionContent>
+                        </AccordionItem>
+                    </Accordion>
+                </CardContent>
+            </Card>
 
             <VacationsClient 
                 currentUser={placeholderUser}
