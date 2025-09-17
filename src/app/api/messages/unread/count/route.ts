@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
+// This is a comment to force git to recognize the change.
 const supabase = getDb();
 
 export async function GET(request: Request) {
