@@ -301,7 +301,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
               <Card key={v.id} className="p-4 max-w-full">
                 <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
                   <CardTitle className="text-lg font-bold truncate">
-                    {v.patientName}
+                    {v.user?.prenom} {v.user?.nom}
                     {v.isCec && <span className="ml-2 text-green-500 animate-blink">CEC</span>}
                   </CardTitle>
                   <DropdownMenu>
@@ -336,7 +336,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                   </DropdownMenu>
                 </CardHeader>
                 <CardContent className="p-0 text-sm overflow-x-auto">
-                  {isAdminView && <div className="text-muted-foreground break-words">Employé: <span className="font-medium text-foreground">{v.user?.prenom} {v.user?.nom}</span></div>}
+                  {isAdminView && <div className="text-muted-foreground break-words">Patient: <span className="font-medium text-foreground">{v.patientName}</span></div>}
                   <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(v.date), 'd MMMM yyyy', { locale: fr })}</span></div>
                   <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{v.time}</span></div>
                   <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{v.reason}</span></div>
