@@ -156,7 +156,7 @@ export function VacationForm({
             cecType: undefined,
       });
     }
-  }, [vacationToEdit, form]);
+  }, [vacationToEdit]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);

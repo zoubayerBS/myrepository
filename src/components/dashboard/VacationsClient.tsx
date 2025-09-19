@@ -214,6 +214,46 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
 
   const handleFormSuccess = async () => { setIsFormOpen(false); await fetchVacations(); };
 
+  const exportValidatedToCSV = () => {
+    const headers = isAdminView 
+      ? ['Nom Complet', 'Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)']
+      : ['Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)'];
+    
+    const validatedVacations = filteredVacations.filter(v => v.status === 'Validée');
+    const rows = validatedVacations.map(v => {
+      const commonData = [
+        format(new Date(v.date), 'dd/MM/yyyy'),
+        v.time,
+        v.patientName,
+        v.matricule,
+        v.surgeon,
+        v.operation,
+        v.reason,
+        v.type === 'acte' ? 'Acte' : 'Forfait',
+        v.status,
+        v.amount.toFixed(2)
+      ];
+      return isAdminView 
+        ? [`${v.user?.prenom ?? ''} ${v.user?.nom ?? ''}`.trim(), ...commonData]
+        : commonData;
+    });
+
+    const totalValidatedAmount = validatedVacations.reduce((sum, v) => sum + v.amount, 0);
+
+    let csvContent = "data:text/csv;charset=utf-8," 
+      + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
+    
+    csvContent += `\n\nTotal Validée,${totalValidatedAmount.toFixed(2)}`;
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `export_vacations_validees_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-8 w-full overflow-x-hidden">
 
@@ -266,7 +306,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
               </div>
             )}
             <div className="flex-1">
-              <Label>Nature de l'acte</Label>
+              <Label>Nature de l\'acte</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger><SelectValue placeholder="Filtrer par type" /></SelectTrigger>
                 <SelectContent>
@@ -313,13 +353,13 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       {isAdminView && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}>
+                        <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}> 
                           <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                           {v.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
                         </DropdownMenuItem>
                       )}
                       {isAdminView && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}>
+                        <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
                           <XCircle className="mr-2 h-4 w-4 text-red-500" />
                           {v.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
                         </DropdownMenuItem>
@@ -347,7 +387,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                 </CardContent>
               </Card>
             ))}
-            {totalPages > 1 && <div className="flex justify-center space-x-2 mt-4">{Array.from({ length: totalPages }, (_, i) => <span key={i} className={cn("block h-2 w-2 rounded-full", currentPage === i+1?"bg-blue-500":"bg-gray-300")}></span>)}</div>}
+            {totalPages > 1 && <div className="flex justify-center space-x-2 mt-4">{Array.from({ length: totalPages }, (_, i) => <span key={i} className={cn("block h-2 w-2 rounded-full", currentPage === i+1?'bg-blue-500':'bg-gray-300')}></span>)}</div>}
           </div>
         ) : (
           <>
@@ -357,6 +397,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
               onEdit={handleEdit}
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
+              onExport={exportValidatedToCSV}
             />
             {totalPages > 1 && (
               <Pagination

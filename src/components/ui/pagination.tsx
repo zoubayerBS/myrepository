@@ -57,7 +57,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
 
     return uniquePageNumbers.map((page, index) => (
       page === '...' ? (
-        <span key={index} className="px-2 py-1 text-sm text-gray-500">
+                <span key={`ellipsis-${index}`} className="px-2 py-1 text-sm text-gray-500">
           <MoreHorizontal className="h-4 w-4" />
         </span>
       ) : (

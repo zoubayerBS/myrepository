@@ -53,7 +53,7 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
     // Header
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('Rapport de VacationEase', 105, 20, { align: 'center' });
+    doc.text('Rapport de Vacations Validées', 105, 20, { align: 'center' });
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -156,8 +156,8 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
     doc.text('Résumé Global', 14, finalY + 15);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Nombre total de vacations: ${filteredData.length}`, 14, finalY + 21);
-    doc.text(`Montant total: ${totalAmount.toFixed(2)} DT`, 14, finalY + 27);
+    doc.text(`Nombre de vacations validées: ${filteredData.length}`, 14, finalY + 21);
+    doc.text(`Montant total validé: ${totalAmount.toFixed(2)} DT`, 14, finalY + 27);
 
 
     // Footer
@@ -184,14 +184,15 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
             const vacationDate = new Date(v.date);
             const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
             const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;
-            return userMatch && dateMatch;
+            const statusMatch = v.status === 'Validée';
+            return userMatch && dateMatch && statusMatch;
         });
 
         if (filtered.length === 0) {
             toast({
                 variant: 'default',
                 title: 'Aucune donnée',
-                description: 'Aucune vacation ne correspond aux filtres sélectionnés.',
+                description: 'Aucune vacation validée ne correspond aux filtres sélectionnés.',
             });
             setIsLoading(false);
             return;
@@ -289,7 +290,7 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
         />
         <Button type="submit" disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-          Générer le Rapport
+          Générer le Rapport des vacations 
         </Button>
       </form>
     </Form>

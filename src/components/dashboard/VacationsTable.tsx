@@ -45,6 +45,7 @@ interface VacationsTableProps {
   onEdit: (vacation: Vacation) => void;
   onDelete: (vacationId: string) => Promise<void>;
   onStatusChange: (vacationId: string, status: VacationStatus) => Promise<void>;
+  onExport: () => void;
 }
 
 export function VacationsTable({
@@ -53,6 +54,7 @@ export function VacationsTable({
   onEdit,
   onDelete,
   onStatusChange,
+  onExport,
 }: VacationsTableProps) {
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
   const { user: adminUser } = useAuth();
@@ -74,41 +76,6 @@ export function VacationsTable({
       default:
         return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
     }
-  };
-
-  const exportToCSV = () => {
-    const headers = isAdminView 
-      ? ['Nom Complet', 'Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)']
-      : ['Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)'];
-    
-    const rows = vacations.map(v => {
-      const commonData = [
-        format(new Date(v.date), 'dd/MM/yyyy'),
-        v.time,
-        v.patientName,
-        v.matricule,
-        v.surgeon,
-        v.operation,
-        v.reason,
-        v.type === 'acte' ? 'Acte' : 'Forfait',
-        v.status,
-        v.amount.toFixed(2)
-      ];
-      return isAdminView 
-        ? [`${v.user?.prenom ?? ''} ${v.user?.nom ?? ''}`.trim(), ...commonData]
-        : commonData;
-    });
-
-    let csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `export_vacations_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   const handleStatusChangeAndNotify = async (vacationId: string, newStatus: VacationStatus) => {
@@ -146,7 +113,7 @@ export function VacationsTable({
   return (
     <>
       <div className="flex justify-end mb-4">
-        <Button onClick={exportToCSV} variant="outline">
+        <Button onClick={onExport} variant="outline">
           <Download className="mr-2 h-4 w-4" />
           Exporter en CSV
         </Button>

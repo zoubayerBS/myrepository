@@ -78,7 +78,7 @@ export default function AdminPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{totalValidatedAmount.toFixed(2)} DT</div>
-                        <p className="text-xs text-muted-foreground">Basé sur {validatedVacations.length} demandes validées</p>
+                        <p className="text-xs text-muted-foreground">Basé sur {validatedVacations.length} demandes validées (toutes périodes)</p>
                     </CardContent>
                 </Card>
                  <Card>

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { format } from 'date-fns';
+import { format, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CalendarIcon, Loader2, Wand2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { calculateVacationTotals } from '@/ai/flows/calculate-vacation-totals';
+import { findVacationsByUserId } from '@/lib/local-data';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 
@@ -64,12 +64,19 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
     setIsLoading(true);
     setTotalAmount(null);
     try {
-      const result = await calculateVacationTotals({
-        userId,
-        startDate: format(values.dateRange.from, 'yyyy-MM-dd'),
-        endDate: format(values.dateRange.to, 'yyyy-MM-dd'),
+      const allVacations = await findVacationsByUserId(userId);
+      const { from, to } = values.dateRange;
+      
+      const filteredVacations = allVacations.filter(v => {
+        const vacationDate = new Date(v.date);
+        const dateMatch = isWithinInterval(vacationDate, { start: from, end: to });
+        const statusMatch = v.status === 'Validée';
+        return dateMatch && statusMatch;
       });
-      setTotalAmount(result.totalAmount);
+
+      const total = filteredVacations.reduce((sum, v) => sum + v.amount, 0);
+
+      setTotalAmount(total);
     } catch (error) {
       console.error('Erreur lors du calcul des totaux:', error);
       toast({
@@ -91,7 +98,7 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
       <CardHeader>
         <CardTitle className="font-sans text-lg flex items-center gap-2">
             <Wand2 className="h-5 w-5 text-accent-foreground"/>
-            Calculateur de Total (IA)
+            Calculateur de Total
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -153,7 +160,7 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
         </Form>
         {totalAmount !== null && (
           <div className="mt-6 text-center">
-            <p className="text-muted-foreground">Montant total suggéré pour la période :</p>
+            <p className="text-muted-foreground">Montant total validé pour la période :</p>
             <p className="text-3xl font-bold text-primary">{totalAmount.toFixed(2)} DT</p>
           </div>
         )}
