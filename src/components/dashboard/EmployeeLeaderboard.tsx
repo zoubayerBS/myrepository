@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo } from 'react';
@@ -65,10 +64,10 @@ export function EmployeeLeaderboard({ vacations, users }: EmployeeLeaderboardPro
             <li key={entry.user.uid} className="flex items-center gap-4">
                <div className="font-bold text-lg text-primary w-4">{index + 1}.</div>
               <div className="relative h-9 w-9 rounded-full flex items-center justify-center text-gray-800 text-base font-semibold">
-                {(entry.user.username?.[0] ?? '').toUpperCase()}
+                {(entry.user.prenom?.[0] ?? '').toUpperCase()}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium leading-none">{entry.user.username}</p>
+                <p className="text-sm font-medium leading-none">{entry.user.prenom} {entry.user.nom}</p>
                  <p className="text-xs text-muted-foreground">
                   {entry.count} {entry.count > 1 ? 'vacations' : 'vacation'}
                 </p>
