@@ -78,9 +78,13 @@ export async function addVacation(vacation: Omit<Vacation, 'id'>): Promise<Vacat
 }
 
 export async function updateVacation(updatedVacation: Vacation): Promise<Vacation> {
-    const { data, error } = await supabase.from('vacations').update(updatedVacation).eq('id', updatedVacation.id).select().single();
-    if (error) throw error;
-    const updated = await getVacationWithUser(updatedVacation.id);
+    const { id, user, ...updateData } = updatedVacation;
+    const { data, error } = await supabase.from('vacations').update(updateData).eq('id', id).select().single();
+    if (error) {
+        console.error("Supabase update error:", error);
+        throw error;
+    }
+    const updated = await getVacationWithUser(id);
     if(!updated) throw new Error('Could not retrieve updated vacation');
     return updated;
 }

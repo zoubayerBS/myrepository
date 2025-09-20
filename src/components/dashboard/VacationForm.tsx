@@ -138,8 +138,8 @@ export function VacationForm({
         reason: vacationToEdit.reason,
         type: vacationToEdit.type,
         exceptionalAmount: vacationToEdit.amount,
-        isCec: vacationToEdit.isCec,
-        cecType: vacationToEdit.cecType,
+        isCec: vacationToEdit.isCec ?? false,
+        cecType: vacationToEdit.cecType ?? undefined,
       });
     } else {
         form.reset({
@@ -277,7 +277,6 @@ export function VacationForm({
                           disabled={(date) =>
                             date > new Date() || date < new Date('1900-01-01')
                           }
-                          initialFocus
                         />
                       </PopoverContent>
                     </Popover>

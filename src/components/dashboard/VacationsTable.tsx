@@ -34,8 +34,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import { sendMessage } from '@/lib/actions/message-actions'; // MODIFIED IMPORT
-import { useAuth } from '@/lib/auth';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -57,7 +55,6 @@ export function VacationsTable({
   onExport,
 }: VacationsTableProps) {
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
-  const { user: adminUser } = useAuth();
   const isMobile = useIsMobile();
 
   const confirmDelete = () => {
@@ -77,38 +74,6 @@ export function VacationsTable({
         return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
     }
   };
-
-  const handleStatusChangeAndNotify = async (vacationId: string, newStatus: VacationStatus) => {
-    const vacation = vacations.find(v => v.id === vacationId);
-    if (!vacation || !adminUser) return;
-
-    try {
-      const response = await fetch(`/api/vacations/${vacationId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update vacation status');
-      }
-      const updatedVacation = await response.json();
-      onStatusChange(vacationId, newStatus); // Update local state via prop
-
-      const subject = `Mise à jour du statut de votre vacation`;
-      const content = `Votre demande de vacation pour le ${format(new Date(vacation.date), 'dd/MM/yyyy', { locale: fr })} a été ${newStatus.toLowerCase()} par ${adminUser.username}.`;
-      
-      await sendMessage({
-        senderId: adminUser.uid,
-        receiverId: vacation.userId,
-        subject,
-        content,
-      });
-
-    } catch (error) {
-      console.error("Error changing status or sending notification:", error);
-    }
-  };
-
 
   return (
     <>
@@ -138,13 +103,13 @@ export function VacationsTable({
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       {isAdminView && (
-                        <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                        <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
                           <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                           {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
                         </DropdownMenuItem>
                       )}
                       {isAdminView && (
-                        <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                        <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
                           <XCircle className="mr-2 h-4 w-4 text-red-500" />
                           {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
                         </DropdownMenuItem>
@@ -243,13 +208,13 @@ export function VacationsTable({
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
                           {isAdminView && (
-                             <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                             <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
                              {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
                            </DropdownMenuItem>
                           )}
                           {isAdminView && (
-                             <DropdownMenuItem onClick={() => handleStatusChangeAndNotify(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                             <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
                              {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
                            </DropdownMenuItem>
