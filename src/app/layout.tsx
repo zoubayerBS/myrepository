@@ -12,6 +12,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'VacationEase',
   description: 'Gérez vos vacations hospitalières simplement.',
+  icons: {
+    icon: '/logo.svg',
+  },
 };
 
 export default function RootLayout({
