@@ -145,6 +145,7 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
                             field.onChange({ from: range?.from, to: range?.to })
                         }
                         numberOfMonths={2}
+                        locale={fr}
                       />
                     </PopoverContent>
                   </Popover>
