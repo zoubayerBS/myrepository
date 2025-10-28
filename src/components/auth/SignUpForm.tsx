@@ -100,7 +100,7 @@ export function SignUpForm() {
         throw new Error('Failed to add user');
       }
 
-      await login(newUser.uid);
+      login(newUser);
       router.push('/dashboard');
     } catch (error: any) {
       toast({
@@ -133,7 +133,7 @@ export function SignUpForm() {
                   <FormItem>
                     <FormLabel>Prénom</FormLabel>
                     <FormControl>
-                      <Input placeholder="Jean" {...field} />
+                      <Input placeholder="Saisissez votre prénom" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -146,7 +146,7 @@ export function SignUpForm() {
                   <FormItem>
                     <FormLabel>Nom</FormLabel>
                     <FormControl>
-                      <Input placeholder="Dupont" {...field} />
+                      <Input placeholder="Saisissez votre nom" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -160,7 +160,7 @@ export function SignUpForm() {
                 <FormItem>
                   <FormLabel>Nom d'utilisateur</FormLabel>
                   <FormControl>
-                    <Input placeholder="jeandupont" {...field} autoComplete="off" />
+                    <Input placeholder="Saisissez votre nom d'utilisateur" {...field} autoComplete="off" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

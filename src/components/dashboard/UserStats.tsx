@@ -4,9 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { findVacationsByUserId } from '@/lib/local-data';
-import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, CheckCircle, Hourglass } from 'lucide-react';
+import { Clock, Layers, Hourglass, HandCoins} from 'lucide-react';
 import type { Vacation } from '@/types';
 
 interface UserStatsProps {
@@ -36,6 +36,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
             setLoading(true);
             const vacations = await findVacationsByUserId(userId);
             const now = new Date();
+            
             const start = startOfMonth(now);
             const end = endOfMonth(now);
 
@@ -72,7 +73,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Vacations (ce mois)</CardTitle>
-                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <Layers className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.total}</div>
@@ -82,7 +83,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Montant Validé (ce mois)</CardTitle>
-                    <CheckCircle className="h-4 w-4 text-muted-foreground" />
+                    <HandCoins className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.validatedAmount.toFixed(2)} DT</div>

@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, FilePenLine, Trash2, Download, CheckCircle, XCircle } from 'lucide-react';
+import { MoreHorizontal, FilePenLine, Trash2, Download, CheckCircle, XCircle, Archive, ArchiveRestore } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Vacation, VacationStatus } from '@/types';
@@ -44,6 +44,9 @@ interface VacationsTableProps {
   onDelete: (vacationId: string) => Promise<void>;
   onStatusChange: (vacationId: string, status: VacationStatus) => Promise<void>;
   onExport: () => void;
+  onArchive: (vacationId: string) => Promise<void>;
+  onUnarchive: (vacationId: string) => Promise<void>;
+  archiveMode?: boolean;
 }
 
 export function VacationsTable({
@@ -53,6 +56,9 @@ export function VacationsTable({
   onDelete,
   onStatusChange,
   onExport,
+  onArchive,
+  onUnarchive,
+  archiveMode = false,
 }: VacationsTableProps) {
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
   const isMobile = useIsMobile();
@@ -91,7 +97,7 @@ export function VacationsTable({
               <Card key={vacation.id} className="p-4 w-full">
                 <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
                   <CardTitle className="text-lg font-bold">
-                    {vacation.patientName} ({vacation.operation})
+                    {vacation.patientName}
                   </CardTitle>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -102,35 +108,50 @@ export function VacationsTable({
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {isAdminView && (
-                        <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                          <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                          {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                      {archiveMode ? (
+                        <DropdownMenuItem onClick={() => onUnarchive(vacation.id)}>
+                          <ArchiveRestore className="mr-2 h-4 w-4" />
+                          Désarchiver
                         </DropdownMenuItem>
+                      ) : (
+                        <>
+                          {isAdminView && (
+                            <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                              {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                            </DropdownMenuItem>
+                          )}
+                          {isAdminView && (
+                            <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                              {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                            </DropdownMenuItem>
+                          )}
+                          {isAdminView && vacation.status !== 'En attente' && (
+                            <DropdownMenuItem onClick={() => onArchive(vacation.id)}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              Archiver
+                            </DropdownMenuItem>
+                          )}
+                          {isAdminView && <DropdownMenuSeparator />}
+                          <DropdownMenuItem 
+                              onClick={() => onEdit(vacation)}
+                              disabled={vacation.status !== 'En attente'}
+                          >
+                            <FilePenLine className="mr-2 h-4 w-4" />
+                            Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => setVacationToDelete(vacation)}
+                            disabled={vacation.status !== 'En attente'}
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Supprimer
+                          </DropdownMenuItem>
+                        </>
                       )}
-                      {isAdminView && (
-                        <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                          <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                          {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                        </DropdownMenuItem>
-                      )}
-                      {isAdminView && <DropdownMenuSeparator />}
-                      <DropdownMenuItem 
-                          onClick={() => onEdit(vacation)}
-                          disabled={vacation.status !== 'En attente'}
-                      >
-                        <FilePenLine className="mr-2 h-4 w-4" />
-                        Modifier
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => setVacationToDelete(vacation)}
-                        disabled={vacation.status !== 'En attente'}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Supprimer
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </CardHeader>
@@ -207,35 +228,50 @@ export function VacationsTable({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          {isAdminView && (
-                             <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                             <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                             {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
-                           </DropdownMenuItem>
+                          {archiveMode ? (
+                            <DropdownMenuItem onClick={() => onUnarchive(vacation.id)}>
+                              <ArchiveRestore className="mr-2 h-4 w-4" />
+                              Désarchiver
+                            </DropdownMenuItem>
+                          ) : (
+                            <>
+                              {isAdminView && (
+                                 <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                                 <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                 {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                               </DropdownMenuItem>
+                              )}
+                              {isAdminView && (
+                                 <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                                 <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                 {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                               </DropdownMenuItem>
+                              )}
+                              {isAdminView && vacation.status !== 'En attente' && (
+                                <DropdownMenuItem onClick={() => onArchive(vacation.id)}>
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archiver
+                                </DropdownMenuItem>
+                              )}
+                              {isAdminView && <DropdownMenuSeparator />}
+                              <DropdownMenuItem 
+                                  onClick={() => onEdit(vacation)}
+                                  disabled={vacation.status !== 'En attente'}
+                              >
+                                <FilePenLine className="mr-2 h-4 w-4" />
+                                Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive"
+                                onClick={() => setVacationToDelete(vacation)}
+                                disabled={vacation.status !== 'En attente'}
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Supprimer
+                              </DropdownMenuItem>
+                            </>
                           )}
-                          {isAdminView && (
-                             <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                             <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                             {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                           </DropdownMenuItem>
-                          )}
-                          {isAdminView && <DropdownMenuSeparator />}
-                          <DropdownMenuItem 
-                              onClick={() => onEdit(vacation)}
-                              disabled={vacation.status !== 'En attente'}
-                          >
-                            <FilePenLine className="mr-2 h-4 w-4" />
-                            Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setVacationToDelete(vacation)}
-                            disabled={vacation.status !== 'En attente'}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

@@ -27,6 +27,7 @@ export interface Vacation {
   status: VacationStatus;
   isCec?: boolean;
   cecType?: 'Assistance CEC' | 'CEC Clinique';
+  isArchived?: boolean; // Added for archiving feature
   user?: { // Optional, denormalized for admin view
     username?: string;
     nom?: string; // Added
@@ -51,6 +52,7 @@ export interface Message {
   read: number; // 0 for unread, 1 for read
   createdAt: string;
   senderName: string;
+  receiverName: string;
 }
 
 export interface VacationAmount {

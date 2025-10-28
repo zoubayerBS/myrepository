@@ -55,8 +55,21 @@ async function getVacationWithUser(vacationId: string): Promise<Vacation | null>
     return vacationData as Vacation | null;
 }
 
-export async function findAllVacations(): Promise<Vacation[]> {
-    const { data, error } = await supabase.from('vacations').select('*, user:users(*)').order('date', { ascending: false });
+export async function findAllVacations(options: { includeArchived?: boolean } = {}): Promise<Vacation[]> {
+    const { includeArchived = false } = options;
+    let query = supabase.from('vacations').select('*, user:users(*)');
+
+    if (!includeArchived) {
+        query = query.or('isArchived.is.null,isArchived.eq.false');
+    }
+    
+    const { data, error } = await query.order('date', { ascending: false });
+    if (error) throw error;
+    return data as Vacation[];
+}
+
+export async function findArchivedVacations(): Promise<Vacation[]> {
+    const { data, error } = await supabase.from('vacations').select('*, user:users(*)').eq('isArchived', true).order('date', { ascending: false });
     if (error) throw error;
     return data as Vacation[];
 }
@@ -127,6 +140,17 @@ export async function updateVacationStatus(vacationId: string, status: VacationS
 
     if (notificationError) throw notificationError;
 
+    return updatedVacation;
+}
+
+export async function updateVacationArchivedStatus(vacationId: string, isArchived: boolean): Promise<Vacation> {
+    const { error: updateError } = await supabase.from('vacations').update({ isArchived }).eq('id', vacationId);
+    if (updateError) throw updateError;
+
+    const updatedVacation = await getVacationWithUser(vacationId);
+    if (!updatedVacation) {
+        throw new Error('Failed to retrieve vacation after archive status update');
+    }
     return updatedVacation;
 }
 

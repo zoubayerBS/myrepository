@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 
 const formSchema = z.object({
   userId: z.string().optional(),
+  status: z.string(),
   dateRange: z.object({
     from: z.date({ required_error: 'Date de début requise.' }),
     to: z.date({ required_error: 'Date de fin requise.' }),
@@ -30,16 +31,19 @@ const formSchema = z.object({
 interface ReportGeneratorProps {
   allVacations: Vacation[];
   allUsers: AppUser[];
+  currentUser: AppUser;
+  isAdmin: boolean;
 }
 
-export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps) {
+export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }: ReportGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      userId: 'all',
+      userId: isAdmin ? 'all' : currentUser.uid,
+      status: 'all',
       dateRange: {
         from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         to: new Date(),
@@ -47,13 +51,16 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
     },
   });
 
-  const generatePDF = (filteredData: Vacation[], selectedUser: AppUser | undefined, dateRange: { from: Date; to: Date }) => {
+  const generatePDF = (filteredData: Vacation[], selectedUser: AppUser | undefined, dateRange: { from: Date; to: Date }, status: string) => {
     const doc = new jsPDF();
+
+    const statusText = status === 'all' ? 'Tous' : status;
+    const title = `Rapport de Vacations (Statut: ${statusText})`;
 
     // Header
     doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('Rapport de Vacations Validées', 105, 20, { align: 'center' });
+    doc.text(title, 105, 20, { align: 'center' });
     
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -156,12 +163,12 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
     doc.text('Résumé Global', 14, finalY + 15);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Nombre de vacations validées: ${filteredData.length}`, 14, finalY + 21);
-    doc.text(`Montant total validé: ${totalAmount.toFixed(2)} DT`, 14, finalY + 27);
+    doc.text(`Nombre de vacations: ${filteredData.length}`, 14, finalY + 21);
+    doc.text(`Montant total: ${totalAmount.toFixed(2)} DT`, 14, finalY + 27);
 
 
     // Footer
-    const pageCount = doc.internal.getNumberOfPages();
+    const pageCount = (doc as any).internal.getNumberOfPages();
     for(var i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);
@@ -184,7 +191,7 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
             const vacationDate = new Date(v.date);
             const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
             const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;
-            const statusMatch = v.status === 'Validée';
+            const statusMatch = values.status === 'all' || v.status === values.status;
             return userMatch && dateMatch && statusMatch;
         });
 
@@ -192,7 +199,7 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
             toast({
                 variant: 'default',
                 title: 'Aucune donnée',
-                description: 'Aucune vacation validée ne correspond aux filtres sélectionnés.',
+                description: 'Aucune vacation ne correspond aux filtres sélectionnés.',
             });
             setIsLoading(false);
             return;
@@ -200,7 +207,7 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
 
         const selectedUser = allUsers.find(u => u.uid === values.userId);
 
-        generatePDF(filtered, selectedUser, { from, to: toEndOfDay });
+        generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status);
 
     } catch (error) {
         console.error("Échec de la génération du rapport:", error);
@@ -217,23 +224,48 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {isAdmin && (
+          <FormField
+            control={form.control}
+            name="userId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Utilisateur</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionner un utilisateur" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les utilisateurs</SelectItem>
+                    {allUsers.map(user => (
+                      <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
-          name="userId"
+          name="status"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Utilisateur</FormLabel>
+              <FormLabel>Statut</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un utilisateur" />
+                    <SelectValue placeholder="Sélectionner un statut" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="all">Tous les utilisateurs</SelectItem>
-                  {allUsers.map(user => (
-                    <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>
-                  ))}
+                  <SelectItem value="all">Tous les statuts</SelectItem>
+                  <SelectItem value="Validée">Validée</SelectItem>
+                  <SelectItem value="En attente">En attente</SelectItem>
+                  <SelectItem value="Refusée">Refusée</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -271,7 +303,7 @@ export function ReportGenerator({ allVacations, allUsers }: ReportGeneratorProps
                     )}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
+                <PopoverContent className="w-[100%] p-0" align="center">
                   <Calendar
                     initialFocus
                     mode="range"

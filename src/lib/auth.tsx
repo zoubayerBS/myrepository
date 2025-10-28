@@ -8,7 +8,7 @@ import type { AppUser } from '@/types';
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
-  login: (uid: string) => Promise<void>;
+  login: (user: AppUser) => void;
   logout: () => void;
   userData: AppUser | null;
 }
@@ -16,7 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
-  login: async () => {},
+  login: () => {},
   logout: () => {},
   userData: null,
 });
@@ -51,15 +51,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkUserSession();
   }, []);
 
-  const login = async (uid: string) => {
-    setLoading(true);
-    const userData = await findUserById(uid);
-    if (userData) {
-      localStorage.setItem(USER_SESSION_KEY, uid);
-      setUser(userData);
-    }
-    setLoading(false);
-  };
+  const login = (userData: AppUser) => {
+    localStorage.setItem(USER_SESSION_KEY, userData.uid);
+    setUser(userData);
+  };  
   
   const logout = () => {
     localStorage.removeItem(USER_SESSION_KEY);

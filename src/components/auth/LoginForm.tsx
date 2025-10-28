@@ -76,12 +76,16 @@ export function LoginForm() {
         return;
       }
 
-      await login(user.uid);
+      login(user);
       toast({
         title: 'Connexion réussie',
-        description: 'Bienvenue sur votre tableau de bord.',
+        description: user.role === 'admin' ? 'Bienvenue sur votre espace admin.' : 'Bienvenue sur votre tableau de bord.',
       });
-      router.push('/dashboard');
+      if (user.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -112,7 +116,7 @@ export function LoginForm() {
                 <FormItem>
                   <FormLabel>Nom d'utilisateur</FormLabel>
                   <FormControl>
-                    <Input placeholder="jeandupont" {...field} />
+                    <Input placeholder="Saisissez votre nom d'utilisateur" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

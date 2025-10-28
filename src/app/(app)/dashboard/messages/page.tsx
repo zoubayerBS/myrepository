@@ -4,7 +4,19 @@ import { useAuth } from '@/lib/auth';
 import { Message } from '@/types';
 import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, FilePlus, Archive, ArchiveRestore } from 'lucide-react';
+import { Loader2, FilePlus, Archive, ArchiveRestore, Trash2 } from 'lucide-react';
+import { useSwipeable } from 'react-swipeable';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -23,6 +35,95 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
+// ✅ Composant enfant pour un message swipeable
+function SwipeableMessageItem({
+  msg,
+  activeTab,
+  selectedMessage,
+  onClick,
+  setItemToArchive,
+  setItemToDelete,
+  swipedItemId,
+  setSwipedItemId,
+  swipeProgress,
+  setSwipeProgress,
+}: {
+  msg: Message;
+  activeTab: string;
+  selectedMessage: Message | null;
+  onClick: (message: Message) => void;
+  setItemToArchive: (item: Message | null) => void;
+  setItemToDelete: (item: Message | null) => void;
+  swipedItemId: string | null;
+  setSwipedItemId: (id: string | null) => void;
+  swipeProgress: number;
+  setSwipeProgress: (progress: number) => void;
+}) {
+  const handlers = useSwipeable({
+    onSwiping: (event) => {
+      if (activeTab === 'archived') return;
+      setSwipedItemId(msg.id);
+      setSwipeProgress(event.deltaX);
+    },
+    onSwiped: () => {
+      if (swipeProgress < -100) {
+        setItemToDelete(msg);
+      } else if (swipeProgress > 100) {
+        setItemToArchive(msg);
+      }
+      setSwipedItemId(null);
+      setSwipeProgress(0);
+    },
+    preventScrollOnSwipe: true,
+    trackMouse: true,
+  });
+
+  const isCurrent = swipedItemId === msg.id;
+  const transform = isCurrent ? `translateX(${swipeProgress}px)` : 'translateX(0)';
+  const transition = isCurrent && swipeProgress === 0 ? 'transform 0.3s ease-out' : 'none';
+
+  return (
+    <div key={msg.id} {...handlers} className="relative overflow-hidden rounded-lg">
+      <div
+        className={cn(
+          "absolute inset-0 flex items-center justify-between px-4 transition-opacity duration-200",
+          isCurrent ? 'opacity-100' : 'opacity-0',
+          swipeProgress > 0 ? 'bg-yellow-400' : 'bg-red-500'
+        )}
+      >
+        {swipeProgress > 0 ? <Archive className="text-white" /> : <span></span>}
+        {swipeProgress < 0 ? <Trash2 className="text-white" /> : <span></span>}
+      </div>
+      <div
+        style={{ transform, transition }}
+        onClick={() => onClick(msg)}
+        className={cn(
+          "relative z-10 flex items-start p-3 rounded-lg bg-white hover:bg-gray-100 cursor-pointer transition-colors duration-200",
+          selectedMessage?.id === msg.id && 'bg-blue-100',
+          !msg.read && activeTab === 'received' && 'font-bold'
+        )}
+      >
+        <div className="flex-1">
+          <div className="flex justify-between items-baseline">
+            <h3 className="text-md">{msg.senderName}</h3>
+            <p
+              className={cn(
+                "text-xs",
+                !msg.read && activeTab === 'received' ? 'text-blue-500' : 'text-gray-400'
+              )}
+            >
+              {format(new Date(msg.createdAt), 'p', { locale: fr })}
+            </p>
+          </div>
+          <p className="text-sm text-gray-800 truncate">{msg.subject}</p>
+          <p className="text-xs text-gray-500 truncate">{msg.content}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ✅ Page principale
 export default function MessagesPage() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -30,7 +131,11 @@ export default function MessagesPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('received'); // 'received', 'sent', 'archived'
+  const [activeTab, setActiveTab] = useState('received');
+  const [swipedItemId, setSwipedItemId] = useState<string | null>(null);
+  const [swipeProgress, setSwipeProgress] = useState(0);
+  const [itemToDelete, setItemToDelete] = useState<Message | null>(null);
+  const [itemToArchive, setItemToArchive] = useState<Message | null>(null);
 
   const fetchMessages = (type: string) => {
     if (user) {
@@ -40,22 +145,14 @@ export default function MessagesPage() {
 
       fetch(apiUrl)
         .then((res) => {
-          if (!res.ok) {
-            throw new Error('Failed to fetch messages');
-          }
+          if (!res.ok) throw new Error('Failed to fetch messages');
           return res.json();
         })
         .then((data) => {
-          if (Array.isArray(data)) {
-            setMessages(data);
-          } else {
-            console.error('API returned non-array data:', data);
-            setMessages([]);
-          }
+          setMessages(Array.isArray(data) ? data : []);
           setLoading(false);
         })
-        .catch((err) => {
-          console.error('Failed to fetch messages', err);
+        .catch(() => {
           setError('Impossible de charger les messages. Veuillez réessayer.');
         });
     }
@@ -87,13 +184,22 @@ export default function MessagesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isArchived }),
       });
-      if (!response.ok) {
-        throw new Error('Failed to update archive status');
-      }
+      if (!response.ok) throw new Error();
+      fetchMessages(activeTab);
+      setSelectedMessage(null);
+    } catch {
+      console.error('Error archiving/unarchiving message');
+    }
+  };
+
+  const handleDelete = async (messageId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error();
       fetchMessages(activeTab);
       setSelectedMessage(null);
     } catch (error) {
-      console.error('Error archiving/unarchiving message:', error);
+      console.error('Error deleting message:', error);
     }
   };
 
@@ -115,11 +221,7 @@ export default function MessagesPage() {
 
   return (
     <div className="container mx-auto p-4 sm:p-6 lg:p-8">
-      <Tabs
-        value={activeTab}
-        onValueChange={setActiveTab}
-        className="h-full flex flex-col"
-      >
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-2xl font-bold">Boîte de réception</h1>
           <Button onClick={() => setIsModalOpen(true)} size="sm">
@@ -135,69 +237,39 @@ export default function MessagesPage() {
         </TabsList>
 
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6 flex-1">
-          {/* Sidebar messages list */}
+          {/* Liste des messages */}
           <div className="md:col-span-1 lg:col-span-1 bg-white rounded-xl shadow-lg p-4 flex flex-col">
-            {/* Reçus */}
-            <TabsContent
-              value="received"
-              className="flex-1 flex flex-col data-[state=inactive]:hidden"
-            >
+            <TabsContent value="received" className="flex-1 flex flex-col data-[state=inactive]:hidden">
               <div className="flex-1 overflow-y-auto space-y-1 pr-2">
-                {messages.length === 0 && (
-                  <div className="p-4 text-center text-gray-500">
-                    Aucun message reçu.
-                  </div>
-                )}
-                {messages.map((msg) => {
-                  if (!msg) return null;
-                  return (
-                    <div
+                {messages.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">Aucun message reçu.</div>
+                ) : (
+                  messages.map((msg) => (
+                    <SwipeableMessageItem
                       key={msg.id}
-                      onClick={() => handleMessageClick(msg)}
-                      className={`flex items-start p-3 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors duration-200 ${
-                        selectedMessage?.id === msg.id ? 'bg-blue-100' : ''
-                      } ${!msg.read && activeTab === 'received' ? 'font-bold' : ''}`}
-                    >
-                      <div className="flex-1">
-                        <div className="flex justify-between items-baseline">
-                          <h3 className="text-md">{msg.senderName}</h3>
-                          <p
-                            className={`text-xs ${
-                              !msg.read && activeTab === 'received'
-                                ? 'text-blue-500'
-                                : 'text-gray-400'
-                            }`}
-                          >
-                            {format(new Date(msg.createdAt), 'p', { locale: fr })}
-                          </p>
-                        </div>
-                        <p className="text-sm text-gray-800 truncate">
-                          {msg.subject}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {msg.content}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
+                      msg={msg}
+                      activeTab={activeTab}
+                      selectedMessage={selectedMessage}
+                      onClick={handleMessageClick}
+                      setItemToArchive={setItemToArchive}
+                      setItemToDelete={setItemToDelete}
+                      swipedItemId={swipedItemId}
+                      setSwipedItemId={setSwipedItemId}
+                      swipeProgress={swipeProgress}
+                      setSwipeProgress={setSwipeProgress}
+                    />
+                  ))
+                )}
               </div>
             </TabsContent>
 
             {/* Envoyés */}
-            <TabsContent
-              value="sent"
-              className="flex-1 flex flex-col data-[state=inactive]:hidden"
-            >
+            <TabsContent value="sent" className="flex-1 flex flex-col data-[state=inactive]:hidden">
               <div className="flex-1 overflow-y-auto space-y-1 pr-2">
-                {messages.length === 0 && (
-                  <div className="p-4 text-center text-gray-500">
-                    Aucun message envoyé.
-                  </div>
-                )}
-                {messages.map((msg) => {
-                  if (!msg) return null;
-                  return (
+                {messages.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">Aucun message envoyé.</div>
+                ) : (
+                  messages.map((msg) => (
                     <div
                       key={msg.id}
                       onClick={() => handleMessageClick(msg)}
@@ -212,33 +284,22 @@ export default function MessagesPage() {
                             {format(new Date(msg.createdAt), 'p', { locale: fr })}
                           </p>
                         </div>
-                        <p className="text-sm text-gray-800 truncate">
-                          {msg.subject}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {msg.content}
-                        </p>
+                        <p className="text-sm text-gray-800 truncate">{msg.subject}</p>
+                        <p className="text-xs text-gray-500 truncate">{msg.content}</p>
                       </div>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             </TabsContent>
 
             {/* Archivés */}
-            <TabsContent
-              value="archived"
-              className="flex-1 flex flex-col data-[state=inactive]:hidden"
-            >
+            <TabsContent value="archived" className="flex-1 flex flex-col data-[state=inactive]:hidden">
               <div className="flex-1 overflow-y-auto space-y-1 pr-2">
-                {messages.length === 0 && (
-                  <div className="p-4 text-center text-gray-500">
-                    Aucun message archivé.
-                  </div>
-                )}
-                {messages.map((msg) => {
-                  if (!msg) return null;
-                  return (
+                {messages.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">Aucun message archivé.</div>
+                ) : (
+                  messages.map((msg) => (
                     <div
                       key={msg.id}
                       onClick={() => handleMessageClick(msg)}
@@ -253,28 +314,22 @@ export default function MessagesPage() {
                             {format(new Date(msg.createdAt), 'p', { locale: fr })}
                           </p>
                         </div>
-                        <p className="text-sm text-gray-800 truncate">
-                          {msg.subject}
-                        </p>
-                        <p className="text-xs text-gray-500 truncate">
-                          {msg.content}
-                        </p>
+                        <p className="text-sm text-gray-800 truncate">{msg.subject}</p>
+                        <p className="text-xs text-gray-500 truncate">{msg.content}</p>
                       </div>
                     </div>
-                  );
-                })}
+                  ))
+                )}
               </div>
             </TabsContent>
           </div>
 
-          {/* Message viewer */}
+          {/* Affichage du message */}
           <div className="md:col-span-2 lg:col-span-3 bg-white rounded-xl shadow-lg flex flex-col">
             {selectedMessage ? (
               <div className="flex-1 flex flex-col">
                 <div className="p-4 border-b flex justify-between items-center">
-                  <h2 className="text-2xl font-semibold">
-                    {selectedMessage.subject}
-                  </h2>
+                  <h2 className="text-2xl font-semibold">{selectedMessage.subject}</h2>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon">
@@ -288,17 +343,13 @@ export default function MessagesPage() {
                     <DropdownMenuContent align="end">
                       {activeTab === 'archived' ? (
                         <DropdownMenuItem
-                          onClick={() =>
-                            handleArchiveToggle(selectedMessage.id, false)
-                          }
+                          onClick={() => handleArchiveToggle(selectedMessage.id, false)}
                         >
                           Désarchiver
                         </DropdownMenuItem>
                       ) : (
                         <DropdownMenuItem
-                          onClick={() =>
-                            handleArchiveToggle(selectedMessage.id, true)
-                          }
+                          onClick={() => handleArchiveToggle(selectedMessage.id, true)}
                         >
                           Archiver
                         </DropdownMenuItem>
@@ -316,9 +367,7 @@ export default function MessagesPage() {
                     <p className="text-sm text-gray-500">À: moi</p>
                   </div>
                   <p className="text-sm text-gray-500 ml-auto">
-                    {format(new Date(selectedMessage.createdAt), 'PPP p', {
-                      locale: fr,
-                    })}
+                    {format(new Date(selectedMessage.createdAt), 'PPP p', { locale: fr })}
                   </p>
                 </div>
 
@@ -338,11 +387,52 @@ export default function MessagesPage() {
         </div>
       </Tabs>
 
-      <NewMessageModal
-        open={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        onMessageSent={handleMessageSent}
-      />
+      <NewMessageModal open={isModalOpen} onOpenChange={setIsModalOpen} onMessageSent={handleMessageSent} />
+
+      <AlertDialog open={!!itemToArchive} onOpenChange={() => setItemToArchive(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archiver le message ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action déplacera le message vers les archives.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (itemToArchive) handleArchiveToggle(itemToArchive.id, true);
+                setItemToArchive(null);
+              }}
+            >
+              Archiver
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Supprimer le message ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est irréversible et supprimera définitivement le message.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                if (itemToDelete) handleDelete(itemToDelete.id);
+                setItemToDelete(null);
+              }}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Supprimer
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

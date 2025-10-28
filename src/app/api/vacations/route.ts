@@ -1,19 +1,25 @@
-
 import { NextResponse } from 'next/server';
-import { findAllVacations, findVacationsByUserId, addVacation } from '@/lib/local-data';
+import { findAllVacations, findVacationsByUserId, addVacation, findArchivedVacations } from '@/lib/local-data';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
+  const includeArchived = searchParams.get('includeArchived') === 'true';
+  const archivedOnly = searchParams.get('archivedOnly') === 'true';
 
   try {
     if (userId) {
       const vacations = await findVacationsByUserId(userId);
       return NextResponse.json(vacations);
-    } else {
-      const vacations = await findAllVacations();
+    }
+
+    if (archivedOnly) {
+      const vacations = await findArchivedVacations();
       return NextResponse.json(vacations);
     }
+
+    const vacations = await findAllVacations({ includeArchived });
+    return NextResponse.json(vacations);
   } catch (error) {
     console.error('Failed to fetch vacations:', error);
     return NextResponse.json({ error: 'Failed to fetch vacations' }, { status: 500 });

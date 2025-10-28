@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
-import { LayoutDashboard, LogOut, User as UserIcon, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, LogOut, User as UserIcon, MessageSquare, Archive, FolderClock} from 'lucide-react';
 
 
 import { Button } from '@/components/ui/button';
@@ -54,12 +54,22 @@ export function UserNav() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
-          <DropdownMenuItem asChild>
-             <Link href="/dashboard">
-              <UserIcon className="mr-2 h-4 w-4" />
-              <span>Mon Profil</span>
-             </Link>
-          </DropdownMenuItem>
+          {userData.role !== 'admin' && (
+            <>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard">
+                  <UserIcon className="mr-2 h-4 w-4" />
+                  <span>Mon Profil</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/historique-vacations">
+                  <FolderClock className="mr-2 h-4 w-4" />
+                  <span>Historique Vacations</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
+          )}
           <DropdownMenuItem asChild>
             <Link href="/dashboard/messages">
               <MessageSquare className="mr-2 h-4 w-4" />
@@ -67,12 +77,20 @@ export function UserNav() {
             </Link>
           </DropdownMenuItem>
           {userData.role === 'admin' && (
-            <DropdownMenuItem asChild>
+            <>
+              <DropdownMenuItem asChild>
                 <Link href="/admin">
-                    <LayoutDashboard className="mr-2 h-4 w-4" />
-                    <span>Espace Administration</span>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span>Espace Administration</span>
                 </Link>
-            </DropdownMenuItem>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/archives">
+                  <Archive className="mr-2 h-4 w-4" />
+                  <span>Vacations Archivées</span>
+                </Link>
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

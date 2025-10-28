@@ -22,6 +22,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (!loading && user && window.location.pathname.startsWith('/admin') && userData?.role !== 'admin') {
       router.push('/dashboard');
     }
+    if (!loading && user && (window.location.pathname === '/' || window.location.pathname.startsWith('/dashboard')) && userData?.role === 'admin') {
+      router.push('/admin');
+    }
   }, [user, userData, loading, router]);
 
 

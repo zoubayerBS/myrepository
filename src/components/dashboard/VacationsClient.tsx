@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Plus, PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Plus, PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle, Archive, ArchiveRestore, FileText, UserRound } from 'lucide-react';
 import { VacationsTable } from './VacationsTable';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Pagination } from '@/components/ui/pagination';
 import { useRouter } from 'next/navigation';
 import { VacationForm } from './VacationForm';
+import { ReportGenerator } from './ReportGenerator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -41,7 +42,10 @@ import { sendMessage } from '@/lib/actions/message-actions';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Command, CommandInput, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
-import { Check } from 'lucide-react';
+import { Check, CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { subDays } from 'date-fns';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 // Hook mobile
 function useIsMobile(breakpoint: number = 768): boolean {
@@ -55,19 +59,32 @@ function useIsMobile(breakpoint: number = 768): boolean {
   return isMobile;
 }
 
+// Helper to get the default payroll date range
+const getDefaultDateRange = () => {
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth();
+  const startDate = new Date(currentYear, currentMonth, 1);
+  const endDate = new Date(currentYear, currentMonth + 1, 0);
+  return { startDate, endDate };
+};
+
 interface VacationsClientProps {
   currentUser: AppUser;
   isAdminView: boolean;
   initialVacations: Vacation[];
   allUsers?: AppUser[];
+  historyMode?: boolean;
+  archiveMode?: boolean;
 }
 
-export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }: VacationsClientProps) {
+export function VacationsClient({ isAdminView, initialVacations, allUsers = [], historyMode = false, archiveMode = false }: VacationsClientProps) {
   const { user, userData } = useAuth();
   const router = useRouter();
   const [vacations, setVacations] = useState<Vacation[]>(initialVacations);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [vacationToEdit, setVacationToEdit] = useState<Vacation | null>(null);
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
 
@@ -75,6 +92,9 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [startDate, setStartDate] = useState<Date | undefined>(historyMode || archiveMode ? undefined : getDefaultDateRange().startDate);
+  const [endDate, setEndDate] = useState<Date | undefined>(historyMode ? subDays(getDefaultDateRange().startDate, 1) : archiveMode ? undefined : getDefaultDateRange().endDate);
+
 
   const isMobile = useIsMobile();
   const { toast } = useToast();
@@ -86,26 +106,33 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
     if (!user) return;
     setIsLoading(true);
     try {
-      let fetchedVacations: Vacation[];
-      if (isAdminView) {
-        if (userData?.role !== 'admin') {
-          toast({ variant: 'destructive', title: 'Erreur', description: 'Accès non autorisé.' });
-          setIsLoading(false);
-          return;
-        }
-        const response = await fetch('/api/vacations');
-        fetchedVacations = await response.json();
-      } else {
-        const response = await fetch(`/api/vacations?userId=${user.uid}`);
-        fetchedVacations = await response.json();
+      let url = '/api/vacations';
+      const params = new URLSearchParams();
+
+      if (archiveMode) {
+        params.append('archivedOnly', 'true');
+      } else if (historyMode) {
+        params.append('includeArchived', 'true');
       }
+
+      if (!isAdminView) {
+        params.append('userId', user.uid);
+      }
+      
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+
+      const response = await fetch(url);
+      const fetchedVacations = await response.json();
       setVacations(fetchedVacations);
     } catch (error) {
       console.error(error);
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les vacations.' });
     }
     setIsLoading(false);
-  }, [isAdminView, user, userData?.role, toast]);
+  }, [isAdminView, user, archiveMode, historyMode, toast]);
 
   useEffect(() => {
     if (user) fetchVacations();
@@ -133,7 +160,6 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
   };
 
   const handleStatusChange = async (vacationId: string, status: VacationStatus) => {
-    console.log(`handleStatusChange called for vacationId: ${vacationId}, status: ${status}`);
     const vacation = vacations.find(v => v.id === vacationId);
     if (!vacation || !user || !userData) return;
 
@@ -141,7 +167,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
       const response = await fetch(`/api/vacations/${vacationId}/status`, { 
         method: 'PUT', 
         headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ status }) 
+        body: JSON.stringify({ status })
       });
       if (!response.ok) throw new Error('Failed to update status');
       
@@ -165,12 +191,59 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
     }
   };
 
+  const handleArchive = async (vacationId: string) => {
+    try {
+      const response = await fetch(`/api/vacations/${vacationId}/archive`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived: true }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to archive vacation');
+      }
+      toast({ title: 'Succès', description: 'Vacation archivée.' });
+      setVacations(prev => prev.filter(v => v.id !== vacationId));
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'archiver la vacation." });
+    }
+  };
+
+  const handleUnarchive = async (vacationId: string) => {
+    try {
+      const response = await fetch(`/api/vacations/${vacationId}/archive`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ isArchived: false }),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to unarchive vacation');
+      }
+      toast({ title: 'Succès', description: 'Vacation désarchivée.' });
+      setVacations(prev => prev.filter(v => v.id !== vacationId));
+    } catch (error) {
+      toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de désarchiver la vacation." });
+    }
+  };
+
+  const vacationsForView = useMemo(() => {
+    if (historyMode) {
+      const startOfCurrentMonth = getDefaultDateRange().startDate;
+      return vacations.filter(v => new Date(v.date) < startOfCurrentMonth || v.isArchived);
+    }
+    return vacations;
+  }, [vacations, historyMode]);
+
   const filteredVacations = useMemo(() => {
-    let filtered = vacations.filter(v => {
+    let filtered = vacationsForView.filter(v => {
+      const vacationDate = new Date(v.date);
+      const isAfterStartDate = startDate ? vacationDate >= startDate : true;
+      const isBeforeEndDate = endDate ? vacationDate <= endDate : true;
+
       const userMatch = !isAdminView || userFilter === 'all' || v.userId === userFilter;
       const typeMatch = typeFilter === 'all' || v.type === typeFilter;
       const statusMatch = statusFilter === 'all' || v.status === statusFilter;
-      return userMatch && typeMatch && statusMatch;
+      
+      return isAfterStartDate && isBeforeEndDate && userMatch && typeMatch && statusMatch;
     });
 
     if (searchQuery) {
@@ -188,7 +261,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
       );
     }
     return filtered;
-  }, [vacations, userFilter, typeFilter, statusFilter, isAdminView, searchQuery]);
+  }, [vacationsForView, userFilter, typeFilter, statusFilter, isAdminView, searchQuery, startDate, endDate]);
 
   const totalPages = Math.ceil(filteredVacations.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -240,7 +313,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
 
     const totalValidatedAmount = validatedVacations.reduce((sum, v) => sum + v.amount, 0);
 
-    let csvContent = "data:text/csv;charset=utf-8," 
+    let csvContent = "data:text/csv;charset=utf-8,"
       + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
     
     csvContent += `\n\nTotal Validée,${totalValidatedAmount.toFixed(2)}`;
@@ -258,7 +331,11 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
     <div className="space-y-8 w-full overflow-x-hidden">
 
       {/* Header */}
-      {isAdminView ? (
+      {archiveMode ? (
+        <h1 className="text-3xl font-bold font-sans">Vacations Archivées</h1>
+      ) : historyMode ? (
+        <h1 className="text-3xl font-bold font-sans">Historique des vacations</h1>
+      ) : isAdminView ? (
         <h2 className="text-2xl font-bold font-sans">Toutes les vacations</h2>
       ) : (
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -268,6 +345,18 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
           </div>
           <div className="flex items-center gap-2">
             <Button onClick={fetchVacations} variant="outline" size="icon" className="h-9 w-9"><RefreshCw className="h-4 w-4" /></Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button onClick={() => setIsReportModalOpen(true)} variant="outline" size="icon" className="h-9 w-9">
+                    <FileText className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Générer mon rapport</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <Button onClick={handleAddNew}><PlusCircle className="mr-2 h-4 w-4" />Nouvelle vacation</Button>
           </div>
         </div>
@@ -293,8 +382,53 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                 className="mt-1"
               />
             </div>
+            {(historyMode || archiveMode) && (
+                <div className="flex-1 col-span-full">
+                    <Label>Période</Label>
+                    <Popover>
+                        <PopoverTrigger asChild>
+                            <Button
+                                id="date"
+                                variant={'outline'}
+                                className={cn(
+                                    'w-full justify-start text-left font-normal mt-1',
+                                    !startDate && !endDate && 'text-muted-foreground'
+                                )}
+                            >
+                                <CalendarIcon className="mr-2 h-4 w-4" />
+                                {startDate ? (
+                                    endDate ? (
+                                        <>
+                                            {format(startDate, 'LLL dd, y', { locale: fr })} -{' '}
+                                            {format(endDate, 'LLL dd, y', { locale: fr })}
+                                        </>
+                                    ) : (
+                                        format(startDate, 'LLL dd, y', { locale: fr })
+                                    )
+                                ) : (
+                                    <span>Choisir une période</span>
+                                )}
+                            </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                                initialFocus
+                                mode="range"
+                                defaultMonth={startDate}
+                                selected={{ from: startDate, to: endDate }}
+                                onSelect={(range) => {
+                                    setStartDate(range?.from);
+                                    setEndDate(range?.to);
+                                }}
+                                numberOfMonths={1}
+                                locale={fr}
+                            />
+                        </PopoverContent>
+                    </Popover>
+                </div>
+            )}
             {isAdminView && (
-              <div className="flex-1">
+              <div>
                 <Label>Utilisateur</Label>
                 <Select value={userFilter} onValueChange={setUserFilter}>
                   <SelectTrigger><SelectValue placeholder="Filtrer par utilisateur" /></SelectTrigger>
@@ -305,8 +439,8 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                 </Select>
               </div>
             )}
-            <div className="flex-1">
-              <Label>Nature de l\'acte</Label>
+            <div>
+              <Label>Nature de l'acte</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger><SelectValue placeholder="Filtrer par type" /></SelectTrigger>
                 <SelectContent>
@@ -316,7 +450,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex-1">
+            <div>
               <Label>Statut</Label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger><SelectValue placeholder="Filtrer par statut" /></SelectTrigger>
@@ -337,11 +471,13 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
           <div className="text-center p-8">Chargement...</div>
         ) : isMobile ? (
           <div className="space-y-4" {...handlers}>
-            {currentMobileVacations.map(v => (
+            {filteredVacations.length > 0 ? (
+              currentMobileVacations.map(v => (
               <Card key={v.id} className="p-4 max-w-full">
                 <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
-                  <CardTitle className="text-lg font-bold truncate">
-                    {v.user?.prenom} {v.user?.nom}
+                  <CardTitle className={cn("text-lg font-bold truncate", isAdminView && "flex items-center")}>
+                    {isAdminView && <UserRound className="h-4 w-4 mr-2" />}
+                    {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : v.patientName}
                     {v.isCec && <span className="ml-2 text-green-500 animate-blink">CEC</span>}
                   </CardTitle>
                   <DropdownMenu>
@@ -352,26 +488,41 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                     </DropdownMenuTrigger >
                     <DropdownMenuContent align="end">
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {isAdminView && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                          <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                          {v.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                      {archiveMode ? (
+                        <DropdownMenuItem onClick={() => handleUnarchive(v.id)}>
+                          <ArchiveRestore className="mr-2 h-4 w-4" />
+                          Désarchiver
                         </DropdownMenuItem>
+                      ) : (
+                        <>
+                          {isAdminView && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                              {v.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                            </DropdownMenuItem>
+                          )}
+                          {isAdminView && (
+                            <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                              {v.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                            </DropdownMenuItem>
+                          )}
+                          {isAdminView && v.status !== 'En attente' && (
+                            <DropdownMenuItem onClick={() => handleArchive(v.id)}>
+                              <Archive className="mr-2 h-4 w-4" />
+                              Archiver
+                            </DropdownMenuItem>
+                          )}
+                          {isAdminView && <DropdownMenuSeparator />}
+                          <DropdownMenuItem onClick={() => handleEdit(v)} disabled={v.status !== 'En attente'}>
+                            <FilePenLine className="mr-2 h-4 w-4" />Modifier
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive" onClick={() => setVacationToDelete(v)} disabled={v.status !== 'En attente'}>
+                            <Trash2 className="mr-2 h-4 w-4" />Supprimer
+                          </DropdownMenuItem>
+                        </>
                       )}
-                      {isAdminView && (
-                        <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                          <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                          {v.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                        </DropdownMenuItem>
-                      )}
-                      {isAdminView && <DropdownMenuSeparator />}
-                      <DropdownMenuItem onClick={() => handleEdit(v)} disabled={v.status !== 'En attente'}>
-                        <FilePenLine className="mr-2 h-4 w-4" />Modifier
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => setVacationToDelete(v)} disabled={v.status !== 'En attente'}>
-                        <Trash2 className="mr-2 h-4 w-4" />Supprimer
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </CardHeader>
@@ -386,7 +537,12 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
                   <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{v.amount.toFixed(2)} DT</span></div>
                 </CardContent>
               </Card>
-            ))}
+            )) 
+            ) : (
+              <div className="text-center p-8 text-muted-foreground">
+                Aucune vacation trouvée pour les filtres sélectionnés.
+              </div>
+            )}
             {totalPages > 1 && <div className="flex justify-center space-x-2 mt-4">{Array.from({ length: totalPages }, (_, i) => <span key={i} className={cn("block h-2 w-2 rounded-full", currentPage === i+1?'bg-blue-500':'bg-gray-300')}></span>)}</div>}
           </div>
         ) : (
@@ -398,6 +554,9 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
               onDelete={handleDelete}
               onStatusChange={handleStatusChange}
               onExport={exportValidatedToCSV}
+              onArchive={handleArchive}
+              onUnarchive={handleUnarchive}
+              archiveMode={archiveMode}
             />
             {totalPages > 1 && (
               <Pagination
@@ -422,13 +581,30 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [] }
         </DialogContent>
       </Dialog>
 
+      {/* Report Generator Modal */}
+      <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Générer mon rapport </DialogTitle>
+          </DialogHeader>
+          {user && userData && (
+            <ReportGenerator
+              allVacations={vacations}
+              allUsers={isAdminView ? allUsers : (userData ? [userData] : [])}
+              currentUser={userData}
+              isAdmin={isAdminView}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Confirmation de suppression */}
       <AlertDialog open={!!vacationToDelete} onOpenChange={(open) => !open && setVacationToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer?</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible et supprimera définitivement la vacation.
+              Cette action est irréversible et supprimera définitiveiment la vacation.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

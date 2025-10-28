@@ -433,7 +433,7 @@ export function VacationForm({
               name="type"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nature de l\'acte</FormLabel>
+                  <FormLabel>Nature de l'acte</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>

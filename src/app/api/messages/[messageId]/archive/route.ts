@@ -5,22 +5,25 @@ const supabase = getDb();
 
 export async function PUT(
   request: Request,
-  { params }: { params: { messageId: string } }
+  { params }: { params: Promise<{ messageId: string }> }
 ) {
-  const { messageId } = params;
-  const { archived } = await request.json(); // Expecting { archived: true } or { archived: false }
-
   try {
+    const { messageId } = await params;
+    const { isArchived } = await request.json(); // Expecting { isArchived: true } or { isArchived: false }
+
     const { error } = await supabase
       .from('messages')
-      .update({ isArchived: archived ? 1 : 0 })
+      .update({ isArchived: isArchived ? 1 : 0 })
       .eq('id', messageId);
 
-    if (error) throw error;
+    if (error) {
+      console.error(`Database error updating archive status for message ${messageId}:`, error);
+      throw new Error(error.message);
+    }
 
-    return NextResponse.json({ message: `Message ${archived ? 'archived' : 'unarchived'} successfully` });
+    return NextResponse.json({ message: `Message ${isArchived ? 'archived' : 'unarchived'} successfully` });
   } catch (error) {
-    console.error(`Failed to update archive status for message ${messageId}:`, error);
+    console.error('Failed to update archive status:', error);
     return NextResponse.json({ error: 'Failed to update message' }, { status: 500 });
   }
 }

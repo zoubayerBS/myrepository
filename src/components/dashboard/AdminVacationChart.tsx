@@ -1,7 +1,7 @@
 
 'use client'
 
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
+import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
 import type { Vacation } from '@/types'
@@ -46,7 +46,7 @@ export function AdminVacationChart({ data }: AdminVacationChartProps) {
 
   return (
     <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+      <LineChart data={chartData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
         <XAxis
           dataKey="name"
@@ -72,10 +72,10 @@ export function AdminVacationChart({ data }: AdminVacationChartProps) {
             }}
         />
         <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-        <Bar dataKey="Validées" fill="#22c55e" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="Refusées" fill="#ef4444" radius={[4, 4, 0, 0]} />
-        <Bar dataKey="En attente" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-      </BarChart>
+        <Line type="monotone" dataKey="Validées" stroke="#22c55e" strokeWidth={2} />
+        <Line type="monotone" dataKey="Refusées" stroke="#ef4444" strokeWidth={2} />
+        <Line type="monotone" dataKey="En attente" stroke="#f59e0b" strokeWidth={2} />
+      </LineChart>
     </ResponsiveContainer>
   )
 }
