@@ -67,3 +67,14 @@
 .animate-blink {
   animation: blink 1s linear infinite;
 }
+
+@keyframes border-pulse {
+  50% {
+    border-color: #f59e0b; /* using yellow-500 as gold */
+  }
+}
+
+.animate-border-pulse {
+  animation: border-pulse 2s infinite;
+  border: 2px solid;
+}

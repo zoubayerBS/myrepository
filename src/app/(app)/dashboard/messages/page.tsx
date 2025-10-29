@@ -98,14 +98,14 @@ function SwipeableMessageItem({
         style={{ transform, transition }}
         onClick={() => onClick(msg)}
         className={cn(
-          "relative z-10 flex items-start p-3 rounded-lg bg-white hover:bg-gray-100 cursor-pointer transition-colors duration-200",
+          "relative z-10 flex items-start p-3 rounded-lg bg-white cursor-pointer duration-200",
           selectedMessage?.id === msg.id && 'bg-blue-100',
           !msg.read && activeTab === 'received' && 'font-bold'
         )}
       >
-        <div className="flex-1">
+        <div className="flex-1 w-0">
           <div className="flex justify-between items-baseline">
-            <h3 className="text-md">{msg.senderName}</h3>
+            <h3 className="text-md truncate">{msg.senderName}</h3>
             <p
               className={cn(
                 "text-xs",

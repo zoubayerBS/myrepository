@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -73,7 +72,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Vacations (ce mois)</CardTitle>
-                    <Layers className="h-4 w-4 text-muted-foreground" />
+                    <Layers className="h-6 w-6 text-red-400 animate-bounce" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.total}</div>
@@ -83,17 +82,17 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Montant Validé (ce mois)</CardTitle>
-                    <HandCoins className="h-4 w-4 text-muted-foreground" />
+                    <HandCoins className="h-6 w-6 text-green-600 animate-pulse" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.validatedAmount.toFixed(2)} DT</div>
                     <p className="text-xs text-muted-foreground">Gains validés ce mois-ci</p>
                 </CardContent>
             </Card>
-            <Card>
+            <Card >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                     <CardTitle className="text-sm font-medium">Demandes en Attente</CardTitle>
-                    <Hourglass className="h-4 w-4 text-muted-foreground" />
+                    <Hourglass className="h-6 w-6 text-yellow-500 animate-spin" />
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.pending}</div>

@@ -95,11 +95,10 @@ export function VacationsTable({
           {vacations.length > 0 ? (
             vacations.map((vacation) => (
               <Card key={vacation.id} className="p-4 w-full">
-                <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
+                <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between ">
                   <CardTitle className="text-lg font-bold">
-                    {vacation.patientName}
-                  </CardTitle>
-                  <DropdownMenu>
+                    {vacation.patientName.toUpperCase()}
+                  </CardTitle>                  <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="h-8 w-8 p-0">
                         <span className="sr-only">Ouvrir le menu</span>
