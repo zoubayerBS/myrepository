@@ -81,32 +81,82 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
     let finalY = 60;
 
     if (selectedUser) {
-        // Single user report
-        const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
-        const tableRows: (string | number)[][] = [];
+        const isZoubaier = selectedUser.uid === '1757098998603-zoubaier_bs';
 
-        filteredData.forEach(vacation => {
-            const vacationData = [
-                format(new Date(vacation.date), 'dd/MM/yy'),
-                vacation.patientName,
-                vacation.operation,
-                vacation.reason,
-                vacation.type === 'acte' ? 'Acte' : 'Forfait',
-                vacation.status,
-                vacation.amount.toFixed(2),
-            ];
-            tableRows.push(vacationData);
-        });
+        const createVacationTable = (title: string, vacations: Vacation[], startY: number) => {
+            if (vacations.length === 0) return startY;
 
-        autoTable(doc, {
-            head: [tableColumn],
-            body: tableRows,
-            startY: finalY,
-            theme: 'striped',
-            headStyles: { fillColor: [41, 41, 41] },
-        });
+            doc.setFontSize(12);
+            doc.setFont('helvetica', 'bold');
+            doc.text(title, 14, startY);
+            let tableStartY = startY + 8;
 
-        finalY = (doc as any).lastAutoTable.finalY || finalY + 20;
+            const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+            const tableRows: (string | number)[][] = [];
+            let groupTotal = 0;
+
+            vacations.forEach(vacation => {
+                const vacationData = [
+                    format(new Date(vacation.date), 'dd/MM/yy'),
+                    vacation.patientName,
+                    vacation.operation,
+                    vacation.reason,
+                    vacation.type === 'acte' ? 'Acte' : 'Forfait',
+                    vacation.status,
+                    vacation.amount.toFixed(2),
+                ];
+                tableRows.push(vacationData);
+                groupTotal += vacation.amount;
+            });
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: tableStartY,
+                theme: 'striped',
+                headStyles: { fillColor: [41, 41, 41] },
+                foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
+                footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
+            });
+
+            return (doc as any).lastAutoTable.finalY + 10;
+        };
+
+        if (isZoubaier) {
+            const cecVacations = filteredData.filter(v => v.isCec);
+            const otherVacations = filteredData.filter(v => !v.isCec);
+
+            finalY = createVacationTable("Vacations CEC", cecVacations, finalY);
+            finalY = createVacationTable("Autres Vacations", otherVacations, finalY);
+
+        } else {
+            // Original single user report logic for other users
+            const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+            const tableRows: (string | number)[][] = [];
+
+            filteredData.forEach(vacation => {
+                const vacationData = [
+                    format(new Date(vacation.date), 'dd/MM/yy'),
+                    vacation.patientName,
+                    vacation.operation,
+                    vacation.reason,
+                    vacation.type === 'acte' ? 'Acte' : 'Forfait',
+                    vacation.status,
+                    vacation.amount.toFixed(2),
+                ];
+                tableRows.push(vacationData);
+            });
+
+            autoTable(doc, {
+                head: [tableColumn],
+                body: tableRows,
+                startY: finalY,
+                theme: 'striped',
+                headStyles: { fillColor: [41, 41, 41] },
+            });
+
+            finalY = (doc as any).lastAutoTable.finalY || finalY + 20;
+        }
 
     } else {
         // All users report
