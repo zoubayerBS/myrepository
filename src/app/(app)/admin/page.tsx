@@ -9,6 +9,7 @@ import { VacationsClient } from '@/components/dashboard/VacationsClient';
 import { AdminVacationChart } from '@/components/dashboard/AdminVacationChart';
 import { ReportGenerator } from '@/components/dashboard/ReportGenerator';
 import { UsersListModal } from '@/components/dashboard/UsersListModal';
+import { useAuth } from '@/lib/auth';
 
 import type { AppUser, Vacation } from '@/types';
 import { getAllUsers, findAllVacations } from '@/lib/local-data';
@@ -24,6 +25,7 @@ export default function AdminPage() {
     const [loading, setLoading] = useState(true);
     const [filteredVacations, setFilteredVacations] = useState<Vacation[]>([]);
     const [chartData, setChartData] = useState<Vacation[]>([]);
+    const { user, userData } = useAuth();
 
     const { startDate, endDate } = useMemo(() => {
         const today = new Date();
@@ -82,8 +84,6 @@ export default function AdminPage() {
     const pendingVacations = filteredVacations.filter(v => v.status === 'En attente').length;
     const validatedVacations = filteredVacations.filter(v => v.status === 'Validée');
     const totalValidatedAmount = validatedVacations.reduce((sum, v) => sum + v.amount, 0);
-
-    const placeholderUser: AppUser = { uid: '', username: '', nom: '', prenom: '', fonction: 'panseur', role: 'admin', email: '' };
 
     if (loading) {
         return <div>Chargement...</div>
@@ -170,7 +170,7 @@ export default function AdminPage() {
                             <AccordionContent>
                                 <Card className="border-none shadow-none">
                                     <CardContent>
-                                        <ReportGenerator allVacations={allVacations} allUsers={allUsers} />
+                                        {userData && <ReportGenerator allVacations={allVacations} allUsers={allUsers} currentUser={userData} isAdmin={true} />}
                                     </CardContent>
                                 </Card>
                             </AccordionContent>
@@ -213,7 +213,6 @@ export default function AdminPage() {
             </Card>
 
             <VacationsClient 
-                currentUser={placeholderUser}
                 initialVacations={allVacations}
                 allUsers={allUsers}
                 isAdminView={true}

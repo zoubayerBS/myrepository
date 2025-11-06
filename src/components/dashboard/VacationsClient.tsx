@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Plus, PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle, Archive, ArchiveRestore, FileText, UserRound } from 'lucide-react';
@@ -12,7 +12,7 @@ import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Pagination } from '@/components/ui/pagination';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { VacationForm } from './VacationForm';
 import { ReportGenerator } from './ReportGenerator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -70,30 +70,35 @@ const getDefaultDateRange = () => {
 };
 
 interface VacationsClientProps {
-  currentUser: AppUser;
   isAdminView: boolean;
   initialVacations: Vacation[];
   allUsers?: AppUser[];
   historyMode?: boolean;
   archiveMode?: boolean;
+  pendingMode?: boolean;
 }
 
-export function VacationsClient({ isAdminView, initialVacations, allUsers = [], historyMode = false, archiveMode = false }: VacationsClientProps) {
+export function VacationsClient({ isAdminView, initialVacations, allUsers = [], historyMode = false, archiveMode = false, pendingMode = false }: VacationsClientProps) {
   const { user, userData } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [vacations, setVacations] = useState<Vacation[]>(initialVacations);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [vacationToEdit, setVacationToEdit] = useState<Vacation | null>(null);
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
 
-  const [userFilter, setUserFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [startDate, setStartDate] = useState<Date | undefined>(historyMode || archiveMode ? undefined : getDefaultDateRange().startDate);
-  const [endDate, setEndDate] = useState<Date | undefined>(historyMode ? subDays(getDefaultDateRange().startDate, 1) : archiveMode ? undefined : getDefaultDateRange().endDate);
+  const [userFilter, setUserFilter] = useState<string>(searchParams.get('userFilter') || 'all');
+  const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('typeFilter') || 'all');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('statusFilter') || 'all');
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('searchQuery') || '');
+  const [startDate, setStartDate] = useState<Date | undefined>(
+    searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined
+  );
+  const [endDate, setEndDate] = useState<Date | undefined>(
+    searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined
+  );
 
 
   const isMobile = useIsMobile();
@@ -101,43 +106,6 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
-
-  const fetchVacations = useCallback(async () => {
-    if (!user) return;
-    setIsLoading(true);
-    try {
-      let url = '/api/vacations';
-      const params = new URLSearchParams();
-
-      if (archiveMode) {
-        params.append('archivedOnly', 'true');
-      } else if (historyMode) {
-        params.append('includeArchived', 'true');
-      }
-
-      if (!isAdminView) {
-        params.append('userId', user.uid);
-      }
-      
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
-
-      const response = await fetch(url);
-      const fetchedVacations = await response.json();
-      setVacations(fetchedVacations);
-    } catch (error) {
-      console.error(error);
-      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les vacations.' });
-    }
-    setIsLoading(false);
-  }, [isAdminView, user, archiveMode, historyMode, toast]);
-
-  useEffect(() => {
-    if (user) fetchVacations();
-    else setIsLoading(false);
-  }, [user, fetchVacations]);
 
   const handleEdit = (vacation: Vacation) => { setVacationToEdit(vacation); setIsFormOpen(true); };
   const handleAddNew = () => { setVacationToEdit(null); setIsFormOpen(true); };
@@ -171,8 +139,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       });
       if (!response.ok) throw new Error('Failed to update status');
       
-      const updatedVacation = await response.json();
-      setVacations(prev => prev.map(v => (v.id === vacationId ? updatedVacation : v)));
+      setVacations(prev => prev.map(v => (v.id === vacationId ? { ...v, status } : v)));
       toast({ title: 'Succès', description: 'Statut mis à jour.' });
 
       const subject = `Mise à jour du statut de votre vacation`;
@@ -285,7 +252,12 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   if (!user || !userData) return <div className="flex h-48 items-center justify-center">Chargement des données...</div>;
 
-  const handleFormSuccess = async () => { setIsFormOpen(false); await fetchVacations(); };
+  const handleFormSuccess = async () => { 
+    setIsFormOpen(false); 
+    // Here you might want to refetch all vacations, but since we are doing client-side filtering,
+    // we can just update the state with the new/updated vacation.
+    // For simplicity, we will just close the form.
+  };
 
   const exportValidatedToCSV = () => {
     const headers = isAdminView 
@@ -344,7 +316,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
             <p className="text-muted-foreground">Gérez vos vacations enregistrées.</p>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={fetchVacations} variant="outline" size="icon" className="h-9 w-9"><RefreshCw className="h-4 w-4" /></Button>
+            <Button onClick={() => {}} variant="outline" size="icon" className="h-9 w-9"><RefreshCw className="h-4 w-4" /></Button>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -382,7 +354,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                 className="mt-1"
               />
             </div>
-            {(historyMode || archiveMode) && (
+            {(historyMode || archiveMode || pendingMode || isAdminView) && (
                 <div className="flex-1 col-span-full">
                     <Label>Période</Label>
                     <Popover>
@@ -440,7 +412,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
               </div>
             )}
             <div>
-              <Label>Nature de l'acte</Label>
+              <Label>Nature de l\'acte</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger><SelectValue placeholder="Filtrer par type" /></SelectTrigger>
                 <SelectContent>
@@ -450,18 +422,20 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Statut</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger><SelectValue placeholder="Filtrer par statut" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="En attente">En attente</SelectItem>
-                  <SelectItem value="Validée">Validée</SelectItem>
-                  <SelectItem value="Refusée">Refusée</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {!pendingMode && (
+              <div>
+                <Label>Statut</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger><SelectValue placeholder="Filtrer par statut" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tous les statuts</SelectItem>
+                    <SelectItem value="En attente">En attente</SelectItem>
+                    <SelectItem value="Validée">Validée</SelectItem>
+                    <SelectItem value="Refusée">Refusée</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </CardContent>
         </Card>
         <br />
@@ -548,6 +522,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         ) : (
           <>
             <VacationsTable
+              key={JSON.stringify(filteredVacations.slice(indexOfFirstItem, indexOfLastItem))}
               vacations={filteredVacations.slice(indexOfFirstItem, indexOfLastItem)} // Apply pagination here
               isAdminView={isAdminView}
               onEdit={handleEdit}

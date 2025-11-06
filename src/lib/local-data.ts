@@ -80,6 +80,57 @@ export async function findVacationsByUserId(userId: string): Promise<Vacation[]>
     return data as Vacation[];
 }
 
+export async function findPendingPreviousMonthVacations(filters: {
+    startDate?: string;
+    endDate?: string;
+    userFilter?: string;
+    typeFilter?: string;
+    searchQuery?: string;
+} = {}): Promise<Vacation[]> {
+    const { startDate, endDate, userFilter, typeFilter, searchQuery } = filters;
+    let query = supabase
+        .from('vacations')
+        .select('*, user:users(*)')
+        .eq('status', 'En attente');
+
+    const today = new Date();
+    const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1).toISOString();
+    query = query.lt('date', firstDayOfCurrentMonth);
+
+    if (startDate) {
+        query = query.gte('date', startDate);
+    }
+    if (endDate) {
+        query = query.lte('date', endDate);
+    }
+    if (userFilter && userFilter !== 'all') {
+        query = query.eq('userId', userFilter);
+    }
+    if (typeFilter && typeFilter !== 'all') {
+        query = query.eq('type', typeFilter);
+    }
+    if (searchQuery) {
+        const orQuery = [
+            `patientName.ilike.%${searchQuery}%`,
+            `matricule.ilike.%${searchQuery}%`,
+            `surgeon.ilike.%${searchQuery}%`,
+            `operation.ilike.%${searchQuery}%`,
+            `reason.ilike.%${searchQuery}%`,
+            `type.ilike.%${searchQuery}%`,
+            `user.username.ilike.%${searchQuery}%`,
+            `user.nom.ilike.%${searchQuery}%`,
+            `user.prenom.ilike.%${searchQuery}%`,
+        ].join(',');
+        query = query.or(orQuery, { referencedTable: 'users' });
+    }
+
+    const { data, error } = await query.order('date', { ascending: true });
+
+    if (error) throw error;
+    return data as Vacation[];
+}
+
+
 export async function addVacation(vacation: Omit<Vacation, 'id'>): Promise<Vacation> {
     const newId = `${Date.now()}-${Math.random()}`;
     const newVacation = { ...vacation, id: newId };
