@@ -23,7 +23,16 @@ export async function GET(request: Request) {
 
     if (error) throw error;
 
-    return NextResponse.json(messages);
+    const formattedMessages = messages.map(message => ({
+      id: message.id,
+      senderId: message.senderId,
+      subject: message.subject,
+      content: message.content,
+      createdAt: message.createdAt,
+      senderName: message.sender.username,
+    }));
+
+    return NextResponse.json(formattedMessages);
   } catch (error) {
     console.error('Failed to fetch unread message preview:', error);
     return NextResponse.json({ error: 'Failed to fetch unread message preview' }, { status: 500 });

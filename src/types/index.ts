@@ -61,3 +61,15 @@ export interface VacationAmount {
   type: 'acte' | 'forfait';
   amount: number;
 }
+
+export interface Conversation {
+  id: string;
+  participant1Id: string;
+  participant2Id: string;
+  updatedAt: string;
+  otherParticipantId: string;
+  otherParticipantName: string;
+  subject: string;
+  lastMessage: string | null;
+  lastMessageTimestamp: string | null;
+}

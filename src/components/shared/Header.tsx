@@ -59,7 +59,7 @@ export function Header() {
             {/* Message Dropdown */}
             <DropdownMenu onOpenChange={setIsMessageDropdownOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
+                <Button variant="ghost" size="icon" className="relative ml-4">
                   <Mail className="h-5 w-5" />
                   {unreadMessageCount > 0 && (
                     <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
@@ -73,9 +73,9 @@ export function Header() {
                 <div className="font-bold px-2 py-1">Messages non lus ({unreadMessageCount})</div>
                 <DropdownMenuSeparator />
                 {messagePreviews.length > 0 ? (
-                  messagePreviews.map((message) => (
+                  messagePreviews.slice(0, 3).map((message) => (
                     <DropdownMenuItem key={message.id} className="flex flex-col items-start p-2 cursor-pointer hover:bg-gray-100">
-                      <div className="font-semibold">De: {message.senderName}</div>
+                      <div className="font-semibold ">De:<span className="animate-pulse text-green-600"> {message.senderName}</span></div>
                       <div className="text-sm font-medium">Sujet: {message.subject}</div>
                       <div className="text-xs text-gray-500 truncate w-full">{message.content}</div>
                       <div className="text-xs text-gray-400 mt-1">{new Date(message.createdAt).toLocaleString()}</div>

@@ -97,11 +97,13 @@ export default function ConversationClientPage({ conversationId }: ConversationC
   }, [messages]);
 
   const handleSendMessage = async () => {
-    if (!newMessageContent.trim() || !user || !conversationId || !ws.current || ws.current.readyState !== WebSocket.OPEN) return;
+    if (!newMessageContent.trim() || !user || !conversationId || !conversation || !ws.current || ws.current.readyState !== WebSocket.OPEN) return;
 
     const messagePayload = {
       conversationId,
       senderId: user.uid,
+      receiverId: conversation.otherParticipantId,
+      subject: conversation.subject,
       content: newMessageContent.trim(),
     };
 
@@ -109,10 +111,16 @@ export default function ConversationClientPage({ conversationId }: ConversationC
 
     const optimisticMessage: Message = {
       id: new Date().toISOString(),
-      ...messagePayload,
+      senderId: user.uid,
+      content: newMessageContent.trim(),
       createdAt: new Date().toISOString(),
       senderName: user.username,
+      receiverId: conversation.otherParticipantId,
+      receiverName: conversation.otherParticipantName,
+      subject: conversation.subject,
+      read: 0, // New messages are unread for the receiver
     };
+    
     setMessages(prev => [...prev, optimisticMessage]);
     setNewMessageContent('');
   };
