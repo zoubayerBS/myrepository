@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { findVacationsByUserId } from '@/lib/local-data';
-import { startOfMonth, endOfMonth, isWithinInterval, subMonths } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, Layers, Hourglass, HandCoins} from 'lucide-react';
+import { Layers, Hourglass, HandCoins, CheckCheck } from 'lucide-react';
 import type { Vacation } from '@/types';
 
 interface UserStatsProps {
@@ -16,9 +16,10 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
     const { user } = useAuth();
     const [userId, setUserId] = useState(initialUserId);
     const [stats, setStats] = useState({
-        total: 0,
         validatedAmount: 0,
         pending: 0,
+        totalValidated: 0,
+        monthlyValidated: 0,
     });
     const [loading, setLoading] = useState(true);
 
@@ -33,23 +34,33 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
 
         const fetchAndComputeStats = async () => {
             setLoading(true);
-            const vacations = await findVacationsByUserId(userId);
+            const allVacations = await findVacationsByUserId(userId);
             const now = new Date();
             
-            const start = startOfMonth(now);
-            const end = endOfMonth(now);
+            const startOfCurrentMonth = startOfMonth(now);
+            const endOfCurrentMonth = endOfMonth(now);
 
-            const monthlyVacations = vacations.filter(v => 
-                isWithinInterval(new Date(v.date), { start, end })
+            // 1. Total pending vacations (not tied to a period)
+            const totalPending = allVacations.filter(v => v.status === 'En attente').length;
+
+            // 2. Validated vacations (total and this month)
+            const allValidatedVacations = allVacations.filter(v => v.status === 'Validée');
+            const totalValidatedCount = allValidatedVacations.length;
+            
+            const monthlyValidatedVacations = allValidatedVacations.filter(v => 
+                isWithinInterval(new Date(v.date), { start: startOfCurrentMonth, end: endOfCurrentMonth })
             );
+            const monthlyValidatedCount = monthlyValidatedVacations.length;
 
-            const total = monthlyVacations.length;
-            const validatedAmount = monthlyVacations
-                .filter(v => v.status === 'Validée')
-                .reduce((sum, v) => sum + v.amount, 0);
-            const pending = monthlyVacations.filter(v => v.status === 'En attente').length;
+            // 3. Validated amount for the current month
+            const validatedAmountMonthly = monthlyValidatedVacations.reduce((sum, v) => sum + v.amount, 0);
 
-            setStats({ total, validatedAmount, pending });
+            setStats({ 
+                validatedAmount: validatedAmountMonthly, 
+                pending: totalPending, 
+                totalValidated: totalValidatedCount,
+                monthlyValidated: monthlyValidatedCount
+            });
             setLoading(false);
         };
 
@@ -57,7 +68,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
     }, [userId]);
 
     if (!user || loading) {
-        // You can return a skeleton loader here if you prefer
+        // Skeleton loader
         return (
              <div className="grid gap-4 md:grid-cols-3 mb-8">
                 <Card><CardHeader><CardTitle>...</CardTitle></CardHeader><CardContent>...</CardContent></Card>
@@ -71,12 +82,20 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
         <div className="grid gap-4 md:grid-cols-3 mb-8">
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Vacations (ce mois)</CardTitle>
-                    <Layers className="h-6 w-6 text-red-400 animate-bounce" />
+                    <CardTitle className="text-sm font-medium">Vacations Validées</CardTitle>
+                    <CheckCheck className="h-6 w-6 text-blue-500 animate-pulse" />
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{stats.total}</div>
-                    <p className="text-xs text-muted-foreground">Total de déclarations ce mois-ci</p>
+                    <div className="grid grid-cols-2 gap-4 text-center">
+                        <div>
+                            <div className="text-2xl font-bold">{stats.monthlyValidated}</div>
+                            <p className="text-xs text-muted-foreground">ce mois-ci</p>
+                        </div>
+                        <div>
+                            <div className="text-2xl font-bold">{stats.totalValidated}</div>
+                            <p className="text-xs text-muted-foreground">Total</p>
+                        </div>
+                    </div>
                 </CardContent>
             </Card>
             <Card>
@@ -96,7 +115,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{stats.pending}</div>
-                    <p className="text-xs text-muted-foreground">Déclarations non encore traitées</p>
+                    <p className="text-xs text-muted-foreground">Total des vacations non traitées</p>
                 </CardContent>
             </Card>
         </div>

@@ -192,13 +192,66 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     }
   };
 
+  useEffect(() => {
+    const fetchVacations = async () => {
+      if (!user) return;
+      setIsLoading(true);
+      try {
+        let url = '';
+        if (archiveMode) {
+          url = '/api/vacations?archivedOnly=true';
+        } else if (isAdminView) {
+          // Admins get all non-archived vacations
+          url = '/api/vacations?includeArchived=false';
+        } else {
+          // Regular users get all their own non-archived vacations
+          url = `/api/vacations?userId=${user.uid}`;
+        }
+        
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to fetch vacations');
+        const data = await response.json();
+        setVacations(data);
+      } catch (error) {
+        console.error('Fetch error:', error);
+        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les vacations.' });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVacations();
+  }, [user, isAdminView, archiveMode, toast]);
+
+
   const vacationsForView = useMemo(() => {
+    const startOfCurrentMonth = getDefaultDateRange().startDate;
+
     if (historyMode) {
-      const startOfCurrentMonth = getDefaultDateRange().startDate;
-      return vacations.filter(v => new Date(v.date) < startOfCurrentMonth || v.isArchived);
+      // History: Validated and before the current month
+      return vacations.filter(v => 
+        v.status === 'Validée' && 
+        new Date(v.date) < startOfCurrentMonth
+      );
     }
+    
+    if (archiveMode) {
+      return vacations; // Already fetched only archived
+    }
+
+    if (pendingMode) {
+      return vacations.filter(v => v.status === 'En attente');
+    }
+
+    // Default view for user dashboard: Not validated
+    if (!isAdminView) {
+        return vacations.filter(v => v.status !== 'Validée');
+    }
+
+    // Default view for admin: everything not archived
     return vacations;
-  }, [vacations, historyMode]);
+
+  }, [vacations, historyMode, archiveMode, pendingMode, isAdminView]);
 
   const filteredVacations = useMemo(() => {
     let filtered = vacationsForView.filter(v => {
@@ -354,51 +407,49 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                 className="mt-1"
               />
             </div>
-            {(historyMode || archiveMode || pendingMode || isAdminView) && (
-                <div className="flex-1 col-span-full">
-                    <Label>Période</Label>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <Button
-                                id="date"
-                                variant={'outline'}
-                                className={cn(
-                                    'w-full justify-start text-left font-normal mt-1',
-                                    !startDate && !endDate && 'text-muted-foreground'
-                                )}
-                            >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {startDate ? (
-                                    endDate ? (
-                                        <>
-                                            {format(startDate, 'LLL dd, y', { locale: fr })} -{' '}
-                                            {format(endDate, 'LLL dd, y', { locale: fr })}
-                                        </>
-                                    ) : (
-                                        format(startDate, 'LLL dd, y', { locale: fr })
-                                    )
+            <div className="flex-1 col-span-full">
+                <Label>Période</Label>
+                <Popover>
+                    <PopoverTrigger asChild>
+                        <Button
+                            id="date"
+                            variant={'outline'}
+                            className={cn(
+                                'w-full justify-start text-left font-normal mt-1',
+                                !startDate && !endDate && 'text-muted-foreground'
+                            )}
+                        >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {startDate ? (
+                                endDate ? (
+                                    <>
+                                        {format(startDate, 'LLL dd, y', { locale: fr })} -{' '}
+                                        {format(endDate, 'LLL dd, y', { locale: fr })}
+                                    </>
                                 ) : (
-                                    <span>Choisir une période</span>
-                                )}
-                            </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                initialFocus
-                                mode="range"
-                                defaultMonth={startDate}
-                                selected={{ from: startDate, to: endDate }}
-                                onSelect={(range) => {
-                                    setStartDate(range?.from);
-                                    setEndDate(range?.to);
-                                }}
-                                numberOfMonths={1}
-                                locale={fr}
-                            />
-                        </PopoverContent>
-                    </Popover>
-                </div>
-            )}
+                                    format(startDate, 'LLL dd, y', { locale: fr })
+                                )
+                            ) : (
+                                <span>Choisir une période</span>
+                            )}
+                        </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                            initialFocus
+                            mode="range"
+                            defaultMonth={startDate}
+                            selected={{ from: startDate, to: endDate }}
+                            onSelect={(range) => {
+                                setStartDate(range?.from);
+                                setEndDate(range?.to);
+                            }}
+                            numberOfMonths={1}
+                            locale={fr}
+                        />
+                    </PopoverContent>
+                </Popover>
+            </div>
             {isAdminView && (
               <div>
                 <Label>Utilisateur</Label>
