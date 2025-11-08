@@ -463,7 +463,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
               </div>
             )}
             <div>
-              <Label>Nature de l\'acte</Label>
+              <Label>Nature de l'acte</Label>
               <Select value={typeFilter} onValueChange={setTypeFilter}>
                 <SelectTrigger><SelectValue placeholder="Filtrer par type" /></SelectTrigger>
                 <SelectContent>
@@ -502,7 +502,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                 <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
                   <CardTitle className={cn("text-lg font-bold truncate", isAdminView && "flex items-center")}>
                     {isAdminView && <UserRound className="h-4 w-4 mr-2" />}
-                    {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : v.patientName}
+                    {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName).toUpperCase()}
                     {v.isCec && <span className="ml-2 text-green-500 animate-blink">CEC</span>}
                   </CardTitle>
                   <DropdownMenu>
@@ -552,7 +552,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                   </DropdownMenu>
                 </CardHeader>
                 <CardContent className="p-0 text-sm overflow-x-auto">
-                  {isAdminView && <div className="text-muted-foreground break-words">Patient: <span className="font-medium text-foreground">{v.patientName}</span></div>}
+                  {isAdminView && <div className="text-muted-foreground break-words">Patient: <span className="font-medium text-foreground " >{v.patientName}</span></div>}
                   <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(v.date), 'd MMMM yyyy', { locale: fr })}</span></div>
                   <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{v.time}</span></div>
                   <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{v.reason}</span></div>
