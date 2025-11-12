@@ -242,7 +242,8 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
             const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
             const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;
             const statusMatch = values.status === 'all' || v.status === values.status;
-            return userMatch && dateMatch && statusMatch;
+            const reasonMatch = v.reason !== 'Astreinte nuit';
+            return userMatch && dateMatch && statusMatch && reasonMatch;
         });
 
         if (filtered.length === 0) {
@@ -372,7 +373,7 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
         />
         <Button type="submit" disabled={isLoading} className="w-full">
           {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-          Générer le Rapport des vacations 
+          Générer le Rapport 
         </Button>
       </form>
     </Form>

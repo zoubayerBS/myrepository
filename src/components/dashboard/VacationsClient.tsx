@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Plus, PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle, Archive, ArchiveRestore, FileText, UserRound } from 'lucide-react';
@@ -105,7 +105,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
   const { toast } = useToast();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const itemsPerPage = isAdminView ? 4 : 5;
 
   const handleEdit = (vacation: Vacation) => { setVacationToEdit(vacation); setIsFormOpen(true); };
   const handleAddNew = () => { setVacationToEdit(null); setIsFormOpen(true); };
@@ -192,36 +192,34 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     }
   };
 
-  useEffect(() => {
-    const fetchVacations = async () => {
-      if (!user) return;
-      setIsLoading(true);
-      try {
-        let url = '';
-        if (archiveMode) {
-          url = '/api/vacations?archivedOnly=true';
-        } else if (isAdminView) {
-          // Admins get all non-archived vacations
-          url = '/api/vacations?includeArchived=false';
-        } else {
-          // Regular users get all their own non-archived vacations
-          url = `/api/vacations?userId=${user.uid}`;
-        }
-        
-        const response = await fetch(url);
-        if (!response.ok) throw new Error('Failed to fetch vacations');
-        const data = await response.json();
-        setVacations(data);
-      } catch (error) {
-        console.error('Fetch error:', error);
-        toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les vacations.' });
-      } finally {
-        setIsLoading(false);
+  const fetchVacations = useCallback(async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      let url = '';
+      if (archiveMode) {
+        url = '/api/vacations?archivedOnly=true';
+      } else if (isAdminView) {
+        url = '/api/vacations?includeArchived=false';
+      } else {
+        url = `/api/vacations?userId=${user.uid}`;
       }
-    };
-
-    fetchVacations();
+      
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch vacations');
+      const data = await response.json();
+      setVacations(data);
+    } catch (error) {
+      console.error('Fetch error:', error);
+      toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les vacations.' });
+    } finally {
+      setIsLoading(false);
+    }
   }, [user, isAdminView, archiveMode, toast]);
+
+  useEffect(() => {
+    fetchVacations();
+  }, [fetchVacations]);
 
 
   const vacationsForView = useMemo(() => {
@@ -243,13 +241,19 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       return vacations.filter(v => v.status === 'En attente');
     }
 
-    // Default view for user dashboard: Not validated
+    // Default view for user dashboard: Not validated, OR validated in the current month
     if (!isAdminView) {
-        return vacations.filter(v => v.status !== 'Validée');
+        return vacations.filter(v => {
+            const isFromCurrentMonth = new Date(v.date) >= startOfCurrentMonth;
+            return v.status !== 'Validée' || (v.status === 'Validée' && isFromCurrentMonth);
+        });
     }
 
-    // Default view for admin: everything not archived
-    return vacations;
+    // Default view for admin: pending vacations (any date) or validated vacations (current month)
+    return vacations.filter(v => {
+        const isFromCurrentMonth = new Date(v.date) >= startOfCurrentMonth;
+        return v.status === 'En attente' || (v.status === 'Validée' && isFromCurrentMonth);
+    });
 
   }, [vacations, historyMode, archiveMode, pendingMode, isAdminView]);
 
@@ -269,7 +273,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     if (searchQuery) {
       const lowerCaseQuery = searchQuery.toLowerCase();
       filtered = filtered.filter(v =>
-        v.patientName.toLowerCase().includes(lowerCaseQuery) ||
+        String(v.patientName).toLowerCase().includes(lowerCaseQuery) ||
         v.matricule.toLowerCase().includes(lowerCaseQuery) ||
         v.surgeon.toLowerCase().includes(lowerCaseQuery) ||
         v.operation.toLowerCase().includes(lowerCaseQuery) ||
@@ -307,9 +311,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   const handleFormSuccess = async () => { 
     setIsFormOpen(false); 
-    // Here you might want to refetch all vacations, but since we are doing client-side filtering,
-    // we can just update the state with the new/updated vacation.
-    // For simplicity, we will just close the form.
+    await fetchVacations();
   };
 
   const exportValidatedToCSV = () => {
@@ -495,81 +497,89 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         {isLoading ? (
           <div className="text-center p-8">Chargement...</div>
         ) : isMobile ? (
-          <div className="space-y-4" {...handlers}>
-            {filteredVacations.length > 0 ? (
-              currentMobileVacations.map(v => (
-              <Card key={v.id} className="p-4 max-w-full">
-                <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
-                  <CardTitle className={cn("text-lg font-bold truncate", isAdminView && "flex items-center")}>
-                    {isAdminView && <UserRound className="h-4 w-4 mr-2" />}
-                    {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName).toUpperCase()}
-                    {v.isCec && <span className="ml-2 text-green-500 animate-blink">CEC</span>}
-                  </CardTitle>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild >
-                      <Button variant="ghost" className="h-8 w-8 p-0 ml-2">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger >
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {archiveMode ? (
-                        <DropdownMenuItem onClick={() => handleUnarchive(v.id)}>
-                          <ArchiveRestore className="mr-2 h-4 w-4" />
-                          Désarchiver
-                        </DropdownMenuItem>
-                      ) : (
-                        <>
-                          {isAdminView && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                              {v.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
-                            </DropdownMenuItem>
-                          )}
-                          {isAdminView && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                              {v.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                            </DropdownMenuItem>
-                          )}
-                          {isAdminView && v.status !== 'En attente' && (
-                            <DropdownMenuItem onClick={() => handleArchive(v.id)}>
-                              <Archive className="mr-2 h-4 w-4" />
-                              Archiver
-                            </DropdownMenuItem>
-                          )}
-                          {isAdminView && <DropdownMenuSeparator />}
-                          <DropdownMenuItem onClick={() => handleEdit(v)} disabled={v.status !== 'En attente'}>
-                            <FilePenLine className="mr-2 h-4 w-4" />Modifier
+          <>
+            <div className="space-y-4" {...handlers}>
+              {filteredVacations.length > 0 ? (
+                currentMobileVacations.map(v => (
+                <Card key={v.id} className="p-4 max-w-full">
+                  <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
+                    <CardTitle className={cn("text-lg font-bold truncate", isAdminView && "flex items-center")}>
+                      {isAdminView && <UserRound className="h-4 w-4 mr-2" />}
+                      {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName).toUpperCase()}
+                      {v.isCec && <span className="ml-2 text-green-500 animate-blink">CEC</span>}
+                    </CardTitle>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild >
+                        <Button variant="ghost" className="h-8 w-8 p-0 ml-2">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger >
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        {archiveMode ? (
+                          <DropdownMenuItem onClick={() => handleUnarchive(v.id)}>
+                            <ArchiveRestore className="mr-2 h-4 w-4" />
+                            Désarchiver
                           </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem className="text-destructive" onClick={() => setVacationToDelete(v)} disabled={v.status !== 'En attente'}>
-                            <Trash2 className="mr-2 h-4 w-4" />Supprimer
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardHeader>
-                <CardContent className="p-0 text-sm overflow-x-auto">
-                  {isAdminView && <div className="text-muted-foreground break-words">Patient: <span className="font-medium text-foreground " >{v.patientName}</span></div>}
-                  <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(v.date), 'd MMMM yyyy', { locale: fr })}</span></div>
-                  <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{v.time}</span></div>
-                  <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{v.reason}</span></div>
-                  <div className="text-muted-foreground break-words">Acte: <span className="font-medium text-foreground">{v.operation}</span></div>
-                  <div className="text-muted-foreground break-words">Type: <Badge variant={v.type==='acte'?'default':'secondary'}>{v.type==='acte'?'Acte':'Forfait'}</Badge></div>
-                  <div className="text-muted-foreground break-words">Statut: <Badge className={cn(getStatusClasses(v.status))}>{v.status}</Badge></div>
-                  <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{v.amount.toFixed(2)} DT</span></div>
-                </CardContent>
-              </Card>
-            )) 
-            ) : (
-              <div className="text-center p-8 text-muted-foreground">
-                Aucune vacation trouvée pour les filtres sélectionnés.
+                        ) : (
+                          <>
+                            {isAdminView && (
+                              <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}> 
+                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                {v.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminView && (
+                              <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
+                                <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                {v.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminView && v.status !== 'En attente' && (
+                              <DropdownMenuItem onClick={() => handleArchive(v.id)}>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archiver
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminView && <DropdownMenuSeparator />}
+                            <DropdownMenuItem onClick={() => handleEdit(v)} disabled={v.status !== 'En attente'}>
+                              <FilePenLine className="mr-2 h-4 w-4" />Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => setVacationToDelete(v)} disabled={v.status !== 'En attente'}>
+                              <Trash2 className="mr-2 h-4 w-4" />Supprimer
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CardHeader>
+                  <CardContent className="p-0 text-sm overflow-x-auto">
+                    {isAdminView && <div className="text-muted-foreground break-words">Patient: <span className="font-medium text-foreground " >{v.patientName}</span></div>}
+                    <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(v.date), 'd MMMM yyyy', { locale: fr })}</span></div>
+                    <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{v.time}</span></div>
+                    <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{v.reason}</span></div>
+                    <div className="text-muted-foreground break-words">Acte: <span className="font-medium text-foreground">{v.operation}</span></div>
+                    <div className="text-muted-foreground break-words">Type: <Badge variant={v.type==='acte'?'default':'secondary'}>{v.type==='acte'?'Acte':'Forfait'}</Badge></div>
+                    <div className="text-muted-foreground break-words">Statut: <Badge className={cn(getStatusClasses(v.status))}>{v.status}</Badge></div>
+                    <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{v.amount.toFixed(2)} DT</span></div>
+                  </CardContent>
+                </Card>
+              )) 
+              ) : (
+                <div className="text-center p-8 text-muted-foreground">
+                  Aucune vacation trouvée pour les filtres sélectionnés.
+                </div>
+              )}
+            </div>
+            {totalPages > 1 && (
+              <div className="flex justify-center space-x-2 mt-4">
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <span key={i} className={cn("block h-2 w-2 rounded-full", currentPage === i + 1 ? 'bg-blue-600' : 'bg-gray-400')}></span>
+                ))}
               </div>
             )}
-            {totalPages > 1 && <div className="flex justify-center space-x-2 mt-4">{Array.from({ length: totalPages }, (_, i) => <span key={i} className={cn("block h-2 w-2 rounded-full", currentPage === i+1?'bg-blue-500':'bg-gray-300')}></span>)}</div>}
-          </div>
+          </>
         ) : (
           <>
             <VacationsTable

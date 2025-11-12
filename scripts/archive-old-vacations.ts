@@ -1,3 +1,14 @@
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// --- DEBUGGING ---
+console.log('DEBUG: SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
+console.log('DEBUG: SUPABASE_ANON_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'Loaded' : 'Not Loaded');
+// --- END DEBUGGING ---
+
 import { getDb } from '../src/lib/db';
 
 async function archivePreviousPayrollPeriod() {
@@ -23,6 +34,7 @@ async function archivePreviousPayrollPeriod() {
       .from('vacations')
       .update({ isArchived: true })
       .lte('date', endDateString)   // Less than or equal to the end date
+      .neq('status', 'En attente') // Do not archive pending vacations
       .or('isArchived.is.null,isArchived.eq.false'); // Only update records that are not already archived
 
     if (error) {
