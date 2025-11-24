@@ -19,6 +19,45 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
+const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], startY: number) => {
+    if (vacations.length === 0) return startY;
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, 14, startY);
+    let tableStartY = startY + 8;
+
+    const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+    const tableRows: (string | number)[][] = [];
+    let groupTotal = 0;
+
+    vacations.forEach(vacation => {
+        const vacationData = [
+            format(new Date(vacation.date), 'dd/MM/yy'),
+            vacation.patientName,
+            vacation.operation,
+            vacation.reason,
+            vacation.type === 'acte' ? 'Acte' : 'Forfait',
+            vacation.status,
+            vacation.amount.toFixed(2),
+        ];
+        tableRows.push(vacationData);
+        groupTotal += vacation.amount;
+    });
+
+    autoTable(doc, {
+        head: [tableColumn],
+        body: tableRows,
+        startY: tableStartY,
+        theme: 'striped',
+        headStyles: { fillColor: [41, 41, 41] },
+        foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
+        footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
+    });
+
+    return (doc as any).lastAutoTable.finalY + 10;
+};
+
 const formSchema = z.object({
   userId: z.string().optional(),
   status: z.string(),
@@ -78,132 +117,90 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
     doc.text(userText, 14, 46);
     doc.text(periodText, 14, 52);
 
+    const groupedByUser = filteredData.reduce((acc, v) => {
+        acc[v.userId] = [...(acc[v.userId] || []), v];
+        return acc;
+    }, {} as Record<string, Vacation[]>);
+
     let finalY = 60;
 
     if (selectedUser) {
-        const isZoubaier = selectedUser.uid === '1757098998603-zoubaier_bs';
+        const userVacations = groupedByUser[selectedUser.uid] || [];
 
-        const createVacationTable = (title: string, vacations: Vacation[], startY: number) => {
-            if (vacations.length === 0) return startY;
+        finalY = createVacationTable(doc, "Vacations", userVacations, finalY);
 
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text(title, 14, startY);
-            let tableStartY = startY + 8;
+        // Add a new page for the summary of validated amounts per user
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Récapitulatif des Montants Validés', 105, 20, { align: 'center' });
 
-            const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
-            const tableRows: (string | number)[][] = [];
-            let groupTotal = 0;
+        const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
+        const summaryTableRows: (string | number)[][] = [];
 
-            vacations.forEach(vacation => {
-                const vacationData = [
-                    format(new Date(vacation.date), 'dd/MM/yy'),
-                    vacation.patientName,
-                    vacation.operation,
-                    vacation.reason,
-                    vacation.type === 'acte' ? 'Acte' : 'Forfait',
-                    vacation.status,
-                    vacation.amount.toFixed(2),
-                ];
-                tableRows.push(vacationData);
-                groupTotal += vacation.amount;
-            });
+        const totalValidatedAmount = userVacations
+            .filter(v => v.status === 'Validée')
+            .reduce((sum, v) => sum + v.amount, 0);
 
-            autoTable(doc, {
-                head: [tableColumn],
-                body: tableRows,
-                startY: tableStartY,
-                theme: 'striped',
-                headStyles: { fillColor: [41, 41, 41] },
-                foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
-                footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
-            });
-
-            return (doc as any).lastAutoTable.finalY + 10;
-        };
-
-        if (isZoubaier) {
-            const cecVacations = filteredData.filter(v => v.isCec);
-            const otherVacations = filteredData.filter(v => !v.isCec);
-
-            finalY = createVacationTable("Vacations CEC", cecVacations, finalY);
-            finalY = createVacationTable("Autres Vacations", otherVacations, finalY);
-
-        } else {
-            // Original single user report logic for other users
-            const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
-            const tableRows: (string | number)[][] = [];
-
-            filteredData.forEach(vacation => {
-                const vacationData = [
-                    format(new Date(vacation.date), 'dd/MM/yy'),
-                    vacation.patientName,
-                    vacation.operation,
-                    vacation.reason,
-                    vacation.type === 'acte' ? 'Acte' : 'Forfait',
-                    vacation.status,
-                    vacation.amount.toFixed(2),
-                ];
-                tableRows.push(vacationData);
-            });
-
-            autoTable(doc, {
-                head: [tableColumn],
-                body: tableRows,
-                startY: finalY,
-                theme: 'striped',
-                headStyles: { fillColor: [41, 41, 41] },
-            });
-
-            finalY = (doc as any).lastAutoTable.finalY || finalY + 20;
+        if (totalValidatedAmount > 0) {
+            summaryTableRows.push([
+                `${selectedUser.prenom} ${selectedUser.nom}`,
+                totalValidatedAmount.toFixed(2)
+            ]);
         }
 
+        autoTable(doc, {
+            head: [summaryTableColumn],
+            body: summaryTableRows,
+            startY: 30,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 41, 41] },
+        });
+
+        finalY = (doc as any).lastAutoTable.finalY + 15;
     } else {
         // All users report
-        const groupedByUser = filteredData.reduce((acc, v) => {
-            acc[v.userId] = [...(acc[v.userId] || []), v];
-            return acc;
-        }, {} as Record<string, Vacation[]>);
-
         Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
             const user = allUsers.find(u => u.uid === userId);
             if (!user) return;
 
-            doc.setFontSize(12);
-            doc.setFont('helvetica', 'bold');
-            doc.text(`${user.prenom} ${user.nom}`, 14, finalY);
-            finalY += 8;
-
-            const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
-            const tableRows: (string | number)[][] = [];
-            let userTotal = 0;
-
-            userVacations.forEach(vacation => {
-                const vacationData = [
-                    format(new Date(vacation.date), 'dd/MM/yy'),
-                    vacation.patientName,
-                    vacation.operation,
-                    vacation.reason,
-                    vacation.type === 'acte' ? 'Acte' : 'Forfait',
-                    vacation.status,
-                    vacation.amount.toFixed(2),
-                ];
-                tableRows.push(vacationData);
-                userTotal += vacation.amount;
-            });
-
-            autoTable(doc, {
-                head: [tableColumn],
-                body: tableRows,
-                startY: finalY,
-                theme: 'striped',
-                headStyles: { fillColor: [41, 41, 41] },
-                foot: [[`Total pour ${user.prenom}`, ' ', ' ', ' ', ' ', ' ', `${userTotal.toFixed(2)} DT`]],
-                footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
-            });
-
-            finalY = (doc as any).lastAutoTable.finalY + 10;
+            finalY = createVacationTable(doc, `${user.prenom} ${user.nom}`, userVacations, finalY);
         });
+
+        // Add a new page for the summary of validated amounts per user
+        doc.addPage();
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Récapitulatif des Montants Validés par Utilisateur', 105, 20, { align: 'center' });
+
+        const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
+        const summaryTableRows: (string | number)[][] = [];
+
+        Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
+            const user = allUsers.find(u => u.uid === userId);
+            if (user) {
+                const totalValidatedAmount = userVacations
+                    .filter(v => v.status === 'Validée')
+                    .reduce((sum, v) => sum + v.amount, 0);
+
+                if (totalValidatedAmount > 0) {
+                    summaryTableRows.push([
+                        `${user.prenom} ${user.nom}`,
+                        totalValidatedAmount.toFixed(2)
+                    ]);
+                }
+            }
+        });
+
+        autoTable(doc, {
+            head: [summaryTableColumn],
+            body: summaryTableRows,
+            startY: 30,
+            theme: 'striped',
+            headStyles: { fillColor: [41, 41, 41] },
+        });
+
+        finalY = (doc as any).lastAutoTable.finalY + 15;
     }
 
     // Summary
