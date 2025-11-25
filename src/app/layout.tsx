@@ -1,3 +1,4 @@
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/auth';
 import { Toaster } from '@/components/ui/toaster';
@@ -32,6 +33,7 @@ export default function RootLayout({
           {children}
           <Toaster />
         </AuthProvider>
+        <SpeedInsights />
       </body>
     </html>
   );
