@@ -126,8 +126,11 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
 
     if (selectedUser) {
         const userVacations = groupedByUser[selectedUser.uid] || [];
+        const cecVacations = userVacations.filter(v => v.isCec);
+        const otherVacations = userVacations.filter(v => !v.isCec);
 
-        finalY = createVacationTable(doc, "Vacations", userVacations, finalY);
+        finalY = createVacationTable(doc, "Vacations CEC", cecVacations, finalY);
+        finalY = createVacationTable(doc, "Autres Vacations", otherVacations, finalY);
 
         // Add a new page for the summary of validated amounts per user
         doc.addPage();
