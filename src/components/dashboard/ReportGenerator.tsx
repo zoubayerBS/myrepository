@@ -238,6 +238,11 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
         toEndOfDay.setHours(23, 59, 59, 999);
 
         const filtered = allVacations.filter(v => {
+            // Exclude CEC vacations for the user 'zoubaier' from the entire report
+            if (v.user && v.user.username === 'zoubaier_bs' && v.isCec) {
+                return false;
+            }
+
             const vacationDate = new Date(v.date);
             const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
             const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;

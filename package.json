@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "jest"
+    "test": "jest",
+    "archive": "tsx scripts/archive-old-vacations.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

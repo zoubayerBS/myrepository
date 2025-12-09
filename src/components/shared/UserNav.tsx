@@ -90,12 +90,12 @@ export function UserNav() {
                   <span>Vacations Archivées</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+            {/*   <DropdownMenuItem asChild>
                 <Link href="/admin/pending-vacations">
                   <FolderClock className="mr-2 h-4 w-4" />
                   <span>Vacations en Attente</span>
                 </Link>
-              </DropdownMenuItem>
+              </DropdownMenuItem> */}
             </>
           )}
         </DropdownMenuGroup>
