@@ -92,6 +92,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
   const [userFilter, setUserFilter] = useState<string>(searchParams.get('userFilter') || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('typeFilter') || 'all');
   const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('statusFilter') || 'all');
+  const [motifFilter, setMotifFilter] = useState<string>(searchParams.get('motifFilter') || 'all');
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('searchQuery') || '');
   const [startDate, setStartDate] = useState<Date | undefined>(
     searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined
@@ -266,8 +267,9 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       const userMatch = !isAdminView || userFilter === 'all' || v.userId === userFilter;
       const typeMatch = typeFilter === 'all' || v.type === typeFilter;
       const statusMatch = statusFilter === 'all' || v.status === statusFilter;
+      const motifMatch = motifFilter === 'all' || v.reason === motifFilter;
       
-      return isAfterStartDate && isBeforeEndDate && userMatch && typeMatch && statusMatch;
+      return isAfterStartDate && isBeforeEndDate && userMatch && typeMatch && statusMatch && motifMatch;
     });
 
     if (searchQuery) {
@@ -285,7 +287,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       );
     }
     return filtered;
-  }, [vacationsForView, userFilter, typeFilter, statusFilter, isAdminView, searchQuery, startDate, endDate]);
+  }, [vacationsForView, userFilter, typeFilter, statusFilter, motifFilter, isAdminView, searchQuery, startDate, endDate]);
 
   const totalPages = Math.ceil(filteredVacations.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -472,6 +474,16 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                   <SelectItem value="all">Tous les types</SelectItem>
                   <SelectItem value="acte">Acte</SelectItem>
                   <SelectItem value="forfait">Forfait</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Motif</Label>
+              <Select value={motifFilter} onValueChange={setMotifFilter}>
+                <SelectTrigger><SelectValue placeholder="Filtrer par motif" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Tous les motifs</SelectItem>
+                  {useMemo(() => Array.from(new Set(vacations.map(v => v.reason))), [vacations]).map(motif => <SelectItem key={motif} value={motif}>{motif}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
