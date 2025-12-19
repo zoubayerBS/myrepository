@@ -61,6 +61,7 @@ const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], s
 const formSchema = z.object({
   userId: z.string().optional(),
   status: z.string(),
+  motif: z.string(),
   dateRange: z.object({
     from: z.date({ required_error: 'Date de début requise.' }),
     to: z.date({ required_error: 'Date de fin requise.' }),
@@ -83,6 +84,7 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
     defaultValues: {
       userId: isAdmin ? 'all' : currentUser.uid,
       status: 'all',
+      motif: 'all',
       dateRange: {
         from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         to: new Date(),
@@ -90,7 +92,7 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
     },
   });
 
-  const generatePDF = (filteredData: Vacation[], selectedUser: AppUser | undefined, dateRange: { from: Date; to: Date }, status: string) => {
+  const generatePDF = (filteredData: Vacation[], selectedUser: AppUser | undefined, dateRange: { from: Date; to: Date }, status: string, motif: string) => {
     const doc = new jsPDF();
 
     const statusText = status === 'all' ? 'Tous' : status;
@@ -114,15 +116,17 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
     doc.setFont('helvetica', 'normal');
     const userText = `Employé: ${selectedUser ? `${selectedUser.prenom} ${selectedUser.nom}` : 'Tous les employés'}`;
     const periodText = `Période: Du ${format(dateRange.from, 'dd/MM/yyyy')} au ${format(dateRange.to, 'dd/MM/yyyy')}`;
+    const motifText = `Motif: ${motif === 'all' ? 'Tous' : motif}`;
     doc.text(userText, 14, 46);
     doc.text(periodText, 14, 52);
+    doc.text(motifText, 14, 58);
 
     const groupedByUser = filteredData.reduce((acc, v) => {
         acc[v.userId] = [...(acc[v.userId] || []), v];
         return acc;
     }, {} as Record<string, Vacation[]>);
 
-    let finalY = 60;
+    let finalY = 66;
 
     if (selectedUser) {
         const userVacations = groupedByUser[selectedUser.uid] || [];
@@ -247,8 +251,8 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
             const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
             const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;
             const statusMatch = values.status === 'all' || v.status === values.status;
-            const reasonMatch = v.reason !== 'Astreinte nuit';
-            return userMatch && dateMatch && statusMatch && reasonMatch;
+            const motifMatch = values.motif === 'all' || v.reason === values.motif;
+            return userMatch && dateMatch && statusMatch && motifMatch;
         });
 
         if (filtered.length === 0) {
@@ -263,7 +267,7 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
 
         const selectedUser = allUsers.find(u => u.uid === values.userId);
 
-        generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status);
+        generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status, values.motif);
 
     } catch (error) {
         console.error("Échec de la génération du rapport:", error);
@@ -322,6 +326,29 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
                   <SelectItem value="Validée">Validée</SelectItem>
                   <SelectItem value="En attente">En attente</SelectItem>
                   <SelectItem value="Refusée">Refusée</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="motif"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Motif</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un motif" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="all">Tous les motifs</SelectItem>
+                  {Array.from(new Set(allVacations.map(v => v.reason))).map(reason => (
+                    <SelectItem key={reason} value={reason}>{reason}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormMessage />
