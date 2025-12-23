@@ -88,17 +88,20 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [vacationToEdit, setVacationToEdit] = useState<Vacation | null>(null);
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
+  const [allMotifs, setAllMotifs] = useState<string[]>([]);
 
   const [userFilter, setUserFilter] = useState<string>(searchParams.get('userFilter') || 'all');
   const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('typeFilter') || 'all');
-  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('statusFilter') || 'all');
+  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('statusFilter') || (historyMode ? 'Validée,Refusée' : 'all'));
   const [motifFilter, setMotifFilter] = useState<string>(searchParams.get('motifFilter') || 'all');
   const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('searchQuery') || '');
   const [startDate, setStartDate] = useState<Date | undefined>(
     searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined
   );
   const [endDate, setEndDate] = useState<Date | undefined>(
-    searchParams.get('endDate') ? new Date(searchParams.get('endDate')!) : undefined
+    searchParams.get('endDate') 
+      ? new Date(searchParams.get('endDate')!) 
+      : (historyMode ? new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59, 999) : undefined)
   );
 
 
@@ -106,7 +109,25 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
   const { toast } = useToast();
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = isAdminView ? 4 : 5;
+  const [totalPages, setTotalPages] = useState(0);
+  const itemsPerPage = 10;
+
+  useEffect(() => {
+    const fetchMotifs = async () => {
+      try {
+        const response = await fetch('/api/vacations/reasons');
+        if (!response.ok) {
+          throw new Error('Failed to fetch reasons');
+        }
+        const data = await response.json();
+        setAllMotifs(data);
+      } catch (error) {
+        console.error("Failed to fetch motifs:", error);
+        // Do not toast here, it could be annoying
+      }
+    };
+    fetchMotifs();
+  }, []);
 
   const handleEdit = (vacation: Vacation) => { setVacationToEdit(vacation); setIsFormOpen(true); };
   const handleAddNew = () => { setVacationToEdit(null); setIsFormOpen(true); };
@@ -116,7 +137,8 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       const response = await fetch(`/api/vacations/${vacationId}`, { method: 'DELETE' });
       if (!response.ok) throw new Error('Failed to delete vacation');
       toast({ title: 'Succès', description: 'Vacation supprimée.' });
-      setVacations(prev => prev.filter(v => v.id !== vacationId));
+      // Refetch current page after deletion
+      await fetchVacations(currentPage);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer la vacation.' });
     }
@@ -140,6 +162,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       });
       if (!response.ok) throw new Error('Failed to update status');
       
+      // Optimistic update
       setVacations(prev => prev.map(v => (v.id === vacationId ? { ...v, status } : v)));
       toast({ title: 'Succès', description: 'Statut mis à jour.' });
 
@@ -156,6 +179,8 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     } catch (error) {
       console.error("Error changing status or sending notification:", error);
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de changer le statut ou d\'envoyer la notification.' });
+      // Revert optimistic update on error
+      await fetchVacations(currentPage);
     }
   };
 
@@ -170,7 +195,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         throw new Error('Failed to archive vacation');
       }
       toast({ title: 'Succès', description: 'Vacation archivée.' });
-      setVacations(prev => prev.filter(v => v.id !== vacationId));
+      await fetchVacations(currentPage);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'archiver la vacation." });
     }
@@ -187,112 +212,74 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         throw new Error('Failed to unarchive vacation');
       }
       toast({ title: 'Succès', description: 'Vacation désarchivée.' });
-      setVacations(prev => prev.filter(v => v.id !== vacationId));
+      await fetchVacations(currentPage);
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de désarchiver la vacation." });
     }
   };
 
-  const fetchVacations = useCallback(async () => {
+  const fetchVacations = useCallback(async (page: number) => {
     if (!user) return;
     setIsLoading(true);
     try {
-      let url = '';
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(itemsPerPage),
+        statusFilter: statusFilter,
+        typeFilter: typeFilter,
+        motifFilter: motifFilter,
+        searchQuery: searchQuery,
+      });
+      if(startDate) params.append('startDate', startDate.toISOString());
+      if(endDate) params.append('endDate', endDate.toISOString());
+
+      let urlBase = '/api/vacations';
       if (archiveMode) {
-        url = '/api/vacations?archivedOnly=true';
+        params.set('archivedOnly', 'true');
       } else if (isAdminView) {
-        url = '/api/vacations?includeArchived=false';
+        params.set('includeArchived', 'false');
+        params.set('userFilter', userFilter);
       } else {
-        url = `/api/vacations?userId=${user.uid}`;
+        params.set('userId', user.uid);
+        // For user view, if no filters are on, get default set (current month or pending)
+        if (statusFilter === 'all' && typeFilter === 'all' && motifFilter === 'all' && !searchQuery && !startDate && !endDate) {
+            params.set('userDefaultView', 'true');
+        }
       }
       
-      const response = await fetch(url);
+      const response = await fetch(`${urlBase}?${params.toString()}`);
+
       if (!response.ok) throw new Error('Failed to fetch vacations');
       const data = await response.json();
-      setVacations(data);
+      
+      setVacations(data.vacations || []);
+      setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
     } catch (error) {
       console.error('Fetch error:', error);
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de charger les vacations.' });
     } finally {
       setIsLoading(false);
     }
-  }, [user, isAdminView, archiveMode, toast]);
+  }, [user, isAdminView, archiveMode, toast, statusFilter, typeFilter, motifFilter, searchQuery, startDate, endDate, userFilter, itemsPerPage]);
 
   useEffect(() => {
-    fetchVacations();
-  }, [fetchVacations]);
-
-
-  const vacationsForView = useMemo(() => {
-    const startOfCurrentMonth = getDefaultDateRange().startDate;
-
-    if (historyMode) {
-      // History: Validated and before the current month
-      return vacations.filter(v => 
-        v.status === 'Validée' && 
-        new Date(v.date) < startOfCurrentMonth
-      );
+    if (user) {
+        fetchVacations(currentPage);
     }
-    
-    if (archiveMode) {
-      return vacations; // Already fetched only archived
+  }, [currentPage, user, fetchVacations]);
+  
+  useEffect(() => {
+    if (currentPage !== 1) {
+        setCurrentPage(1);
+    } else {
+        if (user) {
+           fetchVacations(1);
+        }
     }
+  }, [userFilter, typeFilter, statusFilter, motifFilter, searchQuery, startDate, endDate]);
 
-    if (pendingMode) {
-      return vacations.filter(v => v.status === 'En attente');
-    }
-
-    // Default view for user dashboard: Not validated, OR validated in the current month
-    if (!isAdminView) {
-        return vacations.filter(v => {
-            const isFromCurrentMonth = new Date(v.date) >= startOfCurrentMonth;
-            return v.status !== 'Validée' || (v.status === 'Validée' && isFromCurrentMonth);
-        });
-    }
-
-    // Default view for admin: pending vacations (any date) or validated vacations (current month)
-    return vacations.filter(v => {
-        const isFromCurrentMonth = new Date(v.date) >= startOfCurrentMonth;
-        return v.status === 'En attente' || (v.status === 'Validée' && isFromCurrentMonth);
-    });
-
-  }, [vacations, historyMode, archiveMode, pendingMode, isAdminView]);
-
-  const filteredVacations = useMemo(() => {
-    let filtered = vacationsForView.filter(v => {
-      const vacationDate = new Date(v.date);
-      const isAfterStartDate = startDate ? vacationDate >= startDate : true;
-      const isBeforeEndDate = endDate ? vacationDate <= endDate : true;
-
-      const userMatch = !isAdminView || userFilter === 'all' || v.userId === userFilter;
-      const typeMatch = typeFilter === 'all' || v.type === typeFilter;
-      const statusMatch = statusFilter === 'all' || v.status === statusFilter;
-      const motifMatch = motifFilter === 'all' || v.reason === motifFilter;
-      
-      return isAfterStartDate && isBeforeEndDate && userMatch && typeMatch && statusMatch && motifMatch;
-    });
-
-    if (searchQuery) {
-      const lowerCaseQuery = searchQuery.toLowerCase();
-      filtered = filtered.filter(v =>
-        String(v.patientName).toLowerCase().includes(lowerCaseQuery) ||
-        v.matricule.toLowerCase().includes(lowerCaseQuery) ||
-        v.surgeon.toLowerCase().includes(lowerCaseQuery) ||
-        v.operation.toLowerCase().includes(lowerCaseQuery) ||
-        v.reason.toLowerCase().includes(lowerCaseQuery) ||
-        v.type.toLowerCase().includes(lowerCaseQuery) ||
-        v.user?.username?.toLowerCase().includes(lowerCaseQuery) || // Search by username if available
-        v.user?.nom?.toLowerCase().includes(lowerCaseQuery) || // Search by user's last name
-        v.user?.prenom?.toLowerCase().includes(lowerCaseQuery) // Search by user's first name
-      );
-    }
-    return filtered;
-  }, [vacationsForView, userFilter, typeFilter, statusFilter, motifFilter, isAdminView, searchQuery, startDate, endDate]);
-
-  const totalPages = Math.ceil(filteredVacations.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentMobileVacations = filteredVacations.slice(indexOfFirstItem, indexOfLastItem);
+  // Data is now paginated and filtered by the server.
+  const currentMobileVacations = vacations;
 
   const getStatusClasses = (status: VacationStatus) => {
     switch (status) {
@@ -313,7 +300,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   const handleFormSuccess = async () => { 
     setIsFormOpen(false); 
-    await fetchVacations();
+    await fetchVacations(currentPage);
   };
 
   const exportValidatedToCSV = () => {
@@ -483,7 +470,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                 <SelectTrigger><SelectValue placeholder="Filtrer par motif" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Tous les motifs</SelectItem>
-                  {useMemo(() => Array.from(new Set(vacations.map(v => v.reason))), [vacations]).map(motif => <SelectItem key={motif} value={motif}>{motif}</SelectItem>)}
+                  {allMotifs.map(motif => <SelectItem key={motif} value={motif}>{motif}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -493,10 +480,20 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger><SelectValue placeholder="Filtrer par statut" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">Tous les statuts</SelectItem>
-                    <SelectItem value="En attente">En attente</SelectItem>
-                    <SelectItem value="Validée">Validée</SelectItem>
-                    <SelectItem value="Refusée">Refusée</SelectItem>
+                    {historyMode ? (
+                        <>
+                            <SelectItem value="Validée,Refusée">Tous (Historique)</SelectItem>
+                            <SelectItem value="Validée">Validée</SelectItem>
+                            <SelectItem value="Refusée">Refusée</SelectItem>
+                        </>
+                    ) : (
+                        <>
+                            <SelectItem value="all">Tous les statuts</SelectItem>
+                            <SelectItem value="En attente">En attente</SelectItem>
+                            <SelectItem value="Validée">Validée</SelectItem>
+                            <SelectItem value="Refusée">Refusée</SelectItem>
+                        </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -511,8 +508,8 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         ) : isMobile ? (
           <>
             <div className="space-y-4" {...handlers}>
-              {filteredVacations.length > 0 ? (
-                currentMobileVacations.map(v => (
+              {vacations.length > 0 ? (
+                vacations.map(v => (
                 <Card key={v.id} className="p-4 max-w-full">
                   <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
                     <CardTitle className={cn("text-lg font-bold truncate", isAdminView && "flex items-center")}>
@@ -595,8 +592,8 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         ) : (
           <>
             <VacationsTable
-              key={JSON.stringify(filteredVacations.slice(indexOfFirstItem, indexOfLastItem))}
-              vacations={filteredVacations.slice(indexOfFirstItem, indexOfLastItem)} // Apply pagination here
+              key={JSON.stringify(vacations)}
+              vacations={vacations}
               isAdminView={isAdminView}
               onEdit={handleEdit}
               onDelete={handleDelete}
@@ -637,7 +634,6 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
           </DialogHeader>
           {user && userData && (
             <ReportGenerator
-              allVacations={vacations}
               allUsers={isAdminView ? allUsers : (userData ? [userData] : [])}
               currentUser={userData}
               isAdmin={isAdminView}

@@ -31,8 +31,8 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <AuthProvider>
           {children}
-          <Toaster />
         </AuthProvider>
+        <Toaster />
         <SpeedInsights />
       </body>
     </html>

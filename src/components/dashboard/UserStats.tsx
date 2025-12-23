@@ -34,7 +34,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
 
         const fetchAndComputeStats = async () => {
             setLoading(true);
-            const allVacations = await findVacationsByUserId(userId);
+            const { vacations: allVacations } = await findVacationsByUserId(userId, { limit: 9999 });
             const now = new Date();
             
             const startOfCurrentMonth = startOfMonth(now);

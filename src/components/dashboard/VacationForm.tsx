@@ -307,7 +307,7 @@ export function VacationForm({
                 <FormItem>
                   <FormLabel>Nom du Patient</FormLabel>
                   <FormControl>
-                    <Input placeholder="Jean Dupont" {...field} autoComplete="off" />
+                    <Input placeholder="Veuillez entrer le nom  et prénom du patient" {...field} autoComplete="off" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

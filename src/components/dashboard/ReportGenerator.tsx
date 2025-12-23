@@ -1,6 +1,4 @@
-'use client';
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { findVacationsByUserIdAction, findAllVacationsAction } from '@/lib/actions/vacation-actions';
 
 const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], startY: number) => {
     if (vacations.length === 0) return startY;
@@ -69,15 +68,47 @@ const formSchema = z.object({
 });
 
 interface ReportGeneratorProps {
-  allVacations: Vacation[];
   allUsers: AppUser[];
   currentUser: AppUser;
   isAdmin: boolean;
 }
 
-export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }: ReportGeneratorProps) {
+export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [reportVacations, setReportVacations] = useState<Vacation[]>([]);
+  const [allMotifs, setAllMotifs] = useState<string[]>([]);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchData() {
+      setIsDataLoading(true);
+      try {
+        const fetchAction = isAdmin ? findAllVacationsAction : () => findVacationsByUserIdAction(currentUser.uid);
+        const { vacations } = await fetchAction({ limit: 9999 });
+        setReportVacations(vacations || []);
+
+        const motifsResponse = await fetch('/api/vacations/reasons');
+        if (motifsResponse.ok) {
+          const motifsData = await motifsResponse.json();
+          setAllMotifs(motifsData);
+        } else {
+           console.error("Failed to fetch motifs");
+        }
+
+      } catch (error) {
+        console.error("Failed to fetch data for report generator:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Impossible de charger les données pour le rapport.',
+        });
+      } finally {
+        setIsDataLoading(false);
+      }
+    }
+    fetchData();
+  }, [isAdmin, currentUser.uid, toast]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -92,194 +123,395 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
     },
   });
 
+
+
   const generatePDF = (filteredData: Vacation[], selectedUser: AppUser | undefined, dateRange: { from: Date; to: Date }, status: string, motif: string) => {
+
     const doc = new jsPDF();
 
+
+
     const statusText = status === 'all' ? 'Tous' : status;
+
     const title = `Rapport de Vacations (Statut: ${statusText})`;
 
+
+
     // Header
+
     doc.setFontSize(20);
+
     doc.setFont('helvetica', 'bold');
+
     doc.text(title, 105, 20, { align: 'center' });
+
     
+
     doc.setFontSize(10);
+
     doc.setFont('helvetica', 'normal');
+
     const reportDate = `Généré le: ${format(new Date(), 'dd/MM/yyyy', { locale: fr })}`;
+
     doc.text(reportDate, 200, 25, { align: 'right' });
 
+
+
     // Filter Info
+
     doc.setFontSize(12);
+
     doc.setFont('helvetica', 'bold');
+
     doc.text('Filtres Appliqués', 14, 40);
+
     doc.setFontSize(10);
+
     doc.setFont('helvetica', 'normal');
+
     const userText = `Employé: ${selectedUser ? `${selectedUser.prenom} ${selectedUser.nom}` : 'Tous les employés'}`;
+
     const periodText = `Période: Du ${format(dateRange.from, 'dd/MM/yyyy')} au ${format(dateRange.to, 'dd/MM/yyyy')}`;
+
     const motifText = `Motif: ${motif === 'all' ? 'Tous' : motif}`;
+
     doc.text(userText, 14, 46);
+
     doc.text(periodText, 14, 52);
+
     doc.text(motifText, 14, 58);
 
+
+
     const groupedByUser = filteredData.reduce((acc, v) => {
+
         acc[v.userId] = [...(acc[v.userId] || []), v];
+
         return acc;
+
     }, {} as Record<string, Vacation[]>);
+
+
 
     let finalY = 66;
 
+
+
     if (selectedUser) {
+
         const userVacations = groupedByUser[selectedUser.uid] || [];
+
         const cecVacations = userVacations.filter(v => v.isCec);
+
         const otherVacations = userVacations.filter(v => !v.isCec);
 
+
+
         finalY = createVacationTable(doc, "Vacations CEC", cecVacations, finalY);
+
         finalY = createVacationTable(doc, "Autres Vacations", otherVacations, finalY);
 
+
+
         // Add a new page for the summary of validated amounts per user
+
         doc.addPage();
+
         doc.setFontSize(16);
+
         doc.setFont('helvetica', 'bold');
+
         doc.text('Récapitulatif des Montants Validés', 105, 20, { align: 'center' });
 
+
+
         const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
+
         const summaryTableRows: (string | number)[][] = [];
+
+
 
         const totalValidatedAmount = userVacations
+
             .filter(v => v.status === 'Validée')
+
             .reduce((sum, v) => sum + v.amount, 0);
 
+
+
         if (totalValidatedAmount > 0) {
+
             summaryTableRows.push([
+
                 `${selectedUser.prenom} ${selectedUser.nom}`,
+
                 totalValidatedAmount.toFixed(2)
+
             ]);
+
         }
 
+
+
         autoTable(doc, {
+
             head: [summaryTableColumn],
+
             body: summaryTableRows,
+
             startY: 30,
+
             theme: 'striped',
+
             headStyles: { fillColor: [41, 41, 41] },
+
         });
 
+
+
         finalY = (doc as any).lastAutoTable.finalY + 15;
+
     } else {
+
         // All users report
+
         Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
+
             const user = allUsers.find(u => u.uid === userId);
+
             if (!user) return;
 
+
+
             finalY = createVacationTable(doc, `${user.prenom} ${user.nom}`, userVacations, finalY);
+
         });
+
+
 
         // Add a new page for the summary of validated amounts per user
+
         doc.addPage();
+
         doc.setFontSize(16);
+
         doc.setFont('helvetica', 'bold');
+
         doc.text('Récapitulatif des Montants Validés par Utilisateur', 105, 20, { align: 'center' });
 
+
+
         const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
+
         const summaryTableRows: (string | number)[][] = [];
 
+
+
         Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
+
             const user = allUsers.find(u => u.uid === userId);
+
             if (user) {
+
                 const totalValidatedAmount = userVacations
+
                     .filter(v => v.status === 'Validée')
+
                     .reduce((sum, v) => sum + v.amount, 0);
 
+
+
                 if (totalValidatedAmount > 0) {
+
                     summaryTableRows.push([
+
                         `${user.prenom} ${user.nom}`,
+
                         totalValidatedAmount.toFixed(2)
+
                     ]);
+
                 }
+
             }
+
         });
+
+
 
         autoTable(doc, {
+
             head: [summaryTableColumn],
+
             body: summaryTableRows,
+
             startY: 30,
+
             theme: 'striped',
+
             headStyles: { fillColor: [41, 41, 41] },
+
         });
 
+
+
         finalY = (doc as any).lastAutoTable.finalY + 15;
+
     }
 
+
+
     // Summary
+
     const totalAmount = filteredData.reduce((sum, v) => sum + v.amount, 0);
+
     doc.setFontSize(12);
+
     doc.setFont('helvetica', 'bold');
+
     doc.text('Résumé Global', 14, finalY + 15);
+
     doc.setFontSize(10);
+
     doc.setFont('helvetica', 'normal');
+
     doc.text(`Nombre de vacations: ${filteredData.length}`, 14, finalY + 21);
+
     doc.text(`Montant total: ${totalAmount.toFixed(2)} DT`, 14, finalY + 27);
 
 
+
+
+
     // Footer
+
     const pageCount = (doc as any).internal.getNumberOfPages();
+
     for(var i = 1; i <= pageCount; i++) {
+
         doc.setPage(i);
+
         doc.setFontSize(8);
+
         doc.text(`Page ${i} sur ${pageCount}`, 105, 285, { align: 'center' });
+
     }
 
+
+
     // Open PDF in new tab instead of downloading
+
     doc.output('dataurlnewwindow');
+
   };
 
+
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
+
     setIsLoading(true);
+
     try {
+
         const { from, to } = values.dateRange;
+
         // Ensure the 'to' date includes the whole day
+
         const toEndOfDay = new Date(to);
+
         toEndOfDay.setHours(23, 59, 59, 999);
 
-        const filtered = allVacations.filter(v => {
+
+
+        const filtered = reportVacations.filter(v => {
+
             // Exclude CEC vacations for the user 'zoubaier' from the entire report
+
             if (v.user && v.user.username === 'zoubaier_bs' && v.isCec) {
+
                 return false;
+
             }
 
+
+
             const vacationDate = new Date(v.date);
+
             const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
+
             const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;
+
             const statusMatch = values.status === 'all' || v.status === values.status;
+
             const motifMatch = values.motif === 'all' || v.reason === values.motif;
+
+            
+
             return userMatch && dateMatch && statusMatch && motifMatch;
+
         });
 
+
+
         if (filtered.length === 0) {
+
             toast({
+
                 variant: 'default',
+
                 title: 'Aucune donnée',
+
                 description: 'Aucune vacation ne correspond aux filtres sélectionnés.',
+
             });
+
             setIsLoading(false);
+
             return;
+
         }
+
+
 
         const selectedUser = allUsers.find(u => u.uid === values.userId);
 
+
+
         generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status, values.motif);
 
+
+
     } catch (error) {
+
         console.error("Échec de la génération du rapport:", error);
+
         toast({
+
             variant: 'destructive',
+
             title: 'Erreur',
+
             description: 'La génération du rapport a échoué.',
+
         });
+
     } finally {
+
         setIsLoading(false);
+
     }
+
   }
+
+
+
+    if (isDataLoading) {
+
+        return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+
+    }
+
+
 
   return (
     <Form {...form}>
@@ -346,7 +578,7 @@ export function ReportGenerator({ allVacations, allUsers, currentUser, isAdmin }
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="all">Tous les motifs</SelectItem>
-                  {Array.from(new Set(allVacations.map(v => v.reason))).map(reason => (
+                  {allMotifs.map(reason => (
                     <SelectItem key={reason} value={reason}>{reason}</SelectItem>
                   ))}
                 </SelectContent>

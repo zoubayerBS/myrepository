@@ -64,7 +64,7 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
     setIsLoading(true);
     setTotalAmount(null);
     try {
-      const allVacations = await findVacationsByUserId(userId);
+      const { vacations: allVacations } = await findVacationsByUserId(userId);
       const { from, to } = values.dateRange;
       
       const filteredVacations = allVacations.filter(v => {

@@ -11,21 +11,32 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/login');
+    if (loading) return; // Don't do anything while loading
+
+    if (!user) {
+      if (!window.location.pathname.startsWith('/login') && !window.location.pathname.startsWith('/signup')) {
+        router.push('/login');
+      }
+      return;
     }
-  }, [user, loading, router]);
-  
-  // Also check role for admin pages
-  useEffect(() => {
-    // A simple example of client-side route protection
-    if (!loading && user && window.location.pathname.startsWith('/admin') && userData?.role !== 'admin') {
-      router.push('/dashboard');
-    }
-    if (!loading && user && (window.location.pathname === '/' || window.location.pathname.startsWith('/dashboard')) && userData?.role === 'admin') {
-      router.push('/admin');
+
+    // User is logged in
+    const currentPath = window.location.pathname;
+    const isAdmin = userData?.role === 'admin';
+
+    if (isAdmin) {
+      if (!currentPath.startsWith('/admin')) {
+        router.push('/admin');
+      }
+    } else { // Not an admin
+      if (currentPath.startsWith('/admin')) {
+        router.push('/dashboard'); // Non-admins can't access admin
+      } else if (currentPath === '/' || currentPath.startsWith('/login') || currentPath.startsWith('/signup')) {
+        router.push('/dashboard');
+      }
     }
   }, [user, userData, loading, router]);
+
 
 
   if (loading || !user) {

@@ -1,8 +1,7 @@
-
 import { GET, POST } from './route';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db';
 
-// Mock Request class for testing API routes
+// Mock Request class
 class MockRequest {
   url: string;
   method: string;
@@ -11,13 +10,20 @@ class MockRequest {
   constructor(url: string, options: { method?: string; body?: any } = {}) {
     this.url = url;
     this.method = options.method || 'GET';
-    this._json = options.body;
+    if (options.body) {
+      this._json = options.body;
+    }
   }
 
-  async json() {
-    return this._json;
+  json() {
+    return Promise.resolve(this._json);
+  }
+
+  get searchParams() {
+    return new URL(this.url).searchParams;
   }
 }
+
 
 // Mock NextResponse
 jest.mock('next/server', () => ({
@@ -31,102 +37,129 @@ jest.mock('next/server', () => ({
   },
 }));
 
-// Mock the database module
+// Mock Supabase
+const queryChainer = {
+    select: jest.fn(),
+    insert: jest.fn(),
+    or: jest.fn(),
+    single: jest.fn(),
+};
+
+const mockSupabaseClient = {
+    from: jest.fn(() => queryChainer),
+    rpc: jest.fn(),
+};
+
 jest.mock('@/lib/db', () => ({
-  db: {
-    prepare: jest.fn().mockReturnThis(),
-    all: jest.fn(),
-    get: jest.fn(),
-    run: jest.fn(),
-    transaction: jest.fn((cb) => () => cb()), // Mock transaction to execute callback directly
-  },
+    getDb: () => mockSupabaseClient,
 }));
 
-// Mock crypto.randomUUID
-jest.mock('crypto', () => ({
-  randomUUID: jest.fn(() => 'mock-uuid'),
+
+// Mock uuid
+jest.mock('uuid', () => ({
+    v4: jest.fn(() => 'mock-uuid-v4'),
 }));
 
-describe('GET /api/conversations', () => {
+
+describe('Conversations API', () => {
+
   beforeEach(() => {
     jest.clearAllMocks();
+    // Chainable mocks
+    queryChainer.select.mockReturnThis();
+    queryChainer.insert.mockReturnThis();
+    queryChainer.or.mockReturnThis();
   });
 
-  it('should return a list of conversations for a given user', async () => {
-    const mockConversations = [
-      { id: 'convo1', updatedAt: '2024-01-01T10:00:00Z', otherParticipantName: 'User Two', lastMessage: 'Hi', lastMessageTimestamp: '2024-01-01T10:00:00Z' },
-    ];
-    (db.prepare().all as jest.Mock).mockReturnValue(mockConversations);
+  describe('GET /api/conversations', () => {
+    it('should return conversations for a user', async () => {
+      const mockConversations = [{ id: 'convo1', participantName: 'Test User' }];
+      mockSupabaseClient.rpc.mockResolvedValue({ data: mockConversations, error: null });
 
-    const request = new MockRequest('http://localhost/api/conversations?userId=user1');
-    const response = await GET(request as any);
+      const request = new MockRequest('http://localhost/api/conversations?userId=user1');
+      const response = await GET(request as any);
 
-    expect(db.prepare).toHaveBeenCalledWith(expect.stringContaining('SELECT'));
-    expect(db.prepare().all).toHaveBeenCalledWith('user1', 'user1');
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(mockConversations);
-  });
-
-  it('should return 400 if userId is missing', async () => {
-    const request = new MockRequest('http://localhost/api/conversations');
-    const response = await GET(request as any);
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: 'User ID is required' });
-  });
-});
-
-describe('POST /api/conversations', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should create a new conversation if one does not exist', async () => {
-    (db.prepare().get as jest.Mock).mockReturnValueOnce(undefined); // No existing conversation
-    (db.prepare().run as jest.Mock).mockReturnValue({});
-    (db.prepare().get as jest.Mock).mockReturnValueOnce({ username: 'ParticipantUser' }); // For otherParticipantName
-
-    const request = new MockRequest('http://localhost/api/conversations', {
-      method: 'POST',
-      body: { creatorId: 'user1', participantId: 'user2' },
+      expect(mockSupabaseClient.rpc).toHaveBeenCalledWith('get_conversations_with_details', { user_id_param: 'user1' });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toEqual(mockConversations);
     });
-    const response = await POST(request as any);
 
-    expect(db.prepare().get).toHaveBeenCalledWith('user1', 'user2'); // Check for existing convo
-    expect(db.prepare().run).toHaveBeenCalledTimes(2); // Insert convo and participants
-    expect(db.prepare().run).toHaveBeenCalledWith('mock-uuid', expect.any(String), expect.any(String));
-    expect(db.prepare().run).toHaveBeenCalledWith('user1', 'mock-uuid', 'user2', 'mock-uuid');
-    expect(response.status).toBe(201);
-    await expect(response.json()).resolves.toEqual(expect.objectContaining({
-      id: 'mock-uuid',
-      otherParticipantName: 'ParticipantUser',
-    }));
+    it('should return 400 if userId is missing', async () => {
+      const request = new MockRequest('http://localhost/api/conversations');
+      const response = await GET(request as any);
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({ error: 'User ID is required' });
+      expect(mockSupabaseClient.rpc).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors from the database', async () => {
+        mockSupabaseClient.rpc.mockResolvedValue({ data: null, error: new Error('DB Error') });
+  
+        const request = new MockRequest('http://localhost/api/conversations?userId=user1');
+        const response = await GET(request as any);
+  
+        expect(response.status).toBe(500);
+        await expect(response.json()).resolves.toEqual({ error: 'Failed to fetch conversations' });
+    });
   });
 
-  it('should return existing conversation if one already exists', async () => {
-    const existingConvo = { id: 'existing-convo', updatedAt: '2024-01-01T10:00:00Z' };
-    (db.prepare().get as jest.Mock).mockReturnValueOnce(existingConvo); // Existing conversation
+  describe('POST /api/conversations', () => {
+    it('should create a new conversation', async () => {
+        // No existing conversation
+        queryChainer.single.mockResolvedValueOnce({ data: null, error: null });
+        // Mock for insert
+        const newConvo = { id: 'mock-uuid-v4' };
+        queryChainer.single.mockResolvedValueOnce({ data: newConvo, error: null });
+        // Mock for getting other participant's username
+        const otherUser = { username: 'Participant 2' };
+        // This is a new chain for the second `from` call
+        const userQueryChainer = { select: jest.fn().mockReturnThis(), eq: jest.fn().mockReturnThis(), single: jest.fn().mockResolvedValue({ data: otherUser, error: null }) };
+        mockSupabaseClient.from.mockReturnValueOnce(queryChainer).mockReturnValueOnce(userQueryChainer);
 
-    const request = new MockRequest('http://localhost/api/conversations', {
-      method: 'POST',
-      body: { creatorId: 'user1', participantId: 'user2' },
+
+        const request = new MockRequest('http://localhost/api/conversations', {
+            method: 'POST',
+            body: { participant1Id: 'user1', participant2Id: 'user2' },
+        });
+
+        const response = await POST(request as any);
+
+        expect(mockSupabaseClient.from).toHaveBeenCalledWith('conversations');
+        expect(queryChainer.or).toHaveBeenCalledWith(`(participant1Id.eq.user1,participant2Id.eq.user2),(participant1Id.eq.user2,participant2Id.eq.user1)`);
+        expect(queryChainer.insert).toHaveBeenCalled();
+        expect(response.status).toBe(200); // The route returns 200 on success now
+        const responseJson = await response.json();
+        expect(responseJson.id).toEqual(newConvo.id);
+        expect(responseJson.otherParticipantName).toEqual(otherUser.username);
     });
-    const response = await POST(request as any);
 
-    expect(db.prepare().get).toHaveBeenCalledWith('user1', 'user2');
-    expect(db.prepare().run).not.toHaveBeenCalled(); // No new inserts
-    expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual(existingConvo);
-  });
+    it('should return existing conversation if one exists', async () => {
+        const existingConvo = { id: 'convo-exists' };
+        queryChainer.single.mockResolvedValue({ data: existingConvo, error: null });
 
-  it('should return 400 if creatorId or participantId is missing', async () => {
-    const request = new MockRequest('http://localhost/api/conversations', {
-      method: 'POST',
-      body: { creatorId: 'user1' }, // Missing participantId
+        const request = new MockRequest('http://localhost/api/conversations', {
+            method: 'POST',
+            body: { participant1Id: 'user1', participant2Id: 'user2' },
+        });
+
+        const response = await POST(request as any);
+
+        expect(queryChainer.single).toHaveBeenCalled();
+        expect(queryChainer.insert).not.toHaveBeenCalled();
+        expect(response.status).toBe(200);
+        await expect(response.json()).resolves.toEqual(existingConvo);
     });
-    const response = await POST(request as any);
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: 'Creator ID and participant ID are required' });
+    it('should return 400 if participant IDs are missing', async () => {
+        const request = new MockRequest('http://localhost/api/conversations', {
+            method: 'POST',
+            body: { participant1Id: 'user1' },
+        });
+
+        const response = await POST(request as any);
+        expect(response.status).toBe(400);
+        await expect(response.json()).resolves.toEqual({ error: 'Both participant IDs are required' });
+    });
   });
 });

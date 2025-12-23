@@ -6,20 +6,36 @@ export async function GET(request: Request) {
   const userId = searchParams.get('userId');
   const includeArchived = searchParams.get('includeArchived') === 'true';
   const archivedOnly = searchParams.get('archivedOnly') === 'true';
+  const page = searchParams.has('page') ? parseInt(searchParams.get('page')!, 10) : 1;
+  const limit = searchParams.has('limit') ? parseInt(searchParams.get('limit')!, 10) : 10;
+  
+  // Get filter params
+  const status = searchParams.get('statusFilter') || 'all';
+  const type = searchParams.get('typeFilter') || 'all';
+  const motif = searchParams.get('motifFilter') || 'all';
+  const userFilter = searchParams.get('userFilter') || 'all';
+  const startDate = searchParams.get('startDate');
+  const endDate = searchParams.get('endDate');
+  const searchQuery = searchParams.get('searchQuery') || '';
+  const userDefaultView = searchParams.get('userDefaultView') === 'true';
+
+  const options = { page, limit, status, type, motif, userFilter, startDate, endDate, searchQuery, userDefaultView };
 
   try {
     if (userId) {
-      const vacations = await findVacationsByUserId(userId);
-      return NextResponse.json(vacations);
+      const { vacations, total } = await findVacationsByUserId(userId, options);
+      return NextResponse.json({ vacations, total });
     }
 
     if (archivedOnly) {
-      const vacations = await findArchivedVacations();
-      return NextResponse.json(vacations);
+      // Assuming findArchivedVacations will be updated to handle filters too
+      const { vacations, total } = await findArchivedVacations(options);
+      return NextResponse.json({ vacations, total });
     }
 
-    const vacations = await findAllVacations({ includeArchived });
-    return NextResponse.json(vacations);
+    // Assuming findAllVacations will be updated to handle filters
+    const { vacations, total } = await findAllVacations({ ...options, includeArchived });
+    return NextResponse.json({ vacations, total });
   } catch (error) {
     console.error('Failed to fetch vacations:', error);
     return NextResponse.json({ error: 'Failed to fetch vacations' }, { status: 500 });

@@ -48,11 +48,13 @@ export default function AdminPage() {
 
     useEffect(() => {
         async function fetchData() {
-            const [vacations, users] = await Promise.all([
-                findAllVacations({ includeArchived: true }), // Fetch all vacations
+            // Fetch a large number of records for the top-level admin stats.
+            // VacationsClient will handle its own paginated fetching.
+            const [{ vacations: allFetchedVacations }, users] = await Promise.all([
+                findAllVacations({ includeArchived: true, limit: 5000 }), 
                 getAllUsers(),
             ]);
-            setAllVacations(vacations);
+            setAllVacations(allFetchedVacations);
             setAllUsers(users);
             setLoading(false);
         }
@@ -213,7 +215,7 @@ export default function AdminPage() {
             </Card>
 
             <VacationsClient 
-                initialVacations={allVacations}
+                initialVacations={[]}
                 allUsers={allUsers}
                 isAdminView={true}
             />
