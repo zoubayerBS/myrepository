@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Send, User, MessageSquare, MoreVertical, ArrowLeft, Loader2, Plus, Inbox, ShieldCheck } from 'lucide-react';
