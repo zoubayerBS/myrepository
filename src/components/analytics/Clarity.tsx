@@ -5,7 +5,7 @@ import Script from 'next/script';
 export default function Clarity() {
     const clarityId = process.env.NEXT_PUBLIC_CLARITY_ID;
 
-    if (!clarityId) {
+    if (!clarityId || process.env.NODE_ENV !== 'production') {
         return null;
     }
 
