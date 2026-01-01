@@ -8,6 +8,8 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import useSWR from 'swr';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 import {
   DropdownMenu,
@@ -51,51 +53,66 @@ export function Header() {
   const messagePreviews: MessagePreview[] = messagePreviewsData || [];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 glass shadow-sm transition-all duration-300">
+      <div className="container flex h-16 items-center px-4 sm:px-8">
         <Logo />
-        <div className="flex flex-1 items-center justify-end space-x-4">
-          <nav className="flex items-center space-x-1">
+        <div className="flex flex-1 items-center justify-end space-x-6">
+          <nav className="flex items-center">
             {/* Message Dropdown */}
             <DropdownMenu onOpenChange={setIsMessageDropdownOpen}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative ml-4">
-                  <Mail className="h-5 w-5" />
+                <Button variant="ghost" size="icon" className="relative group hover:bg-white/10 transition-colors duration-300">
+                  <Mail className="h-5 w-5 opacity-70 group-hover:opacity-100 transition-opacity" />
                   {unreadMessageCount > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-xs text-white">
+                    <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-black text-white shadow-lg ring-2 ring-white/50 animate-bounce">
                       {unreadMessageCount}
                     </span>
                   )}
                   <span className="sr-only">Messages</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-80 p-2 sm:w-auto" align="end">
-                <div className="font-bold px-2 py-1">Messages non lus ({unreadMessageCount})</div>
-                <DropdownMenuSeparator />
-                {messagePreviews.length > 0 ? (
-                  messagePreviews.slice(0, 3).map((message) => (
-                    <DropdownMenuItem key={message.id} className="flex flex-col items-start p-2 cursor-pointer hover:bg-gray-100">
-                      <div className="font-semibold ">De:<span className="animate-pulse text-green-600"> {message.senderName}</span></div>
-                      <div className="text-sm font-medium">Sujet: {message.subject}</div>
-                      <div className="text-xs text-gray-500 truncate w-full">{message.content}</div>
-                      <div className="text-xs text-gray-400 mt-1">{new Date(message.createdAt).toLocaleString()}</div>
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <DropdownMenuItem className="text-center text-gray-500 p-2" disabled>
-                    Aucun nouveau message
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/messages" className="w-full text-center text-blue-600 hover:underline">
+              <DropdownMenuContent className="w-80 glass border-white/20 shadow-2xl p-2 mt-2" align="end">
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Messages non lus</span>
+                  <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full border border-primary/20">
+                    {unreadMessageCount} Nouveaux
+                  </span>
+                </div>
+                <DropdownMenuSeparator className="bg-white/10 mx-1 mb-1.5" />
+                <div className="space-y-1">
+                  {messagePreviews.length > 0 ? (
+                    messagePreviews.slice(0, 3).map((message) => (
+                      <DropdownMenuItem key={message.id} className="flex flex-col items-start p-3 cursor-pointer rounded-xl hover:bg-white/10 transition-all duration-200">
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <span className="text-xs font-black text-primary uppercase tracking-tighter">De: {message.senderName}</span>
+                          <span className="text-[9px] text-muted-foreground/60 font-bold">{format(new Date(message.createdAt), 'HH:mm', { locale: fr })}</span>
+                        </div>
+                        <div className="text-sm font-bold tracking-tight mb-0.5">{message.subject}</div>
+                        <div className="text-xs text-muted-foreground/70 line-clamp-1 italic">{message.content}</div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <div className="text-center py-6">
+                      <Mail className="h-8 w-8 mx-auto opacity-10 mb-2" />
+                      <p className="text-xs font-bold text-muted-foreground/40">Aucun nouveau message</p>
+                    </div>
+                  )}
+                </div>
+                <DropdownMenuSeparator className="bg-white/10 mx-1 mt-1.5" />
+                <DropdownMenuItem asChild className="p-0 mt-1 focus:bg-transparent">
+                  <Link
+                    href="/dashboard/messages"
+                    className="w-full text-center py-2.5 text-xs font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors"
+                  >
                     Voir tous les messages
                   </Link>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <UserNav />
+            <div className="ml-4 pl-4 border-l border-white/10">
+              <UserNav />
+            </div>
           </nav>
         </div>
       </div>

@@ -19,42 +19,42 @@ import { useToast } from '@/hooks/use-toast';
 import { findVacationsByUserIdAction, findAllVacationsAction } from '@/lib/actions/vacation-actions';
 
 const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], startY: number) => {
-    if (vacations.length === 0) return startY;
+  if (vacations.length === 0) return startY;
 
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(title, 14, startY);
-    let tableStartY = startY + 8;
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text(title, 14, startY);
+  let tableStartY = startY + 8;
 
-    const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
-    const tableRows: (string | number)[][] = [];
-    let groupTotal = 0;
+  const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+  const tableRows: (string | number)[][] = [];
+  let groupTotal = 0;
 
-    vacations.forEach(vacation => {
-        const vacationData = [
-            format(new Date(vacation.date), 'dd/MM/yy'),
-            vacation.patientName,
-            vacation.operation,
-            vacation.reason,
-            vacation.type === 'acte' ? 'Acte' : 'Forfait',
-            vacation.status,
-            vacation.amount.toFixed(2),
-        ];
-        tableRows.push(vacationData);
-        groupTotal += vacation.amount;
-    });
+  vacations.forEach(vacation => {
+    const vacationData = [
+      format(new Date(vacation.date), 'dd/MM/yy'),
+      vacation.patientName,
+      vacation.operation,
+      vacation.reason,
+      vacation.type === 'acte' ? 'Acte' : 'Forfait',
+      vacation.status,
+      vacation.amount.toFixed(2),
+    ];
+    tableRows.push(vacationData);
+    groupTotal += vacation.amount;
+  });
 
-    autoTable(doc, {
-        head: [tableColumn],
-        body: tableRows,
-        startY: tableStartY,
-        theme: 'striped',
-        headStyles: { fillColor: [41, 41, 41] },
-        foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
-        footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
-    });
+  autoTable(doc, {
+    head: [tableColumn],
+    body: tableRows,
+    startY: tableStartY,
+    theme: 'striped',
+    headStyles: { fillColor: [41, 41, 41] },
+    foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
+    footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
+  });
 
-    return (doc as any).lastAutoTable.finalY + 10;
+  return (doc as any).lastAutoTable.finalY + 10;
 };
 
 const formSchema = z.object({
@@ -71,9 +71,10 @@ interface ReportGeneratorProps {
   allUsers: AppUser[];
   currentUser: AppUser;
   isAdmin: boolean;
+  allVacations?: Vacation[];
 }
 
-export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGeneratorProps) {
+export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations }: ReportGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const [reportVacations, setReportVacations] = useState<Vacation[]>([]);
@@ -84,18 +85,21 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
     async function fetchData() {
       setIsDataLoading(true);
       try {
-        const fetchAction = isAdmin ? findAllVacationsAction : () => findVacationsByUserIdAction(currentUser.uid);
-        const { vacations } = await fetchAction({ limit: 9999 });
-        setReportVacations(vacations || []);
+        if (!allVacations) {
+          const fetchAction = isAdmin ? findAllVacationsAction : () => findVacationsByUserIdAction(currentUser.uid);
+          const { vacations } = await fetchAction({ limit: 9999 });
+          setReportVacations(vacations || []);
+        } else {
+          setReportVacations(allVacations);
+        }
 
         const motifsResponse = await fetch('/api/vacations/reasons');
         if (motifsResponse.ok) {
           const motifsData = await motifsResponse.json();
           setAllMotifs(motifsData);
         } else {
-           console.error("Failed to fetch motifs");
+          console.error("Failed to fetch motifs");
         }
-
       } catch (error) {
         console.error("Failed to fetch data for report generator:", error);
         toast({
@@ -108,7 +112,7 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
       }
     }
     fetchData();
-  }, [isAdmin, currentUser.uid, toast]);
+  }, [isAdmin, currentUser.uid, toast, allVacations]);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -145,7 +149,7 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
 
     doc.text(title, 105, 20, { align: 'center' });
 
-    
+
 
     doc.setFontSize(10);
 
@@ -185,9 +189,9 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
 
     const groupedByUser = filteredData.reduce((acc, v) => {
 
-        acc[v.userId] = [...(acc[v.userId] || []), v];
+      acc[v.userId] = [...(acc[v.userId] || []), v];
 
-        return acc;
+      return acc;
 
     }, {} as Record<string, Vacation[]>);
 
@@ -199,39 +203,121 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
 
     if (selectedUser) {
 
-        const userVacations = groupedByUser[selectedUser.uid] || [];
+      const userVacations = groupedByUser[selectedUser.uid] || [];
 
-        const cecVacations = userVacations.filter(v => v.isCec);
+      const cecVacations = userVacations.filter(v => v.isCec);
 
-        const otherVacations = userVacations.filter(v => !v.isCec);
-
-
-
-        finalY = createVacationTable(doc, "Vacations CEC", cecVacations, finalY);
-
-        finalY = createVacationTable(doc, "Autres Vacations", otherVacations, finalY);
+      const otherVacations = userVacations.filter(v => !v.isCec);
 
 
 
-        // Add a new page for the summary of validated amounts per user
+      finalY = createVacationTable(doc, "Vacations CEC", cecVacations, finalY);
 
-        doc.addPage();
-
-        doc.setFontSize(16);
-
-        doc.setFont('helvetica', 'bold');
-
-        doc.text('Récapitulatif des Montants Validés', 105, 20, { align: 'center' });
+      finalY = createVacationTable(doc, "Autres Vacations", otherVacations, finalY);
 
 
 
-        const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
+      // Add a new page for the summary of validated amounts per user
 
-        const summaryTableRows: (string | number)[][] = [];
+      doc.addPage();
+
+      doc.setFontSize(16);
+
+      doc.setFont('helvetica', 'bold');
+
+      doc.text('Récapitulatif des Montants Validés', 105, 20, { align: 'center' });
 
 
 
-        const totalValidatedAmount = userVacations
+      const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
+
+      const summaryTableRows: (string | number)[][] = [];
+
+
+
+      const totalValidatedAmount = userVacations
+
+        .filter(v => v.status === 'Validée')
+
+        .reduce((sum, v) => sum + v.amount, 0);
+
+
+
+      if (totalValidatedAmount > 0) {
+
+        summaryTableRows.push([
+
+          `${selectedUser.prenom} ${selectedUser.nom}`,
+
+          totalValidatedAmount.toFixed(2)
+
+        ]);
+
+      }
+
+
+
+      autoTable(doc, {
+
+        head: [summaryTableColumn],
+
+        body: summaryTableRows,
+
+        startY: 30,
+
+        theme: 'striped',
+
+        headStyles: { fillColor: [41, 41, 41] },
+
+      });
+
+
+
+      finalY = (doc as any).lastAutoTable.finalY + 15;
+
+    } else {
+
+      // All users report
+
+      Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
+
+        const user = allUsers.find(u => u.uid === userId);
+
+        if (!user) return;
+
+
+
+        finalY = createVacationTable(doc, `${user.prenom} ${user.nom}`, userVacations, finalY);
+
+      });
+
+
+
+      // Add a new page for the summary of validated amounts per user
+
+      doc.addPage();
+
+      doc.setFontSize(16);
+
+      doc.setFont('helvetica', 'bold');
+
+      doc.text('Récapitulatif des Montants Validés par Utilisateur', 105, 20, { align: 'center' });
+
+
+
+      const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
+
+      const summaryTableRows: (string | number)[][] = [];
+
+
+
+      Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
+
+        const user = allUsers.find(u => u.uid === userId);
+
+        if (user) {
+
+          const totalValidatedAmount = userVacations
 
             .filter(v => v.status === 'Validée')
 
@@ -239,123 +325,41 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
 
 
 
-        if (totalValidatedAmount > 0) {
+          if (totalValidatedAmount > 0) {
 
             summaryTableRows.push([
 
-                `${selectedUser.prenom} ${selectedUser.nom}`,
+              `${user.prenom} ${user.nom}`,
 
-                totalValidatedAmount.toFixed(2)
+              totalValidatedAmount.toFixed(2)
 
             ]);
 
+          }
+
         }
 
-
-
-        autoTable(doc, {
-
-            head: [summaryTableColumn],
-
-            body: summaryTableRows,
-
-            startY: 30,
-
-            theme: 'striped',
-
-            headStyles: { fillColor: [41, 41, 41] },
-
-        });
+      });
 
 
 
-        finalY = (doc as any).lastAutoTable.finalY + 15;
+      autoTable(doc, {
 
-    } else {
+        head: [summaryTableColumn],
 
-        // All users report
+        body: summaryTableRows,
 
-        Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
+        startY: 30,
 
-            const user = allUsers.find(u => u.uid === userId);
+        theme: 'striped',
 
-            if (!user) return;
+        headStyles: { fillColor: [41, 41, 41] },
 
-
-
-            finalY = createVacationTable(doc, `${user.prenom} ${user.nom}`, userVacations, finalY);
-
-        });
+      });
 
 
 
-        // Add a new page for the summary of validated amounts per user
-
-        doc.addPage();
-
-        doc.setFontSize(16);
-
-        doc.setFont('helvetica', 'bold');
-
-        doc.text('Récapitulatif des Montants Validés par Utilisateur', 105, 20, { align: 'center' });
-
-
-
-        const summaryTableColumn = ["Employé", "Montant Total Validé (DT)"];
-
-        const summaryTableRows: (string | number)[][] = [];
-
-
-
-        Object.entries(groupedByUser).forEach(([userId, userVacations]) => {
-
-            const user = allUsers.find(u => u.uid === userId);
-
-            if (user) {
-
-                const totalValidatedAmount = userVacations
-
-                    .filter(v => v.status === 'Validée')
-
-                    .reduce((sum, v) => sum + v.amount, 0);
-
-
-
-                if (totalValidatedAmount > 0) {
-
-                    summaryTableRows.push([
-
-                        `${user.prenom} ${user.nom}`,
-
-                        totalValidatedAmount.toFixed(2)
-
-                    ]);
-
-                }
-
-            }
-
-        });
-
-
-
-        autoTable(doc, {
-
-            head: [summaryTableColumn],
-
-            body: summaryTableRows,
-
-            startY: 30,
-
-            theme: 'striped',
-
-            headStyles: { fillColor: [41, 41, 41] },
-
-        });
-
-
-
-        finalY = (doc as any).lastAutoTable.finalY + 15;
+      finalY = (doc as any).lastAutoTable.finalY + 15;
 
     }
 
@@ -387,13 +391,13 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
 
     const pageCount = (doc as any).internal.getNumberOfPages();
 
-    for(var i = 1; i <= pageCount; i++) {
+    for (var i = 1; i <= pageCount; i++) {
 
-        doc.setPage(i);
+      doc.setPage(i);
 
-        doc.setFontSize(8);
+      doc.setFontSize(8);
 
-        doc.text(`Page ${i} sur ${pageCount}`, 105, 285, { align: 'center' });
+      doc.text(`Page ${i} sur ${pageCount}`, 105, 285, { align: 'center' });
 
     }
 
@@ -413,91 +417,91 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
 
     try {
 
-        const { from, to } = values.dateRange;
+      const { from, to } = values.dateRange;
 
-        // Ensure the 'to' date includes the whole day
+      // Ensure the 'to' date includes the whole day
 
-        const toEndOfDay = new Date(to);
+      const toEndOfDay = new Date(to);
 
-        toEndOfDay.setHours(23, 59, 59, 999);
-
-
-
-        const filtered = reportVacations.filter(v => {
-
-            // Exclude CEC vacations for the user 'zoubaier' from the entire report
-
-            if (v.user && v.user.username === 'zoubaier_bs' && v.isCec) {
-
-                return false;
-
-            }
+      toEndOfDay.setHours(23, 59, 59, 999);
 
 
 
-            const vacationDate = new Date(v.date);
+      const filtered = reportVacations.filter(v => {
 
-            const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
+        // Exclude CEC vacations for the user 'zoubaier' from the entire report
 
-            const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;
+        if (v.user && v.user.username === 'zoubaier_bs' && v.isCec) {
 
-            const statusMatch = values.status === 'all' || v.status === values.status;
-
-            const motifMatch = values.motif === 'all' || v.reason === values.motif;
-
-            
-
-            return userMatch && dateMatch && statusMatch && motifMatch;
-
-        });
-
-
-
-        if (filtered.length === 0) {
-
-            toast({
-
-                variant: 'default',
-
-                title: 'Aucune donnée',
-
-                description: 'Aucune vacation ne correspond aux filtres sélectionnés.',
-
-            });
-
-            setIsLoading(false);
-
-            return;
+          return false;
 
         }
 
 
 
-        const selectedUser = allUsers.find(u => u.uid === values.userId);
+        const vacationDate = new Date(v.date);
+
+        const userMatch = values.userId === 'all' || !values.userId || v.userId === values.userId;
+
+        const dateMatch = vacationDate >= from && vacationDate <= toEndOfDay;
+
+        const statusMatch = values.status === 'all' || v.status === values.status;
+
+        const motifMatch = values.motif === 'all' || v.reason === values.motif;
 
 
 
-        generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status, values.motif);
+        return userMatch && dateMatch && statusMatch && motifMatch;
+
+      });
+
+
+
+      if (filtered.length === 0) {
+
+        toast({
+
+          variant: 'default',
+
+          title: 'Aucune donnée',
+
+          description: 'Aucune vacation ne correspond aux filtres sélectionnés.',
+
+        });
+
+        setIsLoading(false);
+
+        return;
+
+      }
+
+
+
+      const selectedUser = allUsers.find(u => u.uid === values.userId);
+
+
+
+      generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status, values.motif);
 
 
 
     } catch (error) {
 
-        console.error("Échec de la génération du rapport:", error);
+      console.error("Échec de la génération du rapport:", error);
 
-        toast({
+      toast({
 
-            variant: 'destructive',
+        variant: 'destructive',
 
-            title: 'Erreur',
+        title: 'Erreur',
 
-            description: 'La génération du rapport a échoué.',
+        description: 'La génération du rapport a échoué.',
 
-        });
+      });
 
     } finally {
 
-        setIsLoading(false);
+      setIsLoading(false);
 
     }
 
@@ -505,141 +509,161 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin }: ReportGenera
 
 
 
-    if (isDataLoading) {
+  if (isDataLoading) {
 
-        return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+    return <div className="flex justify-center items-center p-8"><Loader2 className="h-8 w-8 animate-spin" /></div>;
 
-    }
+  }
 
 
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {isAdmin && (
-          <FormField
-            control={form.control}
-            name="userId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Utilisateur</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sélectionner un utilisateur" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value="all">Tous les utilisateurs</SelectItem>
-                    {allUsers.map(user => (
-                      <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col gap-1 mb-6">
+        <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground/60">Générer un Rapport d'Activité</h4>
+        <p className="text-xs font-medium text-muted-foreground/80 lowercase">Utilisez les filtres ci-dessous pour extraire les données nécessaires au format PDF.</p>
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div className="grid gap-6 md:grid-cols-2">
+            {isAdmin && (
+              <FormField
+                control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-widest ml-1">Utilisateur</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-primary/20 transition-all duration-200">
+                          <SelectValue placeholder="Sélectionner un utilisateur" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="glass-card border-zinc-200 dark:border-zinc-800 shadow-2xl">
+                        <SelectItem value="all" className="font-bold">Tous les utilisateurs</SelectItem>
+                        {allUsers.map(user => (
+                          <SelectItem key={user.uid} value={user.uid} className="font-medium">
+                            {user.prenom} {user.nom}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-[10px]" />
+                  </FormItem>
+                )}
+              />
             )}
-          />
-        )}
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Statut</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un statut" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="all">Tous les statuts</SelectItem>
-                  <SelectItem value="Validée">Validée</SelectItem>
-                  <SelectItem value="En attente">En attente</SelectItem>
-                  <SelectItem value="Refusée">Refusée</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="motif"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Motif</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Sélectionner un motif" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="all">Tous les motifs</SelectItem>
-                  {allMotifs.map(reason => (
-                    <SelectItem key={reason} value={reason}>{reason}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="dateRange"
-          render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Période</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="date"
-                    variant={'outline'}
-                    className={cn(
-                      'w-full justify-start text-left font-normal',
-                      !field.value.from && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {field.value?.from ? (
-                      field.value.to ? (
-                        <>
-                          {format(field.value.from, 'LLL dd, y', { locale: fr })} -{' '}
-                          {format(field.value.to, 'LLL dd, y', { locale: fr })}
-                        </>
-                      ) : (
-                        format(field.value.from, 'LLL dd, y', { locale: fr })
-                      )
-                    ) : (
-                      <span>Choisir une période</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[100%] p-0" align="center">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={field.value.from}
-                    selected={{ from: field.value.from, to: field.value.to }}
-                    onSelect={(range) =>
-                        field.onChange({ from: range?.from, to: range?.to })
-                    }
-                    numberOfMonths={1}
-                  />
-                </PopoverContent>
-              </Popover>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Button type="submit" disabled={isLoading} className="w-full">
-          {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <FileDown className="mr-2 h-4 w-4" />}
-          Générer le Rapport 
-        </Button>
-      </form>
-    </Form>
+
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-widest ml-1">Statut</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-primary/20 transition-all duration-200">
+                        <SelectValue placeholder="Sélectionner un statut" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="glass-card border-zinc-200 dark:border-zinc-800 shadow-2xl">
+                      <SelectItem value="all" className="font-bold">Tous les statuts</SelectItem>
+                      <SelectItem value="Validée" className="text-emerald-500 font-bold">Validée</SelectItem>
+                      <SelectItem value="En attente" className="text-yellow-500 font-bold">En attente</SelectItem>
+                      <SelectItem value="Refusée" className="text-destructive font-bold">Refusée</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="motif"
+              render={({ field }) => (
+                <FormItem className="space-y-1.5">
+                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-widest ml-1">Motif</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-primary/20 transition-all duration-200">
+                        <SelectValue placeholder="Sélectionner un motif" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="glass-card border-zinc-200 dark:border-zinc-800 shadow-2xl">
+                      <SelectItem value="all" className="font-bold">Tous les motifs</SelectItem>
+                      {allMotifs.map(reason => (
+                        <SelectItem key={reason} value={reason} className="font-medium">{reason}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="dateRange"
+              render={({ field }) => (
+                <FormItem className="flex flex-col space-y-1.5">
+                  <FormLabel className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-widest ml-1">Période d'activité</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date"
+                        variant={'outline'}
+                        className={cn(
+                          'h-11 w-full justify-start text-left font-bold bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-xl focus:ring-primary/20 transition-all duration-200 group',
+                          !field.value.from && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 opacity-50 group-hover:opacity-100 transition-opacity" />
+                        {field.value?.from ? (
+                          field.value.to ? (
+                            <span className="text-sm tracking-tight capitalize">
+                              {format(field.value.from, 'dd MMM y', { locale: fr })} -{' '}
+                              {format(field.value.to, 'dd MMM y', { locale: fr })}
+                            </span>
+                          ) : (
+                            <span className="text-sm tracking-tight capitalize">{format(field.value.from, 'dd MMM y', { locale: fr })}</span>
+                          )
+                        ) : (
+                          <span className="text-sm opacity-50">Choisir une période</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 glass-card border-zinc-200 dark:border-zinc-800 shadow-2xl" align="center">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={field.value.from}
+                        selected={{ from: field.value.from, to: field.value.to }}
+                        onSelect={(range) =>
+                          field.onChange({ from: range?.from, to: range?.to })
+                        }
+                        numberOfMonths={1}
+                        className="rounded-3xl"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage className="text-[10px]" />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all duration-200 gap-3"
+          >
+            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+            Générer le Rapport PDF
+          </Button>
+        </form>
+      </Form>
+    </div>
   );
 }

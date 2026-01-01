@@ -5,16 +5,14 @@ import { findArchivedVacations, getAllUsers } from '@/lib/local-data';
 export const revalidate = 0; // Disable caching
 
 export default async function ArchivedVacationsPage() {
-    const placeholderUser: AppUser = { uid: 'loading', username: 'loading', role: 'admin', email: '' };
-    
     // Fetch initial data on the server
-    const initialVacations: Vacation[] = await findArchivedVacations();
+    const data = await findArchivedVacations();
+    const initialVacations: Vacation[] = data.vacations;
     const allUsers: AppUser[] = await getAllUsers();
 
     return (
         <div className="container mx-auto p-4 md:p-8 max-w-full overflow-x-hidden">
-            <VacationsClient 
-                currentUser={placeholderUser} // This will be replaced by auth context on client
+            <VacationsClient
                 initialVacations={initialVacations}
                 allUsers={allUsers}
                 isAdminView={true}

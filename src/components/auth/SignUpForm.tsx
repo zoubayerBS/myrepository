@@ -9,6 +9,7 @@ import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 import type { AppUser } from '@/types';
+import { motion } from 'framer-motion';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -71,14 +72,14 @@ export function SignUpForm() {
 
       if (existingUser) {
         toast({
-            variant: 'destructive',
-            title: 'Erreur d\'inscription',
-            description: 'Ce nom d\'utilisateur est déjà pris.',
+          variant: 'destructive',
+          title: 'Erreur d\'inscription',
+          description: 'Ce nom d\'utilisateur est déjà pris.',
         });
         setIsLoading(false);
         return;
       }
-      
+
       const newUser: AppUser = {
         uid: `${Date.now()}-${values.username}`,
         username: values.username,
@@ -115,107 +116,137 @@ export function SignUpForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-sans text-3xl">Créer un compte</CardTitle>
-        <CardDescription>
-          Rejoignez VacationEase pour gérer vos vacations.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <Card className="border-none shadow-2xl glass-card overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+        <CardHeader className="relative p-8 pb-4">
+          <CardTitle className="text-4xl font-black tracking-tight text-gradient">Créer un compte</CardTitle>
+          <CardDescription className="text-sm font-medium mt-2">
+            Rejoignez-nous ! Gérer vos vacations n'a jamais été aussi simple.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="relative p-8 pt-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="prenom"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Prénom</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Jean"
+                          className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="nom"
+                  render={({ field }) => (
+                    <FormItem className="space-y-1.5">
+                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Nom</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Dupont"
+                          className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage className="text-[10px]" />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
-                name="prenom"
+                name="username"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prénom</FormLabel>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Identifiant</FormLabel>
                     <FormControl>
-                      <Input placeholder="Saisissez votre prénom" {...field} />
+                      <Input
+                        placeholder="Choisissez un pseudo"
+                        className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium"
+                        {...field}
+                        autoComplete="off"
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-[10px]" />
                   </FormItem>
                 )}
               />
               <FormField
                 control={form.control}
-                name="nom"
+                name="password"
                 render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom</FormLabel>
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Mot de passe</FormLabel>
                     <FormControl>
-                      <Input placeholder="Saisissez votre nom" {...field} />
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium"
+                        {...field}
+                        autoComplete="off"
+                      />
                     </FormControl>
-                    <FormMessage />
+                    <FormMessage className="text-[10px]" />
                   </FormItem>
                 )}
               />
-            </div>
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom d'utilisateur</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Saisissez votre nom d'utilisateur" {...field} autoComplete="off" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mot de passe</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} autoComplete="off" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="fonction"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Fonction</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionnez votre fonction" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="technicien d'anesthesie">Technicien d'anesthésie</SelectItem>
-                      <SelectItem value="instrumentiste">Instrumentiste</SelectItem>
-                      <SelectItem value="panseur">Panseur</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              S'inscrire
-            </Button>
-          </form>
-        </Form>
-        <div className="mt-4 text-center text-sm">
-          Déjà un compte ?{' '}
-          <Link href="/login" className="underline text-primary">
-            Se connecter
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+              <FormField
+                control={form.control}
+                name="fonction"
+                render={({ field }) => (
+                  <FormItem className="space-y-1.5">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Spécialité</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium text-sm">
+                          <SelectValue placeholder="Votre fonction" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="glass-card border-zinc-200 dark:border-zinc-800 rounded-2xl">
+                        <SelectItem value="technicien d'anesthesie" className="text-sm">Technicien d'anesthésie</SelectItem>
+                        <SelectItem value="instrumentiste" className="text-sm">Instrumentiste</SelectItem>
+                        <SelectItem value="panseur" className="text-sm">Panseur</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage className="text-[10px]" />
+                  </FormItem>
+                )}
+              />
+              <div className="pt-2">
+                <Button type="submit" className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200" disabled={isLoading}>
+                  {isLoading ? (
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : null}
+                  Finaliser l'inscription
+                </Button>
+              </div>
+            </form>
+          </Form>
+          <div className="mt-8 text-center border-t border-primary/5 pt-6">
+            <p className="text-xs font-medium text-muted-foreground/60">
+              Vous avez déjà un compte ?{' '}
+              <Link href="/login" className="text-primary font-black uppercase tracking-widest hover:underline transition-all">
+                Se connecter
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

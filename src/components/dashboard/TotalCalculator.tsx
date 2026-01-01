@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CalendarIcon, Loader2, Wand2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Wand2, Calculator, ArrowRightCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { findVacationsByUserId } from '@/lib/local-data';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const formSchema = z.object({
   dateRange: z.object({
@@ -25,7 +26,7 @@ const formSchema = z.object({
 });
 
 interface TotalCalculatorProps {
-  userId: string; // Keep this prop, but it will be updated from auth context
+  userId: string;
 }
 
 export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps) {
@@ -53,12 +54,12 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!userId) {
-        toast({
-            variant: 'destructive',
-            title: 'Erreur',
-            description: 'Utilisateur non identifié.',
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Utilisateur non identifié.',
+      });
+      return;
     }
 
     setIsLoading(true);
@@ -66,7 +67,7 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
     try {
       const { vacations: allVacations } = await findVacationsByUserId(userId);
       const { from, to } = values.dateRange;
-      
+
       const filteredVacations = allVacations.filter(v => {
         const vacationDate = new Date(v.date);
         const dateMatch = isWithinInterval(vacationDate, { start: from, end: to });
@@ -75,7 +76,6 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
       });
 
       const total = filteredVacations.reduce((sum, v) => sum + v.amount, 0);
-
       setTotalAmount(total);
     } catch (error) {
       console.error('Erreur lors du calcul des totaux:', error);
@@ -88,63 +88,63 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
       setIsLoading(false);
     }
   }
-  
+
   if (!userId) {
-    return null; // Or a loading state
+    return null;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-sans text-lg flex items-center gap-2">
-            <Wand2 className="h-5 w-5 text-accent-foreground"/>
-            Calculateur de Total
+    <Card className="glass-card">
+      <CardHeader className="pb-4">
+        <CardTitle className="text-xl font-bold text-gradient flex items-center gap-2">
+          <Calculator className="h-5 w-5 text-primary" />
+          Calculateur
         </CardTitle>
+        <p className="text-xs text-muted-foreground">Calculez vos gains validés sur une période personnalisée.</p>
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="dateRange"
               render={({ field }) => (
                 <FormItem className="flex flex-col">
-                  <FormLabel>Période</FormLabel>
+                  <FormLabel className="text-sm font-semibold mb-1">Période d'analyse</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button
                         id="date"
                         variant={'outline'}
                         className={cn(
-                          'w-full justify-start text-left font-normal',
+                          'w-full justify-start text-left font-normal glass hover:bg-white/80 dark:hover:bg-black/50 border-white/20',
                           !field.value.from && 'text-muted-foreground'
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        <CalendarIcon className="mr-2 h-4 w-4 text-primary" />
                         {field.value?.from ? (
                           field.value.to ? (
                             <>
-                              {format(field.value.from, 'LLL dd, y', { locale: fr })} -{' '}
-                              {format(field.value.to, 'LLL dd, y', { locale: fr })}
+                              {format(field.value.from, 'dd MMM', { locale: fr })} - {format(field.value.to, 'dd MMM yyyy', { locale: fr })}
                             </>
                           ) : (
-                            format(field.value.from, 'LLL dd, y', { locale: fr })
+                            format(field.value.from, 'dd MMM yyyy', { locale: fr })
                           )
                         ) : (
                           <span>Choisir une période</span>
                         )}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 glass shadow-2xl border-white/20" align="start">
                       <Calendar
                         initialFocus
                         mode="range"
                         defaultMonth={field.value.from}
                         selected={{ from: field.value.from, to: field.value.to }}
                         onSelect={(range) =>
-                            field.onChange({ from: range?.from, to: range?.to })
+                          field.onChange({ from: range?.from, to: range?.to })
                         }
-                        numberOfMonths={2}
+                        numberOfMonths={1}
                         locale={fr}
                       />
                     </PopoverContent>
@@ -153,18 +153,39 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Calculer le total
+            <Button type="submit" disabled={isLoading} className="w-full shadow-lg hover:shadow-primary/20 transition-all font-bold group">
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="mr-2 h-4 w-4 group-hover:rotate-12 transition-transform" />
+              )}
+              {isLoading ? "Calcul en cours..." : "Calculer le total"}
             </Button>
           </form>
         </Form>
-        {totalAmount !== null && (
-          <div className="mt-6 text-center">
-            <p className="text-muted-foreground">Montant total validé pour la période :</p>
-            <p className="text-3xl font-bold text-primary">{totalAmount.toFixed(2)} DT</p>
-          </div>
-        )}
+
+        <AnimatePresence>
+          {totalAmount !== null && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="mt-8 p-6 rounded-2xl bg-primary/5 border border-primary/20 text-center relative overflow-hidden group"
+            >
+              <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
+                <ArrowRightCircle className="h-12 w-12" />
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total validé</p>
+              <div className="text-4xl font-black text-primary">
+                {totalAmount.toLocaleString('fr-TN', { minimumFractionDigits: 2 })}
+                <span className="text-lg ml-1">DT</span>
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-4 font-medium italic">
+                Basé sur les vacations marquées comme "Validée"
+              </p>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </CardContent>
     </Card>
   );

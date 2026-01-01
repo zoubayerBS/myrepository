@@ -40,6 +40,7 @@ import {
 } from '@/components/ui/command';
 
 import { Checkbox } from '@/components/ui/checkbox';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const formSchema = z.object({
   date: z.date({
@@ -142,18 +143,18 @@ export function VacationForm({
         cecType: vacationToEdit.cecType ?? undefined,
       });
     } else {
-        form.reset({
-            date: new Date(),
-            time: '09:00',
-            patientName: '',
-            matricule: '',
-            surgeon: '',
-            operation: '',
-            reason: 'Necessite du travail',
-            type: 'forfait',
-            exceptionalAmount: undefined,
-            isCec: false,
-            cecType: undefined,
+      form.reset({
+        date: new Date(),
+        time: '09:00',
+        patientName: '',
+        matricule: '',
+        surgeon: '',
+        operation: '',
+        reason: 'Necessite du travail',
+        type: 'forfait',
+        exceptionalAmount: undefined,
+        isCec: false,
+        cecType: undefined,
       });
     }
   }, [vacationToEdit]);
@@ -187,7 +188,7 @@ export function VacationForm({
         }
         amount = selectedAmount.amount;
       }
-      
+
       const { exceptionalAmount, ...rest } = values; // Destructure exceptionalAmount
       const vacationData = {
         ...rest, // Use rest to exclude exceptionalAmount
@@ -238,61 +239,115 @@ export function VacationForm({
     }
   }
 
+  const labelStyles = "text-[10px] font-black uppercase tracking-widest text-zinc-500 dark:text-zinc-400 mb-2 block px-1";
+  const inputStyles = "bg-zinc-50 dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 focus:border-primary/40 focus:ring-primary/10 transition-all duration-300 rounded-xl";
+
   return (
-    <ScrollArea className="max-h-[80vh] pr-6 overflow-x-auto">
-      <div className="py-4 px-1">
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="py-6 px-1"
+    >
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className={labelStyles}>Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={'outline'}
+                          className={cn(
+                            'w-full pl-3 text-left font-bold text-sm h-12',
+                            inputStyles,
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP', { locale: fr })
+                          ) : (
+                            <span>Choisir une date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-5 w-5 opacity-40" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden rounded-2xl" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date('1900-01-01')
+                        }
+                        locale={fr}
+                        className="p-3"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="time"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className={labelStyles}>Heure</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="time"
+                      {...field}
+                      autoComplete="off"
+                      className={cn("h-12 font-bold text-sm", inputStyles)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="space-y-6 p-5 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <FormField
                 control={form.control}
-                name="date"
+                name="patientName"
                 render={({ field }) => (
-                  <FormItem className="flex flex-col justify-end">
-                    <FormLabel>Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={'outline'}
-                            className={cn(
-                              'w-full pl-3 text-left font-normal',
-                              !field.value && 'text-muted-foreground'
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, 'PPP', { locale: fr })
-                            ) : (
-                              <span>Choisir une date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          disabled={(date) =>
-                            date > new Date() || date < new Date('1900-01-01')
-                          }
-                          locale={fr}
-                        />
-                      </PopoverContent>
-                    </Popover>
+                  <FormItem>
+                    <FormLabel className={labelStyles}>Nom du Patient</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Ex: Jean Dupont"
+                        {...field}
+                        autoComplete="off"
+                        className={cn("h-12 font-bold text-sm", inputStyles)}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
-                name="time"
+                name="matricule"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Heure</FormLabel>
+                    <FormLabel className={labelStyles}>Matricule</FormLabel>
                     <FormControl>
-                      <Input type="time" {...field} autoComplete="off" />
+                      <Input
+                        placeholder="EX: 123456"
+                        {...field}
+                        autoComplete="off"
+                        className={cn("h-12 font-bold text-sm", inputStyles)}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -302,147 +357,107 @@ export function VacationForm({
 
             <FormField
               control={form.control}
-              name="patientName"
+              name="surgeon"
               render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom du Patient</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Veuillez entrer le nom  et prénom du patient" {...field} autoComplete="off" />
-                  </FormControl>
+                <FormItem className="flex flex-col">
+                  <FormLabel className={labelStyles}>Chirurgien</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          className={cn(
+                            "w-full justify-between h-12 font-bold text-sm",
+                            inputStyles,
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? field.value
+                            : "Sélectionner ou taper un nom"}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-40" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0 bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-2xl overflow-hidden rounded-2xl">
+                      <Command shouldFilter={true} className="bg-transparent">
+                        <CommandInput
+                          placeholder="Rechercher un chirurgien..."
+                          className="h-12 border-none focus:ring-0 bg-transparent font-medium"
+                          onInput={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(e.target.value)}
+                        />
+                        <CommandList className="max-h-[300px]">
+                          <CommandEmpty className="p-4 text-sm font-medium opacity-50">Aucun chirurgien trouvé.</CommandEmpty>
+                          <CommandGroup>
+                            <ScrollArea className="h-[250px]">
+                              {surgeons.map((surgeon) => (
+                                <CommandItem
+                                  value={surgeon.name}
+                                  key={surgeon.id}
+                                  className="flex items-center p-3 cursor-pointer hover:bg-white/10 transition-colors"
+                                  onSelect={() => {
+                                    form.setValue("surgeon", surgeon.name)
+                                  }}
+                                >
+                                  <div className={cn(
+                                    "mr-3 flex h-5 w-5 items-center justify-center rounded-full border border-primary/20 bg-primary/5 transition-all duration-200",
+                                    surgeon.name === field.value ? "bg-primary text-white border-primary" : "opacity-50"
+                                  )}>
+                                    <Check className={cn("h-3 w-3", surgeon.name === field.value ? "opacity-100" : "opacity-0")} />
+                                  </div>
+                                  <span className="font-bold text-sm">{surgeon.name}</span>
+                                </CommandItem>
+                              ))}
+                            </ScrollArea>
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
             <FormField
-                control={form.control}
-                name="matricule"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Matricule</FormLabel>
-                    <FormControl>
-                      <Input placeholder="123456" {...field} autoComplete="off" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="surgeon"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Chirurgien</FormLabel>
-                    <Popover>
-                        <PopoverTrigger asChild>
-                            <FormControl>
-                            <Button
-                                variant="outline"
-                                role="combobox"
-                                className={cn(
-                                "w-full justify-between",
-                                !field.value && "text-muted-foreground"
-                                )}
-                            >
-                                {field.value
-                                ? field.value
-                                : "Sélectionner ou taper un nom"}
-                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                            </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                            <Command shouldFilter={true}>
-                                <CommandInput 
-                                    placeholder="Rechercher un chirurgien..."
-                                    onInput={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(e.target.value)}
-                                />
-                                <CommandList>
-                                <CommandEmpty>Aucun chirurgien trouvé.</CommandEmpty>
-                                <CommandGroup>
-                                    {surgeons.map((surgeon) => (
-                                    <CommandItem
-                                        value={surgeon.name}
-                                        key={surgeon.id}
-                                        onSelect={() => {
-                                            form.setValue("surgeon", surgeon.name)
-                                        }}
-                                    >
-                                        <Check
-                                        className={cn(
-                                            "mr-2 h-4 w-4",
-                                            surgeon.name === field.value
-                                            ? "opacity-100"
-                                            : "opacity-0"
-                                        )}
-                                        />
-                                        {surgeon.name}
-                                    </CommandItem>
-                                    ))}
-                                </CommandGroup>
-                                </CommandList>
-                            </Command>
-                        </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="operation"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Opération</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Appendicectomie" {...field} autoComplete="off" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="reason"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Motif</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Sélectionner un motif" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="Astreinte A.M">Astreinte A.M</SelectItem>
-                        <SelectItem value="Astreinte matin">Astreinte matin</SelectItem>
-                        <SelectItem value="Necessite du travail">Necessite du travail</SelectItem>
-                        <SelectItem value="Astreinte nuit">Astreinte nuit</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-            <FormField
               control={form.control}
-              name="type"
+              name="operation"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nature de l'acte</FormLabel>
+                  <FormLabel className={labelStyles}>Opération</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Ex: Appendicectomie"
+                      {...field}
+                      autoComplete="off"
+                      className={cn("h-12 font-bold text-sm", inputStyles)}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800">
+            <FormField
+              control={form.control}
+              name="reason"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className={labelStyles}>Motif</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sélectionner un type" />
+                      <SelectTrigger className={cn("h-12 font-bold text-sm", inputStyles)}>
+                        <SelectValue placeholder="Sélectionner un motif" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
-                      <SelectItem value="acte">Acte</SelectItem>
-                      <SelectItem value="forfait">Forfait</SelectItem>
+                    <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl overflow-hidden p-1">
+                      <SelectItem value="Astreinte A.M" className="rounded-xl font-bold p-3 focus:bg-primary/10">Astreinte A.M</SelectItem>
+                      <SelectItem value="Astreinte matin" className="rounded-xl font-bold p-3 focus:bg-primary/10">Astreinte matin</SelectItem>
+                      <SelectItem value="Necessite du travail" className="rounded-xl font-bold p-3 focus:bg-primary/10">Necessite du travail</SelectItem>
+                      <SelectItem value="Astreinte nuit" className="rounded-xl font-bold p-3 focus:bg-primary/10">Astreinte nuit</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -450,89 +465,139 @@ export function VacationForm({
               )}
             />
 
-            {currentUser?.uid === '1757098998603-zoubaier_bs' && (
-              <>
-                <FormField
-                  control={form.control}
-                  name="isCec"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>
-                          Vacation CEC
-                        </FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-                {isCec && (
-                  <FormField
-                    control={form.control}
-                    name="cecType"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Type CEC</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Sélectionner un type CEC" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Assistance CEC">Assistance CEC</SelectItem>
-                            <SelectItem value="CEC Clinique">CEC Clinique</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-              </>
-            )}
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className={labelStyles}>Nature de l'acte</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className={cn("h-12 font-bold text-sm", inputStyles)}>
+                        <SelectValue placeholder="Sélectionner un type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl overflow-hidden p-1">
+                      <SelectItem value="acte" className="rounded-xl font-bold p-3 focus:bg-primary/10">Acte</SelectItem>
+                      <SelectItem value="forfait" className="rounded-xl font-bold p-3 focus:bg-primary/10">Forfait</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-            {isAdmin && (
+          {(isAdmin || currentUser?.uid?.includes('zoubaier') || currentUser?.username?.includes('zoubaier')) && (
+            <motion.div
+              layout
+              className="space-y-4 p-5 rounded-2xl bg-zinc-50/50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800"
+            >
+              <FormField
+                control={form.control}
+                name="isCec"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-xl border border-zinc-200 dark:border-zinc-800 p-4 transition-colors hover:bg-zinc-100/50 dark:hover:bg-zinc-800/50">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="h-5 w-5 border-zinc-300 dark:border-zinc-700 rounded-md data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                      />
+                    </FormControl>
+                    <div className="space-y-1">
+                      <FormLabel className="text-sm font-black uppercase tracking-widest cursor-pointer">
+                        Vacation CEC
+                      </FormLabel>
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <AnimatePresence>
+                {isCec && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <FormField
+                      control={form.control}
+                      name="cecType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className={labelStyles}>Type CEC</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                              <SelectTrigger className={cn("h-12 font-bold text-sm", inputStyles)}>
+                                <SelectValue placeholder="Sélectionner un type CEC" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800 shadow-2xl rounded-2xl overflow-hidden p-1">
+                              <SelectItem value="Assistance CEC" className="rounded-xl font-bold p-3 focus:bg-primary/10">Assistance CEC</SelectItem>
+                              <SelectItem value="CEC Clinique" className="rounded-xl font-bold p-3 focus:bg-primary/10">CEC Clinique</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+
+          {isAdmin && (
+            <div className="p-4 rounded-2xl bg-primary/5 border border-primary/20 shadow-inner">
               <FormField
                 control={form.control}
                 name="exceptionalAmount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Montant Exceptionnel</FormLabel>
+                    <FormLabel className={cn(labelStyles, "text-primary/70")}>Montant Exceptionnel (Admin)</FormLabel>
                     <FormControl>
-                      <Input 
+                      <Input
                         type="number"
                         placeholder="Laisser vide pour le calcul auto"
                         {...field}
                         onChange={e => field.onChange(e.target.value === '' ? undefined : parseFloat(e.target.value))}
                         value={field.value ?? ''}
+                        className={cn("h-12 font-bold text-sm", inputStyles, "border-primary/20 focus:border-primary/40")}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            )}
-          
-            <div className="pt-4 flex justify-between">
-                <div className="flex gap-2">
-                    <Button type="button" variant="secondary" onClick={onCancel}>
-                        Annuler
-                    </Button>
-                    <Button type="submit" disabled={isLoading}>
-                        {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Enregistrer
-                    </Button>
-                </div>
             </div>
-          </form>
-        </Form>
-      </div>
-    </ScrollArea>
+          )}
+
+          <div className="pt-6 flex items-center justify-end gap-3 py-4">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onCancel}
+              className="font-black uppercase tracking-widest text-xs h-12 px-6 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              Annuler
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="font-black uppercase tracking-widest text-xs h-12 px-8 rounded-xl shadow-lg shadow-primary/20 transition-all duration-300 hover:scale-105 active:scale-95"
+            >
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="mr-2 h-4 w-4" />
+              )}
+              Enregistrer
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </motion.div>
   );
 }

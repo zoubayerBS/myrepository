@@ -28,6 +28,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import type { AppUser } from '@/types';
+import { motion } from 'framer-motion';
 
 const formSchema = z.object({
   username: z.string().min(3, { message: 'Le nom d\'utilisateur doit contenir au moins 3 caractères.' }),
@@ -96,57 +97,77 @@ export function LoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-sans text-3xl">Connexion</CardTitle>
-        <CardDescription>
-          Accédez à votre tableau de bord VacationEase.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nom d'utilisateur</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Saisissez votre nom d'utilisateur" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mot de passe</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : null}
-              Se connecter
-            </Button>
-          </form>
-        </Form>
-        <div className="mt-4 text-center text-sm">
-          Pas encore de compte ?{' '}
-          <Link href="/signup" className="underline text-primary">
-            S'inscrire
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+    >
+      <Card className="border-none shadow-2xl glass-card overflow-hidden">
+        <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+        <CardHeader className="relative p-8 pb-4">
+          <CardTitle className="text-4xl font-black tracking-tight text-gradient">Connexion</CardTitle>
+          <CardDescription className="text-sm font-medium mt-2">
+            Ravi de vous revoir ! Accédez à votre espace sécurisé.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="relative p-8 pt-4">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="username"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Identifiant</FormLabel>
+                    <FormControl>
+                      <Input
+                        autoComplete="username"
+                        placeholder="Votre nom d'utilisateur"
+                        className="h-12 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-[10px]" />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Mot de passe</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        autoComplete="current-password"
+                        placeholder="••••••••"
+                        className="h-12 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage className="text-[10px]" />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all duration-200" disabled={isLoading}>
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : null}
+                Se connecter
+              </Button>
+            </form>
+          </Form>
+          <div className="mt-8 text-center">
+            <p className="text-xs font-medium text-muted-foreground/60">
+              Pas encore membre ?{' '}
+              <Link href="/signup" className="text-primary font-black uppercase tracking-widest hover:underline transition-all">
+                Créer un compte
+              </Link>
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

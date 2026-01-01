@@ -15,6 +15,9 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { motion } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface UsersListModalProps {
   isOpen: boolean;
@@ -62,59 +65,94 @@ export function UsersListModal({ isOpen, onClose, users, onUserDelete }: UsersLi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn("w-full max-w-md", isMobile && "max-w-[90vw]")}>
-        <DialogHeader>
-          <DialogTitle>Utilisateurs Actifs</DialogTitle>
-          <DialogDescription>
-            Liste de tous les utilisateurs actifs dans le système.
-          </DialogDescription>
-        </DialogHeader>
-        <ScrollArea className="max-h-[60vh]">
-            <div className="py-4">
-            {Object.entries(groupedUsers).map(([fonction, usersInGroup], groupIndex) => (
-                <div key={fonction}>
-                    <Card className={`p-2 my-2 ${fonctionColors[fonction] || 'bg-gray-100 text-gray-800'}`}>
-                        <h3 className="text-md font-semibold">{pluralFonctions[fonction] || fonction}</h3>
-                    </Card>
-                    <div className="grid gap-4 py-2">
-                        {usersInGroup.map(user => (
-                            <div key={user.uid} className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                        <span className="font-semibold text-gray-600">{user.prenom?.[0] ?? ''}{user.nom?.[0] ?? ''}</span>
-                                    </div>
-                                    <div>
-                                        <p className="font-medium">{user.prenom} {user.nom}</p>
-                                        <p className="text-sm text-muted-foreground">{user.fonction.charAt(0).toUpperCase() + user.fonction.slice(1)}</p>
-                                    </div>
-                                </div>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <button className="text-red-500 hover:text-red-700" onClick={() => setUserToDelete(user)}>
-                                            <Trash2 className="h-5 w-5" />
-                                        </button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>Êtes-vous sûr?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                Cette action est irréversible et supprimera définitivement l'utilisateur.
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel onClick={() => setUserToDelete(null)}>Annuler</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleDelete}>Supprimer</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
+      <DialogContent className={cn("w-full max-w-xl p-0 overflow-hidden border-none shadow-2xl glass-card")}>
+        <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+        <div className="relative">
+          <DialogHeader className="p-8 pb-4">
+            <DialogTitle className="text-3xl font-black tracking-tight">Utilisateurs Actifs</DialogTitle>
+            <DialogDescription className="font-medium">
+              Gérez les accès et surveillez les membres actifs du système.
+            </DialogDescription>
+          </DialogHeader>
+
+          <ScrollArea className="max-h-[70vh] px-8 pb-8">
+            <div className="space-y-8">
+              {Object.entries(groupedUsers).map(([fonction, usersInGroup], groupIndex) => (
+                <div key={fonction} className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/60">
+                      {pluralFonctions[fonction] || fonction}
+                    </h3>
+                    <div className="h-px flex-1 bg-primary/10" />
+                    <Badge variant="outline" className="text-[10px] bg-primary/5 text-primary border-primary/10">
+                      {usersInGroup.length}
+                    </Badge>
+                  </div>
+
+                  <div className="grid gap-3">
+                    {usersInGroup.map((user, uIdx) => (
+                      <motion.div
+                        key={user.uid}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: uIdx * 0.05 }}
+                        className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-white/40 dark:bg-zinc-900/40 border border-zinc-100 dark:border-zinc-800/50 hover:border-primary/20 hover:bg-white/60 dark:hover:bg-zinc-900/60 transition-all duration-300"
+                      >
+                        <div className="flex items-center gap-4">
+                          <div className="relative h-12 w-12 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 flex items-center justify-center border-2 border-white dark:border-zinc-800 shadow-sm ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300">
+                            <span className="font-black text-primary text-sm uppercase">
+                              {user.prenom?.[0] ?? ''}{user.nom?.[0] ?? ''}
+                            </span>
+                            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm" />
+                          </div>
+                          <div>
+                            <p className="font-black tracking-tight">{user.prenom} {user.nom}</p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/40 leading-none">
+                                {user.username}
+                              </p>
+                              <span className="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800" />
+                              <p className="text-[10px] font-bold text-muted-foreground/60 leading-none lowercase">
+                                {user.email}
+                              </p>
                             </div>
-                        ))}
-                    </div>
-                    {groupIndex < Object.entries(groupedUsers).length - 1 && <Separator className="my-4" />}
+                          </div>
+                        </div>
+
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-9 w-9 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive opacity-0 group-hover:opacity-100 transition-all duration-200"
+                              onClick={() => setUserToDelete(user)}
+                            >
+                              <Trash2 className="h-4.5 w-4.5" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent className="glass-card border-none">
+                            <AlertDialogHeader>
+                              <AlertDialogTitle className="text-2xl font-black">Confirmation de suppression</AlertDialogTitle>
+                              <AlertDialogDescription className="font-medium text-muted-foreground">
+                                Vous êtes sur le point de supprimer définitivement <span className="font-bold text-foreground">"{user.prenom} {user.nom}"</span>. Toutes ses données associées seront inaccessibles.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="mt-6">
+                              <AlertDialogCancel className="rounded-xl font-bold uppercase tracking-widest text-[10px]" onClick={() => setUserToDelete(null)}>Annuler</AlertDialogCancel>
+                              <AlertDialogAction onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 rounded-xl font-bold uppercase tracking-widest text-[10px] shadow-lg shadow-destructive/20">
+                                Supprimer l'utilisateur
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
-            ))}
+              ))}
             </div>
-        </ScrollArea>
+          </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   );

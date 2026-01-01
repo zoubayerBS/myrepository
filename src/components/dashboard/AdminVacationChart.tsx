@@ -7,41 +7,41 @@ import { fr } from 'date-fns/locale'
 import type { Vacation } from '@/types'
 
 interface AdminVacationChartProps {
-    data: Vacation[];
+  data: Vacation[];
 }
 
 interface MonthlyData {
-    validated: number;
-    refused: number;
-    pending: number;
+  validated: number;
+  refused: number;
+  pending: number;
 }
 
 export function AdminVacationChart({ data }: AdminVacationChartProps) {
-    const monthlyData = data.reduce((acc, vacation) => {
-        const monthKey = format(parseISO(vacation.date), 'yyyy-MM');
-        if (!acc[monthKey]) {
-            acc[monthKey] = { validated: 0, refused: 0, pending: 0 };
-        }
-        if (vacation.status === 'Validée') {
-            acc[monthKey].validated++;
-        } else if (vacation.status === 'Refusée') {
-            acc[monthKey].refused++;
-        } else {
-            acc[monthKey].pending++;
-        }
-        return acc;
-    }, {} as Record<string, MonthlyData>);
+  const monthlyData = data.reduce((acc, vacation) => {
+    const monthKey = format(parseISO(vacation.date), 'yyyy-MM');
+    if (!acc[monthKey]) {
+      acc[monthKey] = { validated: 0, refused: 0, pending: 0 };
+    }
+    if (vacation.status === 'Validée') {
+      acc[monthKey].validated++;
+    } else if (vacation.status === 'Refusée') {
+      acc[monthKey].refused++;
+    } else {
+      acc[monthKey].pending++;
+    }
+    return acc;
+  }, {} as Record<string, MonthlyData>);
 
-    const chartData = Object.keys(monthlyData).map(monthKey => {
-        const [year, month] = monthKey.split('-');
-        return {
-            name: format(new Date(parseInt(year), parseInt(month) - 1), 'MMM yyyy', { locale: fr }),
-            date: new Date(parseInt(year), parseInt(month) - 1),
-            "Validées": monthlyData[monthKey].validated,
-            "Refusées": monthlyData[monthKey].refused,
-            "En attente": monthlyData[monthKey].pending,
-        };
-    }).sort((a, b) => a.date.getTime() - b.date.getTime());
+  const chartData = Object.keys(monthlyData).map(monthKey => {
+    const [year, month] = monthKey.split('-');
+    return {
+      name: format(new Date(parseInt(year), parseInt(month) - 1), 'MMM yyyy', { locale: fr }),
+      date: new Date(parseInt(year), parseInt(month) - 1),
+      "Validées": monthlyData[monthKey].validated,
+      "Refusées": monthlyData[monthKey].refused,
+      "En attente": monthlyData[monthKey].pending,
+    };
+  }).sort((a, b) => a.date.getTime() - b.date.getTime());
 
 
   return (
@@ -64,17 +64,20 @@ export function AdminVacationChart({ data }: AdminVacationChartProps) {
           allowDecimals={false}
         />
         <Tooltip
-            cursor={{ fill: 'hsl(var(--accent))' }}
-            contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                borderColor: 'hsl(var(--border))',
-                borderRadius: 'var(--radius)',
-            }}
+          cursor={{ fill: 'hsl(var(--accent))' }}
+          contentStyle={{
+            backgroundColor: 'hsl(var(--background))',
+            borderColor: 'hsl(var(--border))',
+            borderRadius: 'var(--radius)',
+          }}
         />
-        <Legend wrapperStyle={{ paddingTop: '20px' }}/>
-        <Line type="monotone" dataKey="Validées" stroke="#22c55e" strokeWidth={2} />
-        <Line type="monotone" dataKey="Refusées" stroke="#ef4444" strokeWidth={2} />
-        <Line type="monotone" dataKey="En attente" stroke="#f59e0b" strokeWidth={2} />
+        <Legend
+          wrapperStyle={{ paddingTop: '20px' }}
+          formatter={(value) => <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{value}</span>}
+        />
+        <Line type="monotone" dataKey="Validées" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+        <Line type="monotone" dataKey="Refusées" stroke="#ef4444" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
+        <Line type="monotone" dataKey="En attente" stroke="#f59e0b" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
       </LineChart>
     </ResponsiveContainer>
   )

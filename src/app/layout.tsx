@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { AuthProvider } from '@/lib/auth';
 import { Toaster } from '@/components/ui/toaster';
 import { Inter } from 'next/font/google'
+import Clarity from '@/components/analytics/Clarity';
 import './globals.css';
 
 const inter = Inter({
@@ -34,6 +35,7 @@ export default function RootLayout({
         </AuthProvider>
         <Toaster />
         <SpeedInsights />
+        <Clarity />
       </body>
     </html>
   );

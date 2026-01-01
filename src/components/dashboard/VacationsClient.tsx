@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Plus, PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle, Archive, ArchiveRestore, FileText, UserRound } from 'lucide-react';
+import { Plus, PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle, Archive, ArchiveRestore, FileText, UserRound, Loader2 } from 'lucide-react';
 import { VacationsTable } from './VacationsTable';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
@@ -99,9 +99,9 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined
   );
   const [endDate, setEndDate] = useState<Date | undefined>(
-    searchParams.get('endDate') 
-      ? new Date(searchParams.get('endDate')!) 
-      : (historyMode ? new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59, 999) : undefined)
+    searchParams.get('endDate')
+      ? new Date(searchParams.get('endDate')!)
+      : undefined
   );
 
 
@@ -131,7 +131,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   const handleEdit = (vacation: Vacation) => { setVacationToEdit(vacation); setIsFormOpen(true); };
   const handleAddNew = () => { setVacationToEdit(null); setIsFormOpen(true); };
-  
+
   const handleDelete = async (vacationId: string) => {
     try {
       const response = await fetch(`/api/vacations/${vacationId}`, { method: 'DELETE' });
@@ -155,20 +155,20 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     if (!vacation || !user || !userData) return;
 
     try {
-      const response = await fetch(`/api/vacations/${vacationId}/status`, { 
-        method: 'PUT', 
-        headers: { 'Content-Type': 'application/json' }, 
+      const response = await fetch(`/api/vacations/${vacationId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
       });
       if (!response.ok) throw new Error('Failed to update status');
-      
+
       // Optimistic update
       setVacations(prev => prev.map(v => (v.id === vacationId ? { ...v, status } : v)));
       toast({ title: 'Succès', description: 'Statut mis à jour.' });
 
       const subject = `Mise à jour du statut de votre vacation`;
       const content = `Votre demande de vacation pour le ${format(new Date(vacation.date), 'dd/MM/yyyy', { locale: fr })} a été ${status.toLowerCase()} par ${userData.username}.`;
-      
+
       await sendMessage({
         senderId: user.uid,
         receiverId: vacation.userId,
@@ -230,8 +230,8 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         motifFilter: motifFilter,
         searchQuery: searchQuery,
       });
-      if(startDate) params.append('startDate', startDate.toISOString());
-      if(endDate) params.append('endDate', endDate.toISOString());
+      if (startDate) params.append('startDate', startDate.toISOString());
+      if (endDate) params.append('endDate', endDate.toISOString());
 
       let urlBase = '/api/vacations';
       if (archiveMode) {
@@ -243,15 +243,15 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         params.set('userId', user.uid);
         // For user view, if no filters are on, get default set (current month or pending)
         if (statusFilter === 'all' && typeFilter === 'all' && motifFilter === 'all' && !searchQuery && !startDate && !endDate) {
-            params.set('userDefaultView', 'true');
+          params.set('userDefaultView', 'true');
         }
       }
-      
+
       const response = await fetch(`${urlBase}?${params.toString()}`);
 
       if (!response.ok) throw new Error('Failed to fetch vacations');
       const data = await response.json();
-      
+
       setVacations(data.vacations || []);
       setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
     } catch (error) {
@@ -264,17 +264,17 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   useEffect(() => {
     if (user) {
-        fetchVacations(currentPage);
+      fetchVacations(currentPage);
     }
   }, [currentPage, user, fetchVacations]);
-  
+
   useEffect(() => {
     if (currentPage !== 1) {
-        setCurrentPage(1);
+      setCurrentPage(1);
     } else {
-        if (user) {
-           fetchVacations(1);
-        }
+      if (user) {
+        fetchVacations(1);
+      }
     }
   }, [userFilter, typeFilter, statusFilter, motifFilter, searchQuery, startDate, endDate]);
 
@@ -298,18 +298,18 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   if (!user || !userData) return <div className="flex h-48 items-center justify-center">Chargement des données...</div>;
 
-  const handleFormSuccess = async () => { 
-    setIsFormOpen(false); 
+  const handleFormSuccess = async () => {
+    setIsFormOpen(false);
     await fetchVacations(currentPage);
   };
 
   const exportValidatedToCSV = () => {
-    const headers = isAdminView 
+    const headers = isAdminView
       ? ['Nom Complet', 'Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)']
       : ['Date', 'Heure', 'Patient', 'Matricule', 'Chirurgien', 'Opération', 'Motif', 'Type', 'Statut', 'Montant (DT)'];
-    
-    const validatedVacations = filteredVacations.filter(v => v.status === 'Validée');
-    const rows = validatedVacations.map(v => {
+
+    const validatedVacations = vacations.filter((v: Vacation) => v.status === 'Validée');
+    const rows = validatedVacations.map((v: Vacation) => {
       const commonData = [
         format(new Date(v.date), 'dd/MM/yyyy'),
         v.time,
@@ -322,16 +322,16 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         v.status,
         v.amount.toFixed(2)
       ];
-      return isAdminView 
+      return isAdminView
         ? [`${v.user?.prenom ?? ''} ${v.user?.nom ?? ''}`.trim(), ...commonData]
         : commonData;
     });
 
-    const totalValidatedAmount = validatedVacations.reduce((sum, v) => sum + v.amount, 0);
+    const totalValidatedAmount = validatedVacations.reduce((sum: number, v: Vacation) => sum + v.amount, 0);
 
     let csvContent = "data:text/csv;charset=utf-8,"
-      + [headers.join(','), ...rows.map(e => e.join(','))].join("\n");
-    
+      + [headers.join(','), ...rows.map((e: string[]) => e.join(','))].join("\n");
+
     csvContent += `\n\nTotal Validée,${totalValidatedAmount.toFixed(2)}`;
 
     const encodedUri = encodeURI(csvContent);
@@ -344,247 +344,303 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
   };
 
   return (
-    <div className="space-y-8 w-full overflow-x-hidden">
-
-      {/* Header */}
-      {archiveMode ? (
-        <h1 className="text-3xl font-bold font-sans">Vacations Archivées</h1>
-      ) : historyMode ? (
-        <h1 className="text-3xl font-bold font-sans">Historique des vacations</h1>
-      ) : isAdminView ? (
-        <h2 className="text-2xl font-bold font-sans">Toutes les vacations</h2>
-      ) : (
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <>
+      <div className="space-y-8 w-full overflow-x-hidden">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
           <div>
-            <h1 className="text-3xl font-bold font-sans">Mes vacations</h1>
-            <p className="text-muted-foreground">Gérez vos vacations enregistrées.</p>
+            <h1 className="text-4xl font-black tracking-tight text-gradient">
+              {archiveMode ? "Archives" : historyMode ? "Historique" : isAdminView ? "Gestion des Vacations" : "Mes Vacations"}
+            </h1>
+            <p className="text-muted-foreground font-medium mt-1">
+              {archiveMode
+                ? "Consultez et restaurez vos vacations archivées."
+                : historyMode
+                  ? "Retrouvez l'ensemble de vos activités passées."
+                  : "Suivez et gérez vos vacations en temps réel."}
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <Button onClick={() => {}} variant="outline" size="icon" className="h-9 w-9"><RefreshCw className="h-4 w-4" /></Button>
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button onClick={() => setIsReportModalOpen(true)} variant="outline" size="icon" className="h-9 w-9">
-                    <FileText className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Générer mon rapport</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-            <Button onClick={handleAddNew}><PlusCircle className="mr-2 h-4 w-4" />Nouvelle vacation</Button>
-          </div>
-        </div>
-      )}
 
-      {/* Filtres + Tableau dans wrapper pour éviter overflow */}
-      <div className="w-full overflow-x-hidden">
-        {/* Filtres */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2"><Filter className="h-5 w-5" />Filtres</CardTitle>
+          {!archiveMode && !historyMode && !isAdminView && (
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => fetchVacations(currentPage)}
+                variant="outline"
+                size="icon"
+                className="glass hover:bg-white/50 dark:hover:bg-black/50 border-white/20 shadow-sm"
+              >
+                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={() => setIsReportModalOpen(true)}
+                      variant="outline"
+                      size="icon"
+                      className="glass hover:bg-white/50 dark:hover:bg-black/50 border-white/20 shadow-sm"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Générer mon rapport</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <Button
+                onClick={handleAddNew}
+                className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all font-bold"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Nouvelle vacation
+              </Button>
+            </div>
+          )}
+        </div>
+
+        {/* Filters Section */}
+        <Card className="glass-card border-none shadow-xl mb-10">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-bold flex items-center gap-2 opacity-80">
+              <Filter className="h-4 w-4" />
+              Options de filtrage
+            </CardTitle>
+            <div className="h-px bg-gradient-to-r from-primary/20 via-transparent to-transparent" />
           </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex-1 col-span-full"> {/* Make search span full width */}
-              <Label htmlFor="search">Recherche</Label>
-              <Input
-                id="search"
-                type="text"
-                autoComplete='off'
-                placeholder="Rechercher une vacation..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="mt-1"
-              />
+          <CardContent className="grid grid-cols-1 md:grid-cols-12 gap-6">
+            <div className="md:col-span-12 lg:col-span-3">
+              <Label htmlFor="search" className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Recherche</Label>
+              <div className="relative">
+                <Input
+                  id="search"
+                  type="text"
+                  autoComplete='off'
+                  placeholder="Patient, matricule..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="glass pl-10 h-11 border-white/20 focus-visible:ring-primary/30"
+                />
+                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
+              </div>
             </div>
-            <div className="flex-1 col-span-full">
-                <Label>Période</Label>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button
-                            id="date"
-                            variant={'outline'}
-                            className={cn(
-                                'w-full justify-start text-left font-normal mt-1',
-                                !startDate && !endDate && 'text-muted-foreground'
-                            )}
-                        >
-                            <CalendarIcon className="mr-2 h-4 w-4" />
-                            {startDate ? (
-                                endDate ? (
-                                    <>
-                                        {format(startDate, 'LLL dd, y', { locale: fr })} -{' '}
-                                        {format(endDate, 'LLL dd, y', { locale: fr })}
-                                    </>
-                                ) : (
-                                    format(startDate, 'LLL dd, y', { locale: fr })
-                                )
-                            ) : (
-                                <span>Choisir une période</span>
-                            )}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            initialFocus
-                            mode="range"
-                            defaultMonth={startDate}
-                            selected={{ from: startDate, to: endDate }}
-                            onSelect={(range) => {
-                                setStartDate(range?.from);
-                                setEndDate(range?.to);
-                            }}
-                            numberOfMonths={1}
-                            locale={fr}
-                        />
-                    </PopoverContent>
-                </Popover>
+
+            <div className="md:col-span-6 lg:col-span-3">
+              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Période</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    id="date"
+                    variant={'outline'}
+                    className={cn(
+                      'w-full justify-start text-left font-normal h-11 glass border-white/20',
+                      !startDate && !endDate && 'text-muted-foreground'
+                    )}
+                  >
+                    <CalendarIcon className="mr-2 h-4 w-4 text-primary opacity-70" />
+                    {startDate ? (
+                      endDate ? (
+                        <>
+                          {format(startDate, 'dd MMM', { locale: fr })} - {format(endDate, 'dd MMM yyyy', { locale: fr })}
+                        </>
+                      ) : (
+                        format(startDate, 'dd MMM yyyy', { locale: fr })
+                      )
+                    ) : (
+                      <span>Toute la période</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0 glass shadow-2xl border-white/20" align="start">
+                  <Calendar
+                    initialFocus
+                    mode="range"
+                    defaultMonth={startDate}
+                    selected={{ from: startDate, to: endDate }}
+                    onSelect={(range) => {
+                      setStartDate(range?.from);
+                      setEndDate(range?.to);
+                    }}
+                    numberOfMonths={1}
+                    locale={fr}
+                  />
+                </PopoverContent>
+              </Popover>
             </div>
-            {isAdminView && (
+
+            <div className="md:col-span-6 lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label>Utilisateur</Label>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Motif</Label>
+                <Select value={motifFilter} onValueChange={setMotifFilter}>
+                  <SelectTrigger className="glass h-11 border-white/20">
+                    <SelectValue placeholder="Motif" />
+                  </SelectTrigger>
+                  <SelectContent className="glass">
+                    <SelectItem value="all">Tous</SelectItem>
+                    {allMotifs.map(motif => <SelectItem key={motif} value={motif}>{motif}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Nature</Label>
+                <Select value={typeFilter} onValueChange={setTypeFilter}>
+                  <SelectTrigger className="glass h-11 border-white/20">
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent className="glass">
+                    <SelectItem value="all">Tous</SelectItem>
+                    <SelectItem value="acte">Acte</SelectItem>
+                    <SelectItem value="forfait">Forfait</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Statut</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="glass h-11 border-white/20">
+                    <SelectValue placeholder="Statut" />
+                  </SelectTrigger>
+                  <SelectContent className="glass">
+                    {historyMode ? (
+                      <>
+                        <SelectItem value="Validée,Refusée">Historique</SelectItem>
+                        <SelectItem value="Validée">Validée</SelectItem>
+                        <SelectItem value="Refusée">Refusée</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="all">Tous</SelectItem>
+                        <SelectItem value="En attente">En attente</SelectItem>
+                        <SelectItem value="Validée">Validée</SelectItem>
+                        <SelectItem value="Refusée">Refusée</SelectItem>
+                      </>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {isAdminView && (
+              <div className="md:col-span-12">
+                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Utilisateur</Label>
                 <Select value={userFilter} onValueChange={setUserFilter}>
-                  <SelectTrigger><SelectValue placeholder="Filtrer par utilisateur" /></SelectTrigger>
-                  <SelectContent>
+                  <SelectTrigger className="glass h-11 border-white/20">
+                    <SelectValue placeholder="Choisir un membre" />
+                  </SelectTrigger>
+                  <SelectContent className="glass">
                     <SelectItem value="all">Tous les utilisateurs</SelectItem>
                     {allUsers.map(user => <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
             )}
-            <div>
-              <Label>Nature de l'acte</Label>
-              <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger><SelectValue placeholder="Filtrer par type" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les types</SelectItem>
-                  <SelectItem value="acte">Acte</SelectItem>
-                  <SelectItem value="forfait">Forfait</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Motif</Label>
-              <Select value={motifFilter} onValueChange={setMotifFilter}>
-                <SelectTrigger><SelectValue placeholder="Filtrer par motif" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tous les motifs</SelectItem>
-                  {allMotifs.map(motif => <SelectItem key={motif} value={motif}>{motif}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            {!pendingMode && (
-              <div>
-                <Label>Statut</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger><SelectValue placeholder="Filtrer par statut" /></SelectTrigger>
-                  <SelectContent>
-                    {historyMode ? (
-                        <>
-                            <SelectItem value="Validée,Refusée">Tous (Historique)</SelectItem>
-                            <SelectItem value="Validée">Validée</SelectItem>
-                            <SelectItem value="Refusée">Refusée</SelectItem>
-                        </>
-                    ) : (
-                        <>
-                            <SelectItem value="all">Tous les statuts</SelectItem>
-                            <SelectItem value="En attente">En attente</SelectItem>
-                            <SelectItem value="Validée">Validée</SelectItem>
-                            <SelectItem value="Refusée">Refusée</SelectItem>
-                        </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </CardContent>
         </Card>
-        <br />
 
         {/* Vacations */}
         {isLoading ? (
-          <div className="text-center p-8">Chargement...</div>
+          <div className="text-center p-8 flex flex-col items-center gap-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-muted-foreground animate-pulse">Chargement de vos vacations...</p>
+          </div>
         ) : isMobile ? (
           <>
             <div className="space-y-4" {...handlers}>
               {vacations.length > 0 ? (
                 vacations.map(v => (
-                <Card key={v.id} className="p-4 max-w-full">
-                  <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between">
-                    <CardTitle className={cn("text-lg font-bold truncate", isAdminView && "flex items-center")}>
-                      {isAdminView && <UserRound className="h-4 w-4 mr-2" />}
-                      {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName).toUpperCase()}
-                      {v.isCec && <span className="ml-2 text-green-500 animate-blink">CEC</span>}
-                    </CardTitle>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild >
-                        <Button variant="ghost" className="h-8 w-8 p-0 ml-2">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger >
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        {archiveMode ? (
-                          <DropdownMenuItem onClick={() => handleUnarchive(v.id)}>
-                            <ArchiveRestore className="mr-2 h-4 w-4" />
-                            Désarchiver
-                          </DropdownMenuItem>
-                        ) : (
-                          <>
-                            {isAdminView && (
-                              <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                                {v.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
-                              </DropdownMenuItem>
+                  <Card key={v.id} className="p-4 glass-card border-none shadow-md overflow-hidden group">
+                    <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between border-b border-white/10 mb-3">
+                      <CardTitle className={cn("text-base font-bold truncate pr-2", isAdminView && "flex items-center")}>
+                        {isAdminView && <UserRound className="h-4 w-4 mr-2 text-primary" />}
+                        {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName).toUpperCase()}
+                        {v.isCec && (
+                          <div className="inline-flex items-center ml-2">
+                            <Badge className="bg-emerald-500 text-white border-none text-[9px] font-black px-1.5 py-0 animate-pulse">
+                              CEC
+                            </Badge>
+                            {v.cecType && (
+                              <span className="ml-1 text-[9px] font-bold text-emerald-600 dark:text-emerald-400 opacity-80">
+                                {v.cecType === 'CEC Clinique' ? 'CLIN' : 'ASST'}
+                              </span>
                             )}
-                            {isAdminView && (
-                              <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                                <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                                {v.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                              </DropdownMenuItem>
-                            )}
-                            {isAdminView && v.status !== 'En attente' && (
-                              <DropdownMenuItem onClick={() => handleArchive(v.id)}>
-                                <Archive className="mr-2 h-4 w-4" />
-                                Archiver
-                              </DropdownMenuItem>
-                            )}
-                            {isAdminView && <DropdownMenuSeparator />}
-                            <DropdownMenuItem onClick={() => handleEdit(v)} disabled={v.status !== 'En attente'}>
-                              <FilePenLine className="mr-2 h-4 w-4" />Modifier
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => setVacationToDelete(v)} disabled={v.status !== 'En attente'}>
-                              <Trash2 className="mr-2 h-4 w-4" />Supprimer
-                            </DropdownMenuItem>
-                          </>
+                          </div>
                         )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </CardHeader>
-                  <CardContent className="p-0 text-sm overflow-x-auto">
-                    {isAdminView && <div className="text-muted-foreground break-words">Patient: <span className="font-medium text-foreground " >{v.patientName}</span></div>}
-                    <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(v.date), 'd MMMM yyyy', { locale: fr })}</span></div>
-                    <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{v.time}</span></div>
-                    <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{v.reason}</span></div>
-                    <div className="text-muted-foreground break-words">Acte: <span className="font-medium text-foreground">{v.operation}</span></div>
-                    <div className="text-muted-foreground break-words">Type: <Badge variant={v.type==='acte'?'default':'secondary'}>{v.type==='acte'?'Acte':'Forfait'}</Badge></div>
-                    <div className="text-muted-foreground break-words">Statut: <Badge className={cn(getStatusClasses(v.status))}>{v.status}</Badge></div>
-                    <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{v.amount.toFixed(2)} DT</span></div>
-                  </CardContent>
-                </Card>
-              )) 
+                      </CardTitle>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild >
+                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-white/10">
+                            <MoreHorizontal className="h-4 w-4 opacity-70" />
+                          </Button>
+                        </DropdownMenuTrigger >
+                        <DropdownMenuContent align="end" className="glass">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          {archiveMode ? (
+                            <DropdownMenuItem onClick={() => handleUnarchive(v.id)}>
+                              <ArchiveRestore className="mr-2 h-4 w-4" />
+                              Désarchiver
+                            </DropdownMenuItem>
+                          ) : (
+                            <>
+                              {isAdminView && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Validée' ? 'En attente' : 'Validée')}>
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                  {v.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
+                                </DropdownMenuItem>
+                              )}
+                              {isAdminView && (
+                                <DropdownMenuItem onClick={() => handleStatusChange(v.id, v.status === 'Refusée' ? 'En attente' : 'Refusée')}>
+                                  <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                  {v.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
+                                </DropdownMenuItem>
+                              )}
+                              {isAdminView && v.status !== 'En attente' && (
+                                <DropdownMenuItem onClick={() => handleArchive(v.id)}>
+                                  <Archive className="mr-2 h-4 w-4" />
+                                  Archiver
+                                </DropdownMenuItem>
+                              )}
+                              {isAdminView && <DropdownMenuSeparator />}
+                              <DropdownMenuItem onClick={() => handleEdit(v)} disabled={v.status !== 'En attente'}>
+                                <FilePenLine className="mr-2 h-4 w-4" />Modifier
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem className="text-destructive font-medium" onClick={() => setVacationToDelete(v)} disabled={v.status !== 'En attente'}>
+                                <Trash2 className="mr-2 h-4 w-4" />Supprimer
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </CardHeader>
+                    <CardContent className="p-0 space-y-2">
+                      {isAdminView && <div className="flex justify-between text-xs"><span className="text-muted-foreground">Patient:</span> <span className="font-semibold text-foreground pr-2" >{v.patientName}</span></div>}
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Date:</span> <span className="font-semibold text-foreground pr-2">{format(new Date(v.date), 'd MMM yyyy', { locale: fr })} à {v.time}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Motif:</span> <span className="font-semibold text-foreground pr-2">{v.reason}</span></div>
+                      <div className="flex justify-between text-xs"><span className="text-muted-foreground">Acte:</span> <span className="font-semibold text-foreground pr-2 line-clamp-1">{v.operation}</span></div>
+                      <div className="flex justify-between items-center py-1">
+                        <div className="flex gap-2">
+                          <Badge variant={v.type === 'acte' ? 'default' : 'secondary'} className="text-[10px] px-1.5 h-5">{v.type === 'acte' ? 'Acte' : 'Forfait'}</Badge>
+                          <Badge className={cn(getStatusClasses(v.status), "text-[10px] px-1.5 h-5")}>{v.status}</Badge>
+                        </div>
+                        <span className="font-black text-primary pr-2">{v.amount.toFixed(2)} DT</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
               ) : (
-                <div className="text-center p-8 text-muted-foreground">
-                  Aucune vacation trouvée pour les filtres sélectionnés.
+                <div className="text-center p-12 glass shadow-sm rounded-3xl border border-white/10">
+                  <div className="bg-primary/5 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Filter className="h-8 w-8 text-primary/40" />
+                  </div>
+                  <h3 className="text-lg font-bold">Aucun résultat</h3>
+                  <p className="text-muted-foreground max-w-[250px] mx-auto mt-2">Nous n'avons trouvé aucune vacation correspondant à vos filtres.</p>
                 </div>
               )}
             </div>
             {totalPages > 1 && (
-              <div className="flex justify-center space-x-2 mt-4">
+              <div className="flex justify-center space-x-2 mt-6">
                 {Array.from({ length: totalPages }, (_, i) => (
-                  <span key={i} className={cn("block h-2 w-2 rounded-full", currentPage === i + 1 ? 'bg-blue-600' : 'bg-gray-400')}></span>
+                  <span key={i} className={cn("block h-1.5 w-6 rounded-full transition-all duration-300", currentPage === i + 1 ? 'bg-primary' : 'bg-primary/10')}></span>
                 ))}
               </div>
             )}
@@ -592,7 +648,6 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         ) : (
           <>
             <VacationsTable
-              key={JSON.stringify(vacations)}
               vacations={vacations}
               isAdminView={isAdminView}
               onEdit={handleEdit}
@@ -604,33 +659,48 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
               archiveMode={archiveMode}
             />
             {totalPages > 1 && (
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
+              <div className="mt-8 flex justify-center">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                />
+              </div>
             )}
           </>
         )}
       </div>
-      
 
-      {/* Formulaire */}
+      {/* Formulaire Dialogs */}
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
-        <DialogContent className={cn("sm:max-w-xl", isMobile && "w-full h-full")}>
-          <DialogHeader>
-            <DialogTitle>{vacationToEdit ? 'Modifier la vacation' : 'Ajouter une nouvelle vacation'}</DialogTitle>
-            <DialogDescription>{vacationToEdit ? 'Mettez à jour les détails de la vacation.' : 'Remplissez le formulaire pour ajouter une vacation.'}</DialogDescription>
+        <DialogContent className={cn(
+          "sm:max-w-xl bg-white dark:bg-zinc-950 shadow-2xl border-zinc-200 dark:border-zinc-800 p-0 flex flex-col max-h-[90vh] overflow-hidden",
+          isMobile && "w-full h-full max-h-none rounded-none border-none"
+        )}>
+          <DialogHeader className="p-6 pb-2 border-b border-zinc-100 dark:border-zinc-900 shrink-0">
+            <DialogTitle className="text-2xl font-black text-gradient">{vacationToEdit ? 'Modifier la vacation' : 'Nouvelle vacation'}</DialogTitle>
+            <DialogDescription>
+              {vacationToEdit ? 'Mettez à jour les détails de l\'acte médical.' : 'Enregistrez une nouvelle vacation pour votre suivi.'}
+            </DialogDescription>
           </DialogHeader>
-          {user && <VacationForm userId={user.uid} vacationToEdit={vacationToEdit} onSuccess={handleFormSuccess} onCancel={() => setIsFormOpen(false)} isAdmin={isAdminView} />}
+          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-zinc-200 dark:scrollbar-thumb-zinc-800">
+            {user && (
+              <VacationForm
+                userId={user.uid}
+                vacationToEdit={vacationToEdit}
+                onSuccess={handleFormSuccess}
+                onCancel={() => setIsFormOpen(false)}
+                isAdmin={isAdminView}
+              />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Report Generator Modal */}
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent>
+        <DialogContent className="glass shadow-2xl border-white/20">
           <DialogHeader>
-            <DialogTitle>Générer mon rapport </DialogTitle>
+            <DialogTitle className="text-2xl font-black text-gradient">Configuration du Rapport</DialogTitle>
           </DialogHeader>
           {user && userData && (
             <ReportGenerator
@@ -642,21 +712,22 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         </DialogContent>
       </Dialog>
 
-      {/* Confirmation de suppression */}
       <AlertDialog open={!!vacationToDelete} onOpenChange={(open) => !open && setVacationToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass shadow-2xl border-white/20">
           <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr de vouloir supprimer?</AlertDialogTitle>
+            <AlertDialogTitle className="text-xl font-bold">Confirmation de suppression</AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible et supprimera définitiveiment la vacation.
+              Cette action est irréversible. Voulez-vous vraiment supprimer cette vacation et l'effacer de votre historique ?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">Supprimer</AlertDialogAction>
+            <AlertDialogCancel className="glass border-white/10">Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20 transition-all">
+              Confirmer la suppression
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </>
   );
 }

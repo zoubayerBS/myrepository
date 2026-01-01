@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { MoreHorizontal, FilePenLine, Trash2, Download, CheckCircle, XCircle, Archive, ArchiveRestore } from 'lucide-react';
+import { MoreHorizontal, FilePenLine, Trash2, Download, CheckCircle, XCircle, Archive, ArchiveRestore, User, Calendar, Clock, Stethoscope, Briefcase, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { Vacation, VacationStatus } from '@/types';
@@ -36,6 +36,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface VacationsTableProps {
   vacations: Vacation[];
@@ -68,242 +69,319 @@ export function VacationsTable({
       onDelete(vacationToDelete.id).finally(() => setVacationToDelete(null));
     }
   };
-  
-  const getStatusClasses = (status: VacationStatus) => {
+
+  const getStatusConfig = (status: VacationStatus) => {
     switch (status) {
       case 'Validée':
-        return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100';
+        return {
+          className: 'bg-green-500/10 text-green-600 border-green-200/50 dark:border-green-500/20',
+          icon: <CheckCircle className="h-3 w-3 mr-1" />
+        };
       case 'Refusée':
-        return 'bg-red-100 text-red-800 border-red-800 hover:bg-red-100';
+        return {
+          className: 'bg-red-500/10 text-red-600 border-red-200/50 dark:border-red-500/20',
+          icon: <XCircle className="h-3 w-3 mr-1" />
+        };
       case 'En attente':
       default:
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100';
+        return {
+          className: 'bg-yellow-500/10 text-yellow-600 border-yellow-200/50 dark:border-yellow-500/20',
+          icon: <Activity className="h-3 w-3 mr-1" />
+        };
     }
   };
 
   return (
-    <>
-      <div className="flex justify-end mb-4">
-        <Button onClick={onExport} variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Exporter en CSV
+    <div className="space-y-6">
+      <div className="flex justify-between items-center bg-white/50 dark:bg-black/20 backdrop-blur-sm p-4 rounded-xl border border-white/20 dark:border-white/10 shadow-sm">
+        <h2 className="text-xl font-bold text-gradient flex items-center gap-2">
+          <Stethoscope className="h-5 w-5 text-primary" />
+          {archiveMode ? "Archives des Vacations" : "Vos Vacations"}
+        </h2>
+        <Button onClick={onExport} variant="outline" className="glass hover:bg-white/80 dark:hover:bg-black/50 transition-all border-primary/20">
+          <Download className="mr-2 h-4 w-4 text-primary" />
+          Exporter CSV
         </Button>
       </div>
-      
+
       {isMobile ? (
-        <div className="space-y-4">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="space-y-4"
+        >
           {vacations.length > 0 ? (
-            vacations.map((vacation) => (
-              <Card key={vacation.id} className="p-4 w-full">
-                <CardHeader className="p-0 pb-2 flex flex-row items-center justify-between ">
-                  <CardTitle className="text-lg font-bold">
-                    {vacation.patientName.toUpperCase()}
-                  </CardTitle>                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Ouvrir le menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      {archiveMode ? (
-                        <DropdownMenuItem onClick={() => onUnarchive(vacation.id)}>
-                          <ArchiveRestore className="mr-2 h-4 w-4" />
-                          Désarchiver
-                        </DropdownMenuItem>
-                      ) : (
-                        <>
-                          {isAdminView && (
-                            <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                              <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                              {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
-                            </DropdownMenuItem>
-                          )}
-                          {isAdminView && (
-                            <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                              <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                              {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                            </DropdownMenuItem>
-                          )}
-                          {isAdminView && vacation.status !== 'En attente' && (
-                            <DropdownMenuItem onClick={() => onArchive(vacation.id)}>
-                              <Archive className="mr-2 h-4 w-4" />
-                              Archiver
-                            </DropdownMenuItem>
-                          )}
-                          {isAdminView && <DropdownMenuSeparator />}
-                          <DropdownMenuItem 
+            vacations.map((vacation, index) => (
+              <motion.div
+                key={vacation.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
+                <Card className="glass-card overflow-hidden">
+                  <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 rounded-full bg-primary/10 text-primary">
+                        <User className="h-4 w-4" />
+                      </div>
+                      <CardTitle className="text-base font-bold uppercase">
+                        {vacation.patientName}
+                      </CardTitle>
+                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-primary/10">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="glass">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        {archiveMode ? (
+                          <DropdownMenuItem onClick={() => onUnarchive(vacation.id)}>
+                            <ArchiveRestore className="mr-2 h-4 w-4" />
+                            Désarchiver
+                          </DropdownMenuItem>
+                        ) : (
+                          <>
+                            {isAdminView && (
+                              <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}>
+                                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                {vacation.status === 'Validée' ? 'En attente' : 'Valider'}
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminView && (
+                              <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}>
+                                <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                {vacation.status === 'Refusée' ? 'En attente' : 'Refuser'}
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminView && vacation.status !== 'En attente' && (
+                              <DropdownMenuItem onClick={() => onArchive(vacation.id)}>
+                                <Archive className="mr-2 h-4 w-4" />
+                                Archiver
+                              </DropdownMenuItem>
+                            )}
+                            {isAdminView && <DropdownMenuSeparator />}
+                            <DropdownMenuItem
                               onClick={() => onEdit(vacation)}
                               disabled={vacation.status !== 'En attente'}
-                          >
-                            <FilePenLine className="mr-2 h-4 w-4" />
-                            Modifier
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem
-                            className="text-destructive"
-                            onClick={() => setVacationToDelete(vacation)}
-                            disabled={vacation.status !== 'En attente'}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Supprimer
-                          </DropdownMenuItem>
-                        </>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </CardHeader>
-                <CardContent className="p-0 text-sm overflow-x-auto">
-                  {isAdminView && (
-                    <div className="text-muted-foreground break-words">Utilisateur: <span className="font-medium text-foreground">{vacation.user?.prenom} {vacation.user?.nom}</span></div>
-                  )}
-                  <div className="text-muted-foreground break-words">Date: <span className="font-medium text-foreground">{format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}</span></div>
-                  <div className="text-muted-foreground break-words">Heure: <span className="font-medium text-foreground">{vacation.time}</span></div>
-                  <div className="text-muted-foreground break-words">Motif: <span className="font-medium text-foreground">{vacation.reason}</span></div>
-                  <div className="text-muted-foreground break-words">Type: <Badge variant={vacation.type === 'acte' ? 'default' : 'secondary'} className="max-w-full overflow-hidden">{vacation.type === 'acte' ? 'Acte' : 'Forfait'}</Badge></div>
-                  <div className="text-muted-foreground break-words">Statut: <Badge className={cn('capitalize', getStatusClasses(vacation.status), "max-w-full overflow-hidden")}>{vacation.status}</Badge></div>
-                  <div className="text-muted-foreground break-words">Montant: <span className="font-medium text-foreground">{vacation.amount.toFixed(2)} DT</span></div>
-                </CardContent>
-              </Card>
-            )) 
+                            >
+                              <FilePenLine className="mr-2 h-4 w-4" />
+                              Modifier
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => setVacationToDelete(vacation)}
+                              disabled={vacation.status !== 'En attente'}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Supprimer
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0 space-y-3">
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        <span>{format(new Date(vacation.date), 'd MMM yyyy', { locale: fr })}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-muted-foreground">
+                        <Clock className="h-3 w-3" />
+                        <span>{vacation.time}</span>
+                      </div>
+                    </div>
+                    <div className="text-sm font-medium">{vacation.operation}</div>
+                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                      <Badge className={cn('capitalize border px-2 py-0.5', getStatusConfig(vacation.status).className)}>
+                        {getStatusConfig(vacation.status).icon}
+                        {vacation.status}
+                      </Badge>
+                      <div className="text-lg font-bold text-primary">{vacation.amount.toFixed(2)} <span className="text-[10px]">DT</span></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
           ) : (
-            <div className="text-center p-4 text-gray-500">
+            <div className="text-center p-12 glass rounded-2xl border-dashed border-2 opacity-50">
               Aucune vacation trouvée.
             </div>
           )}
-        </div>
+        </motion.div>
       ) : (
-        <div className="rounded-md border overflow-x-auto">
+        <div className="glass-card overflow-hidden">
           <Table>
-            <TableHeader>
-              <TableRow>
-                {isAdminView && <TableHead>Nom Complet</TableHead>}
-                <TableHead>Date</TableHead>
-                <TableHead>Patient</TableHead>
-                <TableHead>Opération</TableHead>
-                <TableHead>Motif</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Statut</TableHead>
-                <TableHead className="text-right">Montant (DT)</TableHead>
-                <TableHead>
-                  <span className="sr-only">Actions</span>
-                </TableHead>
+            <TableHeader className="bg-primary/5">
+              <TableRow className="hover:bg-transparent border-white/20">
+                {isAdminView && <TableHead className="font-bold py-4">Utilisateur</TableHead>}
+                <TableHead className="font-bold">Date & Heure</TableHead>
+                <TableHead className="font-bold">Patient</TableHead>
+                <TableHead className="font-bold">Opération</TableHead>
+                <TableHead className="font-bold">Type</TableHead>
+                <TableHead className="font-bold">Statut</TableHead>
+                <TableHead className="text-right font-bold w-[120px]">Montant</TableHead>
+                <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vacations.length > 0 ? (
-                vacations.map((vacation) => (
-                  <TableRow key={vacation.id} className={cn(vacation.isCec && 'bg-green-100')}>
-                    {isAdminView && (
-                      <TableCell className="font-medium">
-                        {vacation.user?.prenom} {vacation.user?.nom}
+              <AnimatePresence mode="popLayout">
+                {vacations.length > 0 ? (
+                  vacations.map((vacation, index) => (
+                    <motion.tr
+                      layout
+                      key={vacation.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95 }}
+                      transition={{ delay: index * 0.03 }}
+                      className={cn(
+                        "group hover:bg-primary/5 transition-colors border-white/10",
+                        vacation.isCec && 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20'
+                      )}
+                    >
+                      {isAdminView && (
+                        <TableCell className="font-semibold">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px]">
+                              {vacation.user?.prenom?.[0]}{vacation.user?.nom?.[0]}
+                            </div>
+                            <span>{vacation.user?.prenom} {vacation.user?.nom}</span>
+                          </div>
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}</span>
+                          <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" /> {vacation.time}</span>
+                        </div>
                       </TableCell>
-                    )}
-                    <TableCell>
-                      {format(new Date(vacation.date), 'd MMMM yyyy', { locale: fr })}
-                    </TableCell>
-                     <TableCell>{vacation.patientName}</TableCell>
-                     <TableCell>{vacation.operation}</TableCell>
-                     <TableCell>{vacation.reason}</TableCell>
-                    <TableCell>
-                      <Badge variant={vacation.type === 'acte' ? 'default' : 'secondary'}>
-                        {vacation.type === 'acte' ? 'Acte' : 'Forfait'}
-                      </Badge>
-                    </TableCell>
-                     <TableCell>
-                      <Badge className={cn('capitalize', getStatusClasses(vacation.status))}>
-                        {vacation.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">{vacation.amount.toFixed(2)}</TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Ouvrir le menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          {archiveMode ? (
-                            <DropdownMenuItem onClick={() => onUnarchive(vacation.id)}>
-                              <ArchiveRestore className="mr-2 h-4 w-4" />
-                              Désarchiver
-                            </DropdownMenuItem>
-                          ) : (
-                            <>
-                              {isAdminView && (
-                                 <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}> 
-                                 <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
-                                 {vacation.status === 'Validée' ? 'Mettre en attente' : 'Valider'}
-                               </DropdownMenuItem>
-                              )}
-                              {isAdminView && (
-                                 <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}> 
-                                 <XCircle className="mr-2 h-4 w-4 text-red-500" />
-                                 {vacation.status === 'Refusée' ? 'Mettre en attente' : 'Refuser'}
-                               </DropdownMenuItem>
-                              )}
-                              {isAdminView && vacation.status !== 'En attente' && (
-                                <DropdownMenuItem onClick={() => onArchive(vacation.id)}>
-                                  <Archive className="mr-2 h-4 w-4" />
-                                  Archiver
-                                </DropdownMenuItem>
-                              )}
-                              {isAdminView && <DropdownMenuSeparator />}
-                              <DropdownMenuItem 
+                      <TableCell className="font-bold uppercase tracking-tight text-primary/80">{vacation.patientName}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="max-w-[200px] truncate" title={vacation.operation}>
+                            {vacation.operation}
+                          </div>
+                          {vacation.isCec && (
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white border-none text-[10px] font-black px-1.5 py-0">
+                              CEC
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn(
+                          "border-primary/20 bg-primary/5 text-primary",
+                          vacation.type === 'acte' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-purple-200 bg-purple-50 text-purple-700'
+                        )}>
+                          {vacation.type === 'acte' ? 'Acte' : 'Forfait'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={cn('capitalize border px-2 py-1', getStatusConfig(vacation.status).className)}>
+                          {getStatusConfig(vacation.status).icon}
+                          {vacation.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-black text-primary">
+                        {vacation.amount.toFixed(2)} <span className="text-[10px] font-normal">DT</span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="glass shadow-2xl">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            {archiveMode ? (
+                              <DropdownMenuItem onClick={() => onUnarchive(vacation.id)}>
+                                <ArchiveRestore className="mr-2 h-4 w-4" />
+                                Désarchiver
+                              </DropdownMenuItem>
+                            ) : (
+                              <>
+                                {isAdminView && (
+                                  <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Validée' ? 'En attente' : 'Validée')}>
+                                    <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                                    {vacation.status === 'Validée' ? 'En attente' : 'Valider'}
+                                  </DropdownMenuItem>
+                                )}
+                                {isAdminView && (
+                                  <DropdownMenuItem onClick={() => onStatusChange(vacation.id, vacation.status === 'Refusée' ? 'En attente' : 'Refusée')}>
+                                    <XCircle className="mr-2 h-4 w-4 text-red-500" />
+                                    {vacation.status === 'Refusée' ? 'En attente' : 'Refuser'}
+                                  </DropdownMenuItem>
+                                )}
+                                {isAdminView && vacation.status !== 'En attente' && (
+                                  <DropdownMenuItem onClick={() => onArchive(vacation.id)}>
+                                    <Archive className="mr-2 h-4 w-4" />
+                                    Archiver
+                                  </DropdownMenuItem>
+                                )}
+                                {isAdminView && <DropdownMenuSeparator />}
+                                <DropdownMenuItem
                                   onClick={() => onEdit(vacation)}
                                   disabled={vacation.status !== 'En attente'}
-                              >
-                                <FilePenLine className="mr-2 h-4 w-4" />
-                                Modifier
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => setVacationToDelete(vacation)}
-                                disabled={vacation.status !== 'En attente'}
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Supprimer
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                                >
+                                  <FilePenLine className="mr-2 h-4 w-4" />
+                                  Modifier
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-destructive font-medium"
+                                  onClick={() => setVacationToDelete(vacation)}
+                                  disabled={vacation.status !== 'En attente'}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Supprimer
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </motion.tr>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={isAdminView ? 8 : 7} className="h-48 text-center bg-white/5 mx-4 rounded-xl">
+                      <div className="flex flex-col items-center gap-2 opacity-50">
+                        <Briefcase className="h-8 w-8 text-primary/40" />
+                        <p className="font-bold">Aucune vacation trouvée.</p>
+                      </div>
                     </TableCell>
                   </TableRow>
-                )) 
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={isAdminView ? 9 : 8} className="h-24 text-center">
-                    Aucune vacation trouvée.
-                  </TableCell>
-                </TableRow>
-              )}
+                )}
+              </AnimatePresence>
             </TableBody>
           </Table>
         </div>
       )}
 
       <AlertDialog open={!!vacationToDelete} onOpenChange={(open) => !open && setVacationToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="glass">
           <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogTitle className="text-red-500 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Confirmer la suppression
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Cette action est irréversible et supprimera définitivement la vacation.
+              Cette action est irréversible. La vacation pour <strong>{vacationToDelete?.patientName}</strong> sera définitivement supprimée.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90">
-              Supprimer
+            <AlertDialogCancel className="glass border-primary/20">Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20">
+              Supprimer définitivement
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </>
+    </div>
   );
 }

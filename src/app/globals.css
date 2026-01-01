@@ -58,6 +58,25 @@
   }
 }
 
+@layer utilities {
+  .glass {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 dark:bg-black/40 dark:border-white/10;
+  }
+  
+  .glass-card {
+    @apply glass shadow-xl rounded-2xl transition-all duration-300 hover:shadow-2xl hover:bg-white/80 dark:hover:bg-black/50;
+  }
+
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-blue-600 dark:from-primary dark:to-blue-400;
+  }
+
+  .bg-dashboard-gradient {
+    background: radial-gradient(circle at top right, rgba(20, 184, 166, 0.05), transparent),
+                radial-gradient(circle at bottom left, rgba(59, 130, 246, 0.05), transparent);
+  }
+}
+
 @keyframes blink {
   50% {
     opacity: 0;

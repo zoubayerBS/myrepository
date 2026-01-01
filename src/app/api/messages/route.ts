@@ -51,8 +51,8 @@ export async function GET(request: Request) {
     // Map the data to ensure senderName and receiverName are always strings
     const formattedMessages = messages.map(msg => ({
       ...msg,
-      senderName: msg.sender?.username || '',
-      receiverName: msg.receiver?.username || '',
+      senderName: (msg.sender as any)?.username || '',
+      receiverName: (msg.receiver as any)?.username || '',
     }));
 
     return NextResponse.json(formattedMessages);
@@ -65,7 +65,7 @@ export async function GET(request: Request) {
 // POST a new message
 export async function POST(request: Request) {
   try {
-    const { senderId, receiverId, subject, content } = await request.json();
+    const { senderId, receiverId, subject, content, conversationId } = await request.json();
 
     if (!senderId || !receiverId || !subject || !content) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -73,19 +73,24 @@ export async function POST(request: Request) {
 
     const newMessage = {
       id: uuidv4(),
-      conversationId: uuidv4(),
+      conversationId: conversationId || uuidv4(),
       senderId,
       receiverId,
       subject,
       content,
       read: 0,
-      isArchived: 0, // New field
+      isArchived: 0,
       createdAt: new Date().toISOString(),
     };
 
     const { data, error } = await supabase.from('messages').insert(newMessage).select().single();
 
     if (error) throw error;
+
+    // Update conversation timestamp if it exists
+    if (conversationId) {
+      await supabase.from('conversations').update({ updatedAt: new Date().toISOString() }).eq('id', conversationId);
+    }
 
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
