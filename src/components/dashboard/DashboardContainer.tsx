@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { findVacationsByUserId } from '@/lib/local-data';
 import type { Vacation, AppUser } from '@/types';
-import { Loader2 } from 'lucide-react';
+import { PulseLoader } from '@/components/ui/motion-loader';
 import { UserStats } from './UserStats';
 import { VacationsClient } from './VacationsClient';
 import { TotalCalculator } from './TotalCalculator';
@@ -38,8 +38,7 @@ export function DashboardContainer() {
   if (loading) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Chargement des données du dashboard...</p>
+        <PulseLoader />
       </div>
     );
   }

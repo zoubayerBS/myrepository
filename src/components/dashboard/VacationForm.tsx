@@ -324,7 +324,7 @@ export function VacationForm({
                     <FormLabel className={labelStyles}>Nom du Patient</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Ex: Jean Dupont"
+                        placeholder="Saisissez le nom et le prénom du patient"
                         {...field}
                         autoComplete="off"
                         className={cn("h-12 font-bold text-sm", inputStyles)}

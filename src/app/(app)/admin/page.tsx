@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { redirect } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Clock, CheckCircle, Hourglass, BarChart, FileText, Settings, Stethoscope, Loader2 } from 'lucide-react';
+import { Users, Clock, CheckCircle, Hourglass, BarChart, FileText, Settings, Stethoscope } from 'lucide-react';
 import { VacationsClient } from '@/components/dashboard/VacationsClient';
 import { AdminVacationChart } from '@/components/dashboard/AdminVacationChart';
 import { ReportGenerator } from '@/components/dashboard/ReportGenerator';
@@ -21,6 +21,7 @@ import { Separator } from '@/components/ui/separator';
 import { VacationAmountManager } from '@/components/dashboard/VacationAmountManager';
 import { isWithinInterval, startOfMonth, endOfMonth, format, subMonths } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { PulseLoader } from '@/components/ui/motion-loader';
 
 export default function AdminPage() {
     const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
@@ -99,10 +100,7 @@ export default function AdminPage() {
     if (loading) {
         return (
             <div className="flex h-[80vh] items-center justify-center">
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary opacity-20" />
-                    <p className="text-sm font-bold tracking-widest uppercase text-muted-foreground animate-pulse">Chargement du panel...</p>
-                </div>
+                <PulseLoader />
             </div>
         );
     }

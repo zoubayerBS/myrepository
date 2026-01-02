@@ -4,12 +4,14 @@ import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
+import { PulseLoader, SpinnerLoader } from '@/components/ui/motion-loader';
 import { Plus, PlusCircle, Filter, RefreshCw, MoreHorizontal, FilePenLine, Trash2, CheckCircle, XCircle, Archive, ArchiveRestore, FileText, UserRound, Loader2 } from 'lucide-react';
 import { VacationsTable } from './VacationsTable';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
 import { Label } from '../ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Pagination } from '@/components/ui/pagination';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -369,7 +371,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                 size="icon"
                 className="glass hover:bg-white/50 dark:hover:bg-black/50 border-white/20 shadow-sm"
               >
-                <RefreshCw className={cn("h-4 w-4", isLoading && "animate-spin")} />
+                {isLoading ? <SpinnerLoader className="h-4 w-4" /> : <RefreshCw className={cn("h-4 w-4")} />}
               </Button>
               <TooltipProvider>
                 <Tooltip>
@@ -400,148 +402,153 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         </div>
 
         {/* Filters Section */}
-        <Card className="glass-card border-none shadow-xl mb-10">
-          <CardHeader className="pb-4">
-            <CardTitle className="text-lg font-bold flex items-center gap-2 opacity-80">
-              <Filter className="h-4 w-4" />
-              Options de filtrage
-            </CardTitle>
-            <div className="h-px bg-gradient-to-r from-primary/20 via-transparent to-transparent" />
-          </CardHeader>
-          <CardContent className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-12 lg:col-span-3">
-              <Label htmlFor="search" className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Recherche</Label>
-              <div className="relative">
-                <Input
-                  id="search"
-                  type="text"
-                  autoComplete='off'
-                  placeholder="Patient, matricule..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="glass pl-10 h-11 border-white/20 focus-visible:ring-primary/30"
-                />
-                <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
+        {/* Filters Section */}
+        <Accordion type="single" collapsible className="mb-10 w-full glass border-none shadow-sm overflow-hidden rounded-xl">
+          <AccordionItem value="filters" className="border-none">
+            <AccordionTrigger className="bg-primary/10 border-b border-white/20 dark:border-white/10 px-6 py-4 hover:no-underline hover:bg-primary/15 transition-all">
+              <div className="text-lg font-bold flex items-center gap-3 text-foreground">
+                <div className="p-2 bg-primary/20 rounded-lg border border-primary/20 shadow-sm">
+                  <Filter className="h-5 w-5 text-primary" />
+                </div>
+                <span className="opacity-80">Options de filtrage</span>
               </div>
-            </div>
+            </AccordionTrigger>
+            <AccordionContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                <div className="md:col-span-12 lg:col-span-3">
+                  <Label htmlFor="search" className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Recherche</Label>
+                  <div className="relative">
+                    <Input
+                      id="search"
+                      type="text"
+                      autoComplete='off'
+                      placeholder="Patient, matricule..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="bg-white/10 dark:bg-black/10 backdrop-blur-sm pl-10 h-11 border-white/20 focus-visible:ring-primary/30"
+                    />
+                    <Filter className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-50" />
+                  </div>
+                </div>
 
-            <div className="md:col-span-6 lg:col-span-3">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Période</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    id="date"
-                    variant={'outline'}
-                    className={cn(
-                      'w-full justify-start text-left font-normal h-11 glass border-white/20',
-                      !startDate && !endDate && 'text-muted-foreground'
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4 text-primary opacity-70" />
-                    {startDate ? (
-                      endDate ? (
-                        <>
-                          {format(startDate, 'dd MMM', { locale: fr })} - {format(endDate, 'dd MMM yyyy', { locale: fr })}
-                        </>
-                      ) : (
-                        format(startDate, 'dd MMM yyyy', { locale: fr })
-                      )
-                    ) : (
-                      <span>Toute la période</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0 glass shadow-2xl border-white/20" align="start">
-                  <Calendar
-                    initialFocus
-                    mode="range"
-                    defaultMonth={startDate}
-                    selected={{ from: startDate, to: endDate }}
-                    onSelect={(range) => {
-                      setStartDate(range?.from);
-                      setEndDate(range?.to);
-                    }}
-                    numberOfMonths={1}
-                    locale={fr}
-                  />
-                </PopoverContent>
-              </Popover>
-            </div>
+                <div className="md:col-span-6 lg:col-span-3">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Période</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        id="date"
+                        variant={'outline'}
+                        className={cn(
+                          'w-full justify-start text-left font-normal h-11 bg-white/10 dark:bg-black/10 backdrop-blur-sm border-white/20',
+                          !startDate && !endDate && 'text-muted-foreground'
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4 text-primary opacity-70" />
+                        {startDate ? (
+                          endDate ? (
+                            <>
+                              {format(startDate, 'dd MMM', { locale: fr })} - {format(endDate, 'dd MMM yyyy', { locale: fr })}
+                            </>
+                          ) : (
+                            format(startDate, 'dd MMM yyyy', { locale: fr })
+                          )
+                        ) : (
+                          <span>Toute la période</span>
+                        )}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 glass shadow-2xl border-white/20" align="start">
+                      <Calendar
+                        initialFocus
+                        mode="range"
+                        defaultMonth={startDate}
+                        selected={{ from: startDate, to: endDate }}
+                        onSelect={(range) => {
+                          setStartDate(range?.from);
+                          setEndDate(range?.to);
+                        }}
+                        numberOfMonths={1}
+                        locale={fr}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
 
-            <div className="md:col-span-6 lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Motif</Label>
-                <Select value={motifFilter} onValueChange={setMotifFilter}>
-                  <SelectTrigger className="glass h-11 border-white/20">
-                    <SelectValue placeholder="Motif" />
-                  </SelectTrigger>
-                  <SelectContent className="glass">
-                    <SelectItem value="all">Tous</SelectItem>
-                    {allMotifs.map(motif => <SelectItem key={motif} value={motif}>{motif}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Nature</Label>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger className="glass h-11 border-white/20">
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent className="glass">
-                    <SelectItem value="all">Tous</SelectItem>
-                    <SelectItem value="acte">Acte</SelectItem>
-                    <SelectItem value="forfait">Forfait</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Statut</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="glass h-11 border-white/20">
-                    <SelectValue placeholder="Statut" />
-                  </SelectTrigger>
-                  <SelectContent className="glass">
-                    {historyMode ? (
-                      <>
-                        <SelectItem value="Validée,Refusée">Historique</SelectItem>
-                        <SelectItem value="Validée">Validée</SelectItem>
-                        <SelectItem value="Refusée">Refusée</SelectItem>
-                      </>
-                    ) : (
-                      <>
+                <div className="md:col-span-6 lg:col-span-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Motif</Label>
+                    <Select value={motifFilter} onValueChange={setMotifFilter}>
+                      <SelectTrigger className="bg-white/10 dark:bg-black/10 backdrop-blur-sm h-11 border-white/20">
+                        <SelectValue placeholder="Motif" />
+                      </SelectTrigger>
+                      <SelectContent className="glass">
                         <SelectItem value="all">Tous</SelectItem>
-                        <SelectItem value="En attente">En attente</SelectItem>
-                        <SelectItem value="Validée">Validée</SelectItem>
-                        <SelectItem value="Refusée">Refusée</SelectItem>
-                      </>
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+                        {allMotifs.map(motif => <SelectItem key={motif} value={motif}>{motif}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Nature</Label>
+                    <Select value={typeFilter} onValueChange={setTypeFilter}>
+                      <SelectTrigger className="bg-white/10 dark:bg-black/10 backdrop-blur-sm h-11 border-white/20">
+                        <SelectValue placeholder="Type" />
+                      </SelectTrigger>
+                      <SelectContent className="glass">
+                        <SelectItem value="all">Tous</SelectItem>
+                        <SelectItem value="acte">Acte</SelectItem>
+                        <SelectItem value="forfait">Forfait</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Statut</Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="bg-white/10 dark:bg-black/10 backdrop-blur-sm h-11 border-white/20">
+                        <SelectValue placeholder="Statut" />
+                      </SelectTrigger>
+                      <SelectContent className="glass">
+                        {historyMode ? (
+                          <>
+                            <SelectItem value="Validée,Refusée">Historique</SelectItem>
+                            <SelectItem value="Validée">Validée</SelectItem>
+                            <SelectItem value="Refusée">Refusée</SelectItem>
+                          </>
+                        ) : (
+                          <>
+                            <SelectItem value="all">Tous</SelectItem>
+                            <SelectItem value="En attente">En attente</SelectItem>
+                            <SelectItem value="Validée">Validée</SelectItem>
+                            <SelectItem value="Refusée">Refusée</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-            {isAdminView && (
-              <div className="md:col-span-12">
-                <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Utilisateur</Label>
-                <Select value={userFilter} onValueChange={setUserFilter}>
-                  <SelectTrigger className="glass h-11 border-white/20">
-                    <SelectValue placeholder="Choisir un membre" />
-                  </SelectTrigger>
-                  <SelectContent className="glass">
-                    <SelectItem value="all">Tous les utilisateurs</SelectItem>
-                    {allUsers.map(user => <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                {isAdminView && (
+                  <div className="md:col-span-12">
+                    <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2 block">Utilisateur</Label>
+                    <Select value={userFilter} onValueChange={setUserFilter}>
+                      <SelectTrigger className="bg-white/10 dark:bg-black/10 backdrop-blur-sm h-11 border-white/20">
+                        <SelectValue placeholder="Choisir un membre" />
+                      </SelectTrigger>
+                      <SelectContent className="glass">
+                        <SelectItem value="all">Tous les utilisateurs</SelectItem>
+                        {allUsers.map(user => <SelectItem key={user.uid} value={user.uid}>{user.prenom} {user.nom}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
 
         {/* Vacations */}
         {isLoading ? (
-          <div className="text-center p-8 flex flex-col items-center gap-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground animate-pulse">Chargement de vos vacations...</p>
+          <div className="flex justify-center p-12">
+            <PulseLoader />
           </div>
         ) : isMobile ? (
           <>
@@ -698,7 +705,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       </Dialog>
 
       <Dialog open={isReportModalOpen} onOpenChange={setIsReportModalOpen}>
-        <DialogContent className="glass shadow-2xl border-white/20">
+        <DialogContent className="bg-white dark:bg-zinc-950 shadow-2xl border-zinc-200 dark:border-zinc-800 max-w-[95vw] sm:max-w-lg w-full max-h-[85vh] overflow-y-auto rounded-2xl">
           <DialogHeader>
             <DialogTitle className="text-2xl font-black text-gradient">Configuration du Rapport</DialogTitle>
           </DialogHeader>

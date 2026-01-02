@@ -1,4 +1,5 @@
 import { Logo } from '@/components/shared/Logo';
+import { Footer } from '@/components/shared/Footer';
 
 export default function AuthLayout({
   children,
@@ -21,6 +22,10 @@ export default function AuthLayout({
       <main className="relative z-10 w-full max-w-md animate-in fade-in slide-in-from-bottom-4 duration-700">
         {children}
       </main>
+
+      <div className="absolute bottom-0 w-full z-10">
+        <Footer />
+      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
-import { Loader2 } from 'lucide-react';
+import { PulseLoader } from '@/components/ui/motion-loader';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, loading, userData } = useAuth();
@@ -43,7 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (loading || !user) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <PulseLoader />
       </div>
     );
   }

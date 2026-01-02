@@ -6,6 +6,7 @@ import { LayoutDashboard, LogOut, User as UserIcon, MessageSquare, Archive, Fold
 
 
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,71 +31,113 @@ export function UserNav() {
     return null;
   }
 
+  const initials = userData.prenom
+    ? userData.prenom[0].toUpperCase()
+    : userData.username.slice(0, 1).toUpperCase();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-11 w-11 rounded-full group p-0 hover:bg-transparent">
-          <div className="relative h-10 w-10 rounded-full flex items-center justify-center bg-primary/10 text-primary group-hover:bg-primary/20 border-2 border-primary/20 group-hover:border-primary/40 transition-all duration-300 shadow-sm overflow-hidden ring-2 ring-primary/5 group-hover:ring-primary/10 ring-offset-2">
-            <UserIcon className="h-5.5 w-5.5 opacity-90 group-hover:scale-110 transition-transform duration-300" />
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/30 to-transparent pointer-events-none" />
-          </div>
+        <Button variant="ghost" className="relative h-10 w-10 rounded-full ring-2 ring-white/10 hover:ring-primary/20 transition-all p-0 overflow-hidden">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src="" alt={userData.username} />
+            <AvatarFallback className="bg-gradient-to-br from-primary to-emerald-600 text-white font-bold">
+              {initials}
+            </AvatarFallback>
+          </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-64 glass border-white/20 shadow-2xl p-1.5" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal p-3">
+      <DropdownMenuContent className="w-64 glass border-white/20 shadow-2xl p-2" align="end" forceMount>
+        <DropdownMenuLabel className="font-normal p-3 bg-white/5 rounded-xl mb-2">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-black leading-none text-gradient">
-              {userData.username}
-            </p>
-            <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground/60 leading-none mt-1">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-black leading-none text-foreground">
+                {userData.prenom} {userData.nom}
+              </p>
+              <span className="text-[9px] font-black px-1.5 py-0.5 rounded-md bg-primary/20 text-primary uppercase border border-primary/10">
+                {userData.role}
+              </span>
+            </div>
+            <p className="text-xs leading-none text-muted-foreground font-medium truncate">
               {userData.email}
             </p>
           </div>
         </DropdownMenuLabel>
-        <DropdownMenuSeparator className="bg-white/10 mx-2" />
-        <DropdownMenuGroup className="p-1">
+
+        <DropdownMenuGroup className="space-y-1">
           {userData.role !== 'admin' && (
             <>
-              <DropdownMenuItem asChild className="rounded-lg transition-all duration-200">
-                <Link href="/dashboard" className="flex items-center">
-                  <UserIcon className="mr-3 h-4 w-4 opacity-70" />
-                  <span className="font-medium">Mon Dashboard</span>
+              <DropdownMenuItem asChild className="rounded-lg focus:bg-primary/10 focus:text-primary cursor-pointer">
+                <Link href="/dashboard" className="flex items-center py-2.5">
+                  <div className="p-1.5 rounded-md bg-primary/10 mr-3 text-primary">
+                    <UserIcon className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm">Mon Dashboard</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">Vue d'ensemble</span>
+                  </div>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-lg transition-all duration-200">
-                <Link href="/dashboard/historique-vacations" className="flex items-center">
-                  <FolderClock className="mr-3 h-4 w-4 opacity-70" />
-                  <span className="font-medium">Historique Vacations</span>
+              <DropdownMenuItem asChild className="rounded-lg focus:bg-primary/10 focus:text-primary cursor-pointer">
+                <Link href="/dashboard/historique-vacations" className="flex items-center py-2.5">
+                  <div className="p-1.5 rounded-md bg-blue-500/10 mr-3 text-blue-500">
+                    <FolderClock className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm">Historique</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">Vos vacations archivées</span>
+                  </div>
                 </Link>
               </DropdownMenuItem>
             </>
           )}
-          <DropdownMenuItem asChild className="rounded-lg transition-all duration-200">
-            <Link href="/dashboard/messages" className="flex items-center">
-              <MessageSquare className="mr-3 h-4 w-4 opacity-70" />
-              <span className="font-medium">Messages</span>
+
+          <DropdownMenuItem asChild className="rounded-lg focus:bg-primary/10 focus:text-primary cursor-pointer">
+            <Link href="/dashboard/messages" className="flex items-center py-2.5">
+              <div className="p-1.5 rounded-md bg-amber-500/10 mr-3 text-amber-500">
+                <MessageSquare className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col">
+                <span className="font-bold text-sm">Messages</span>
+                <span className="text-[10px] text-muted-foreground font-medium">Vos échanges</span>
+              </div>
             </Link>
           </DropdownMenuItem>
+
           {userData.role === 'admin' && (
             <>
-              <DropdownMenuItem asChild className="rounded-lg transition-all duration-200">
-                <Link href="/admin" className="flex items-center">
-                  <LayoutDashboard className="mr-3 h-4 w-4 opacity-70" />
-                  <span className="font-medium">Espace Administration</span>
+              <DropdownMenuItem asChild className="rounded-lg focus:bg-primary/10 focus:text-primary cursor-pointer">
+                <Link href="/admin" className="flex items-center py-2.5">
+                  <div className="p-1.5 rounded-md bg-purple-500/10 mr-3 text-purple-500">
+                    <LayoutDashboard className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm">Administration</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">Gérer la plateforme</span>
+                  </div>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="rounded-lg transition-all duration-200">
-                <Link href="/admin/archives" className="flex items-center">
-                  <Archive className="mr-3 h-4 w-4 opacity-70" />
-                  <span className="font-medium">Vacations Archivées</span>
+              <DropdownMenuItem asChild className="rounded-lg focus:bg-primary/10 focus:text-primary cursor-pointer">
+                <Link href="/admin/archives" className="flex items-center py-2.5">
+                  <div className="p-1.5 rounded-md bg-indigo-500/10 mr-3 text-indigo-500">
+                    <Archive className="h-4 w-4" />
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="font-bold text-sm">Archives</span>
+                    <span className="text-[10px] text-muted-foreground font-medium">Historique global</span>
+                  </div>
                 </Link>
               </DropdownMenuItem>
             </>
           )}
         </DropdownMenuGroup>
-        <DropdownMenuSeparator className="bg-white/10 mx-2" />
-        <DropdownMenuItem onClick={handleLogout} className="rounded-lg text-destructive focus:text-destructive focus:bg-destructive/5 transition-all duration-200 p-2.5">
-          <LogOut className="mr-3 h-4 w-4" />
+
+        <DropdownMenuSeparator className="bg-gradient-to-r from-transparent via-white/20 to-transparent my-2" />
+
+        <DropdownMenuItem onClick={handleLogout} className="rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10 cursor-pointer py-2.5 group">
+          <div className="p-1.5 rounded-md bg-destructive/10 mr-3 group-hover:bg-destructive/20 transition-colors">
+            <LogOut className="h-4 w-4" />
+          </div>
           <span className="font-bold">Déconnexion</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
