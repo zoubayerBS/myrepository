@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
 import { Header } from '@/components/shared/Header';
+import { Footer } from '@/components/shared/Footer';
 import { Loader2 } from 'lucide-react';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="relative flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">{children}</main>
+      <Footer />
     </div>
   );
 }

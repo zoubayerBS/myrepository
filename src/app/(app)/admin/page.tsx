@@ -20,6 +20,7 @@ import { SurgeonManager } from '@/components/dashboard/SurgeonManager';
 import { Separator } from '@/components/ui/separator';
 import { VacationAmountManager } from '@/components/dashboard/VacationAmountManager';
 import { isWithinInterval, startOfMonth, endOfMonth, format, subMonths } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export default function AdminPage() {
     const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
@@ -86,9 +87,14 @@ export default function AdminPage() {
     }, [allVacations]);
 
     const totalVacations = filteredVacations.length;
-    const pendingVacations = filteredVacations.filter(v => v.status === 'En attente').length;
-    const validatedVacations = filteredVacations.filter(v => v.status === 'Validée');
+    const pendingVacationsPeriod = filteredVacations.filter(v => v.status === 'En attente' && !v.isArchived).length;
+    const pendingVacationsGlobal = allVacations.filter(v => v.status === 'En attente' && !v.isArchived).length;
+    const validatedVacations = filteredVacations.filter(v => v.status === 'Validée' && !v.isCec);
+    const validatedVacationsCountPeriod = validatedVacations.length;
+    const validatedVacationsCountGlobal = allVacations.filter(v => v.status === 'Validée' && !v.isCec).length;
+
     const totalValidatedAmount = validatedVacations.reduce((sum, v) => sum + v.amount, 0);
+    const totalValidatedAmountGlobal = allVacations.filter(v => v.status === 'Validée' && !v.isCec).reduce((sum, v) => sum + v.amount, 0);
 
     if (loading) {
         return (
@@ -102,7 +108,7 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="min-h-screen relative overflow-hidden pb-12">
+        <div className="min-h-screen relative overflow-hidden pb-12 bg-zinc-50 dark:bg-zinc-950">
             {/* Background Effects */}
             <div className="fixed inset-0 pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/5 rounded-full blur-[120px] animate-pulse" />
@@ -135,9 +141,78 @@ export default function AdminPage() {
 
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-12">
                     {[
-                        { title: "Demandes", value: totalVacations, sub: "Période en cours", icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
-                        { title: "Montant Validé", value: `${totalValidatedAmount.toFixed(2)} DT`, sub: "Période en cours", icon: CheckCircle, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                        { title: "En Attente", value: pendingVacations, sub: "Période en cours", icon: Hourglass, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+                        {
+                            title: "Vacations Validées",
+                            value: (
+                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                    <div className="border-r border-zinc-200 dark:border-zinc-800 pr-2">
+                                        <div className="text-xl font-black tracking-tight">
+                                            {validatedVacationsCountPeriod}
+                                        </div>
+                                        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1 capitalize">{format(startDate, 'MMMM yyyy', { locale: fr })}</div>
+                                    </div>
+                                    <div className="pl-2">
+                                        <div className="text-xl font-black tracking-tight">
+                                            {validatedVacationsCountGlobal}
+                                        </div>
+                                        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Total Global</div>
+                                    </div>
+                                </div>
+                            ),
+                            sub: null,
+                            icon: CheckCircle,
+                            color: "text-blue-500",
+                            bg: "bg-blue-500/10",
+                            isCustom: true
+                        },
+                        {
+                            title: "Montant Validé",
+                            value: (
+                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                    <div className="border-r border-zinc-200 dark:border-zinc-800 pr-2">
+                                        <div className="text-xl font-black tracking-tight">
+                                            {totalValidatedAmount.toFixed(2)} <span className="text-[10px] font-normal">DT</span>
+                                        </div>
+                                        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1 capitalize">{format(startDate, 'MMMM yyyy', { locale: fr })}</div>
+                                    </div>
+                                    <div className="pl-2">
+                                        <div className="text-xl font-black tracking-tight">
+                                            {totalValidatedAmountGlobal.toFixed(2)} <span className="text-[10px] font-normal">DT</span>
+                                        </div>
+                                        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Total Global</div>
+                                    </div>
+                                </div>
+                            ),
+                            sub: null, // Subtitle handled in custom value
+                            icon: CheckCircle,
+                            color: "text-emerald-500",
+                            bg: "bg-emerald-500/10",
+                            isCustom: true // Flag to adjust padding/layout if needed
+                        },
+                        {
+                            title: "En Attente",
+                            value: (
+                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                    <div className="border-r border-zinc-200 dark:border-zinc-800 pr-2">
+                                        <div className="text-xl font-black tracking-tight">
+                                            {pendingVacationsPeriod}
+                                        </div>
+                                        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1 capitalize">{format(startDate, 'MMMM yyyy', { locale: fr })}</div>
+                                    </div>
+                                    <div className="pl-2">
+                                        <div className="text-xl font-black tracking-tight">
+                                            {pendingVacationsGlobal}
+                                        </div>
+                                        <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Total Global</div>
+                                    </div>
+                                </div>
+                            ),
+                            sub: null,
+                            icon: Hourglass,
+                            color: "text-yellow-500",
+                            bg: "bg-yellow-500/10",
+                            isCustom: true
+                        },
                         { title: "Utilisateurs", value: allUsers.length, sub: "Membres actifs", icon: Users, color: "text-purple-500", bg: "bg-purple-500/10", onClick: () => setIsUsersModalOpen(true) }
                     ].map((stat, i) => (
                         <motion.div
@@ -147,26 +222,30 @@ export default function AdminPage() {
                             transition={{ delay: i * 0.1 }}
                             onClick={stat.onClick}
                             className={cn(
-                                "group relative overflow-hidden rounded-3xl p-6 glass-card border-none shadow-xl transition-all duration-300",
+                                "group relative overflow-hidden rounded-3xl p-6 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-xl transition-all duration-300",
                                 stat.onClick && "cursor-pointer hover:scale-[1.02] active:scale-95"
                             )}
                         >
                             <div className="flex items-center justify-between mb-4">
-                                <div className={cn("p-3 rounded-2xl transition-transform duration-300 group-hover:scale-110", stat.bg, stat.color)}>
-                                    <stat.icon className="h-6 w-6" />
-                                </div>
                                 <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">
                                     {stat.title}
                                 </div>
+                                <div className={cn("p-3 rounded-2xl transition-transform duration-300 group-hover:scale-110", stat.bg, stat.color)}>
+                                    <stat.icon className="h-6 w-6" />
+                                </div>
                             </div>
                             <div>
-                                <div className="text-3xl font-black tracking-tight">{stat.value}</div>
-                                <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground/60 mt-1 uppercase tracking-tighter">
-                                    {stat.sub}
-                                    {stat.title.includes("Période") || stat.sub.includes("Période") ? (
-                                        <span className="text-[10px] opacity-40 ml-1">({periodString})</span>
-                                    ) : null}
-                                </div>
+                                {typeof stat.value === 'object' ? stat.value : <div className="text-3xl font-black tracking-tight">{stat.value}</div>}
+
+                                {stat.sub && (
+                                    <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground/60 mt-1 uppercase tracking-tighter">
+                                        {stat.sub}
+                                        {/* Show period only for non-custom cards that need it */}
+                                        {!stat.isCustom && (stat.title.includes("Période") || stat.sub.includes("Période")) ? (
+                                            <span className="text-[10px] opacity-40 ml-1">({periodString})</span>
+                                        ) : null}
+                                    </div>
+                                )}
                             </div>
                             <div className="absolute top-0 right-0 p-4 opacity-5 translate-x-4 -translate-y-4 group-hover:translate-x-2 group-hover:-translate-y-2 transition-transform duration-500">
                                 <stat.icon className="h-24 w-24" />
@@ -180,10 +259,9 @@ export default function AdminPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
                 >
-                    <Card className="glass-card border-none shadow-2xl mb-12 overflow-hidden">
-                        <CardHeader className="p-8 pb-4 relative overflow-hidden">
-                            <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
-                            <div className="relative flex items-center justify-between">
+                    <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl mb-12 overflow-hidden">
+                        <CardHeader className="p-8 pb-4 relative overflow-hidden bg-zinc-50 dark:bg-zinc-900/50">
+                            <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
                                         <FileText className="h-6 w-6" />

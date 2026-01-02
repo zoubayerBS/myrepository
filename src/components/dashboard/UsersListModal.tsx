@@ -65,17 +65,17 @@ export function UsersListModal({ isOpen, onClose, users, onUserDelete }: UsersLi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn("w-full max-w-xl p-0 overflow-hidden border-none shadow-2xl glass-card")}>
-        <div className="absolute inset-0 bg-primary/5 pointer-events-none" />
+      <DialogContent className={cn("w-[95vw] sm:w-full max-w-xl p-0 overflow-hidden border border-zinc-200 dark:border-zinc-800 shadow-2xl bg-white dark:bg-zinc-900")}>
+
         <div className="relative">
-          <DialogHeader className="p-8 pb-4">
+          <DialogHeader className="p-4 sm:p-8 pb-4">
             <DialogTitle className="text-3xl font-black tracking-tight">Utilisateurs Actifs</DialogTitle>
             <DialogDescription className="font-medium">
               Gérez les accès et surveillez les membres actifs du système.
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[70vh] px-8 pb-8">
+          <ScrollArea className="h-[60vh] max-h-[60vh] px-4 sm:px-8 pb-8">
             <div className="space-y-8">
               {Object.entries(groupedUsers).map(([fonction, usersInGroup], groupIndex) => (
                 <div key={fonction} className="space-y-4">
@@ -96,23 +96,23 @@ export function UsersListModal({ isOpen, onClose, users, onUserDelete }: UsersLi
                         initial={{ opacity: 0, x: -10 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: uIdx * 0.05 }}
-                        className="group flex items-center justify-between gap-4 p-4 rounded-2xl bg-white/40 dark:bg-zinc-900/40 border border-zinc-100 dark:border-zinc-800/50 hover:border-primary/20 hover:bg-white/60 dark:hover:bg-zinc-900/60 transition-all duration-300"
+                        className="group flex items-center justify-between gap-2 sm:gap-4 p-3 sm:p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 hover:border-primary/40 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-all duration-300"
                       >
-                        <div className="flex items-center gap-4">
-                          <div className="relative h-12 w-12 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 flex items-center justify-center border-2 border-white dark:border-zinc-800 shadow-sm ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300">
+                        <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+                          <div className="relative h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0 rounded-full bg-gradient-to-tr from-primary/20 to-primary/5 flex items-center justify-center border-2 border-white dark:border-zinc-800 shadow-sm ring-2 ring-primary/5 group-hover:ring-primary/20 transition-all duration-300">
                             <span className="font-black text-primary text-sm uppercase">
                               {user.prenom?.[0] ?? ''}{user.nom?.[0] ?? ''}
                             </span>
                             <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 shadow-sm" />
                           </div>
-                          <div>
-                            <p className="font-black tracking-tight">{user.prenom} {user.nom}</p>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/40 leading-none">
+                          <div className="min-w-0 flex-1">
+                            <p className="font-black tracking-tight truncate text-sm sm:text-base">{user.prenom} {user.nom}</p>
+                            <div className="flex items-center gap-1 sm:gap-2 mt-0.5 min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-wider text-muted-foreground/40 leading-none flex-shrink-0">
                                 {user.username}
                               </p>
-                              <span className="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800" />
-                              <p className="text-[10px] font-bold text-muted-foreground/60 leading-none lowercase">
+                              <span className="w-1 h-1 rounded-full bg-zinc-200 dark:bg-zinc-800 flex-shrink-0" />
+                              <p className="text-[10px] font-bold text-muted-foreground/60 leading-none lowercase truncate">
                                 {user.email}
                               </p>
                             </div>

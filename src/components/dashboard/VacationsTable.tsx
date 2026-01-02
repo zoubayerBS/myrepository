@@ -119,19 +119,43 @@ export function VacationsTable({
                 transition={{ delay: index * 0.05 }}
               >
                 <Card className="glass-card overflow-hidden">
-                  <CardHeader className="p-4 pb-2 flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-primary/10 text-primary">
-                        <User className="h-4 w-4" />
+                  <div className={cn(
+                    "absolute left-0 top-0 bottom-0 w-1.5",
+                    getStatusConfig(vacation.status).className.split(' ')[0].replace('/10', '')
+                  )} />
+                  <CardHeader className="p-4 flex flex-row items-start justify-between gap-3 relative overflow-hidden">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="flex flex-col items-center justify-center min-w-[3.5rem] h-14 bg-white/5 dark:bg-black/10 rounded-xl border border-white/10 overflow-hidden shadow-inner">
+                        <span className="text-[10px] font-medium uppercase text-muted-foreground bg-white/50 dark:bg-black/20 w-full text-center py-0.5">
+                          {format(new Date(vacation.date), 'MMM', { locale: fr })}
+                        </span>
+                        <span className="text-xl font-black text-foreground">
+                          {format(new Date(vacation.date), 'dd')}
+                        </span>
                       </div>
-                      <CardTitle className="text-base font-bold uppercase">
-                        {vacation.patientName}
-                      </CardTitle>
+
+                      <div className="flex flex-col min-w-0 pt-0.5">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg font-bold truncate leading-none">
+                            {vacation.patientName}
+                          </CardTitle>
+                          {vacation.isCec && (
+                            <Badge className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white border-0 text-[9px] font-black px-1.5 py-0 h-4 shadow-sm shadow-emerald-500/20">
+                              CEC
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="text-sm text-muted-foreground font-medium truncate mt-1 flex items-center gap-1.5">
+                          {getStatusConfig(vacation.status).icon}
+                          <span>{vacation.status}</span>
+                        </div>
+                      </div>
                     </div>
+
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-primary/10">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" className="h-8 w-8 p-0 -mr-2 text-muted-foreground hover:text-foreground">
+                          <MoreHorizontal className="h-5 w-5" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="glass">
@@ -185,21 +209,18 @@ export function VacationsTable({
                   </CardHeader>
                   <CardContent className="p-4 pt-0 space-y-3">
                     <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Calendar className="h-3 w-3" />
-                        <span>{format(new Date(vacation.date), 'd MMM yyyy', { locale: fr })}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-muted-foreground">
-                        <Clock className="h-3 w-3" />
+
+                    </div>
+                    <div className="bg-white/5 dark:bg-black/20 rounded-lg p-3 border border-white/10">
+                      <div className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mb-1">Opération</div>
+                      <div className="font-medium text-sm leading-snug">{vacation.operation}</div>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
                         <span>{vacation.time}</span>
                       </div>
-                    </div>
-                    <div className="text-sm font-medium">{vacation.operation}</div>
-                    <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                      <Badge className={cn('capitalize border px-2 py-0.5', getStatusConfig(vacation.status).className)}>
-                        {getStatusConfig(vacation.status).icon}
-                        {vacation.status}
-                      </Badge>
                       <div className="text-lg font-bold text-primary">{vacation.amount.toFixed(2)} <span className="text-[10px]">DT</span></div>
                     </div>
                   </CardContent>

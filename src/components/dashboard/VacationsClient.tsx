@@ -110,7 +110,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5;
 
   useEffect(() => {
     const fetchMotifs = async () => {
@@ -548,7 +548,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
             <div className="space-y-4" {...handlers}>
               {vacations.length > 0 ? (
                 vacations.map(v => (
-                  <Card key={v.id} className="p-4 glass-card border-none shadow-md overflow-hidden group">
+                  <Card key={v.id} className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md overflow-hidden group">
                     <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between border-b border-white/10 mb-3">
                       <CardTitle className={cn("text-base font-bold truncate pr-2", isAdminView && "flex items-center")}>
                         {isAdminView && <UserRound className="h-4 w-4 mr-2 text-primary" />}
@@ -728,6 +728,23 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {!archiveMode && !historyMode && !isAdminView && (
+        <div className="fixed bottom-8 right-8 z-50 group">
+          {/* Ripple Ring */}
+          <span className="absolute -inset-2 rounded-full bg-primary/20 animate-[ping_2s_cubic-bezier(0,0,0.2,1)_infinite] opacity-75"></span>
+          {/* Static Glow */}
+          <div className="absolute -inset-1 bg-primary/40 rounded-full blur-lg opacity-50 group-hover:opacity-100 transition-opacity duration-500 animate-pulse" />
+
+          <Button
+            onClick={handleAddNew}
+            size="icon"
+            className="relative h-14 w-14 rounded-full shadow-2xl shadow-primary/40 hover:shadow-primary/60 hover:scale-110 active:scale-95 transition-all duration-300 bg-primary text-white"
+          >
+            <Plus className="h-6 w-6" />
+          </Button>
+        </div>
+      )}
     </>
   );
 }

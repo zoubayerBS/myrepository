@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import { findVacationsByUserId } from '@/lib/local-data';
-import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Layers, Hourglass, HandCoins, CheckCheck, TrendingUp, CalendarDays } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,7 +27,7 @@ const containerVars = {
 const itemVars = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
-};
+} as const;
 
 export function UserStats({ userId: initialUserId }: UserStatsProps) {
     const { user } = useAuth();
@@ -36,6 +37,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
         pending: 0,
         totalValidated: 0,
         monthlyValidated: 0,
+        totalValidatedAmountGlobal: 0,
     });
     const [loading, setLoading] = useState(true);
 
@@ -65,12 +67,14 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
             );
             const monthlyValidatedCount = monthlyValidatedVacations.length;
             const validatedAmountMonthly = monthlyValidatedVacations.reduce((sum, v) => sum + v.amount, 0);
+            const totalValidatedAmountGlobal = allValidatedVacations.reduce((sum, v) => sum + v.amount, 0);
 
             setStats({
                 validatedAmount: validatedAmountMonthly,
                 pending: totalPending,
                 totalValidated: totalValidatedCount,
-                monthlyValidated: monthlyValidatedCount
+                monthlyValidated: monthlyValidatedCount,
+                totalValidatedAmountGlobal: totalValidatedAmountGlobal
             });
             setLoading(false);
         };
@@ -112,7 +116,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
                                 <div className="text-4xl font-bold text-gradient">{stats.monthlyValidated}</div>
                                 <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground mt-1">
                                     <CalendarDays className="h-3 w-3" />
-                                    <span>Ce mois-ci</span>
+                                    <span className="capitalize">{format(new Date(), 'MMMM yyyy', { locale: fr })}</span>
                                 </div>
                             </div>
                             <div className="text-right">
@@ -136,11 +140,22 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div>
-                            <div className="text-4xl font-bold text-green-600 dark:text-green-400">
-                                {stats.validatedAmount.toLocaleString('fr-TN', { minimumFractionDigits: 2 })} <span className="text-lg">DT</span>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="border-r border-white/10 pr-2">
+                                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                    {stats.validatedAmount.toLocaleString('fr-TN', { minimumFractionDigits: 2 })} <span className="text-xs">DT</span>
+                                </div>
+                                <p className="text-[10px] font-medium text-muted-foreground mt-1 flex items-center gap-1 capitalize">
+                                    <CalendarDays className="h-3 w-3" />
+                                    {format(new Date(), 'MMMM yyyy', { locale: fr })}
+                                </p>
                             </div>
-                            <p className="text-xs font-medium text-muted-foreground mt-1">Gains validés sur la période</p>
+                            <div className="pl-2">
+                                <div className="text-2xl font-bold text-green-600 dark:text-green-400">
+                                    {stats.totalValidatedAmountGlobal.toLocaleString('fr-TN', { minimumFractionDigits: 2 })} <span className="text-xs">DT</span>
+                                </div>
+                                <p className="text-[10px] font-medium text-muted-foreground mt-1">Total Global</p>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
