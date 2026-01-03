@@ -322,7 +322,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         v.reason,
         v.type === 'acte' ? 'Acte' : 'Forfait',
         v.status,
-        v.amount.toFixed(2)
+        v.amount.toFixed(0)
       ];
       return isAdminView
         ? [`${v.user?.prenom ?? ''} ${v.user?.nom ?? ''}`.trim(), ...commonData]
@@ -334,7 +334,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     let csvContent = "data:text/csv;charset=utf-8,"
       + [headers.join(','), ...rows.map((e: string[]) => e.join(','))].join("\n");
 
-    csvContent += `\n\nTotal Validée,${totalValidatedAmount.toFixed(2)}`;
+    csvContent += `\n\nTotal Validée,${totalValidatedAmount.toFixed(0)}`;
 
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -629,7 +629,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
                           <Badge variant={v.type === 'acte' ? 'default' : 'secondary'} className="text-[10px] px-1.5 h-5">{v.type === 'acte' ? 'Acte' : 'Forfait'}</Badge>
                           <Badge className={cn(getStatusClasses(v.status), "text-[10px] px-1.5 h-5")}>{v.status}</Badge>
                         </div>
-                        <span className="font-black text-primary pr-2">{v.amount.toFixed(2)} DT</span>
+                        <span className="font-black text-primary pr-2">{v.amount.toFixed(0)} DT</span>
                       </div>
                     </CardContent>
                   </Card>

@@ -11,11 +11,29 @@ const inter = Inter({
   variable: '--font-sans',
 })
 
+export const viewport = {
+  themeColor: '#ffffff',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+}
+
 export const metadata: Metadata = {
   title: 'VacationEase',
   description: 'Gérez vos vacations hospitalières simplement.',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'VacationEase',
+  },
+  formatDetection: {
+    telephone: false,
+  },
   icons: {
-    icon: '/logo.svg',
+    icon: '/icon-512.png',
+    apple: '/icon-512.png',
   },
 };
 
