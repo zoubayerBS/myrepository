@@ -38,7 +38,7 @@ const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], s
       vacation.reason,
       vacation.type === 'acte' ? 'Acte' : 'Forfait',
       vacation.status,
-      vacation.amount.toFixed(0),
+      vacation.amount.toFixed(2),
     ];
     tableRows.push(vacationData);
     groupTotal += vacation.amount;
@@ -50,7 +50,7 @@ const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], s
     startY: tableStartY,
     theme: 'striped',
     headStyles: { fillColor: [41, 41, 41] },
-    foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(0)} DT`]],
+    foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
     footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
   });
 
@@ -249,7 +249,7 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations }
 
           `${selectedUser.prenom} ${selectedUser.nom}`,
 
-          totalValidatedAmount.toFixed(0)
+          totalValidatedAmount.toFixed(2)
 
         ]);
 
@@ -331,7 +331,7 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations }
 
               `${user.prenom} ${user.nom}`,
 
-              totalValidatedAmount.toFixed(0)
+              totalValidatedAmount.toFixed(2)
 
             ]);
 
@@ -381,7 +381,7 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations }
 
     doc.text(`Nombre de vacations: ${filteredData.length}`, 14, finalY + 21);
 
-    doc.text(`Montant total: ${totalAmount.toFixed(0)} DT`, 14, finalY + 27);
+    doc.text(`Montant total: ${totalAmount.toFixed(2)} DT`, 14, finalY + 27);
 
 
 

@@ -143,7 +143,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
                         <div className="grid grid-cols-2 gap-4">
                             <div className="border-r border-white/10 pr-2">
                                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                    {stats.validatedAmount.toLocaleString('fr-TN', { minimumFractionDigits: 0 })} <span className="text-xs">DT</span>
+                                    {stats.validatedAmount.toLocaleString('fr-TN', { minimumFractionDigits: 2 })} <span className="text-xs">DT</span>
                                 </div>
                                 <p className="text-[10px] font-medium text-muted-foreground mt-1 flex items-center gap-1 capitalize">
                                     <CalendarDays className="h-3 w-3" />
@@ -152,7 +152,7 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
                             </div>
                             <div className="pl-2">
                                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                                    {stats.totalValidatedAmountGlobal.toLocaleString('fr-TN', { minimumFractionDigits: 0 })} <span className="text-xs">DT</span>
+                                    {stats.totalValidatedAmountGlobal.toLocaleString('fr-TN', { minimumFractionDigits: 2 })} <span className="text-xs">DT</span>
                                 </div>
                                 <p className="text-[10px] font-medium text-muted-foreground mt-1">Total Global</p>
                             </div>

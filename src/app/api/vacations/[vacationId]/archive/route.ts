@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { updateVacationArchivedStatus } from '@/lib/local-data';
 
-export async function PUT(request: Request, { params }: { params: { vacationId: string } }) {
-  const { vacationId } = params;
-  
+export async function PUT(request: Request, { params }: { params: Promise<{ vacationId: string }> }) {
+  const { vacationId } = await params;
+
   try {
     const { isArchived } = await request.json();
     const result = await updateVacationArchivedStatus(vacationId, isArchived);

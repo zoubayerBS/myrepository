@@ -6,9 +6,9 @@ const supabase = getDb();
 // GET a single conversation with its messages
 export async function GET(
   request: Request,
-  { params }: { params: { conversationId: string } }
+  { params }: { params: Promise<{ conversationId: string }> }
 ) {
-  const { conversationId } = params;
+  const { conversationId } = await params;
 
   try {
     const { data: messages, error } = await supabase

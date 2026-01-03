@@ -221,7 +221,7 @@ export function VacationsTable({
                         <Clock className="h-3.5 w-3.5" />
                         <span>{vacation.time}</span>
                       </div>
-                      <div className="text-lg font-bold text-primary">{vacation.amount.toFixed(0)} <span className="text-[10px]">DT</span></div>
+                      <div className="text-lg font-bold text-primary">{vacation.amount.toFixed(2)} <span className="text-[10px]">DT</span></div>
                     </div>
                   </CardContent>
                 </Card>
@@ -308,7 +308,7 @@ export function VacationsTable({
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-black text-primary">
-                        {vacation.amount.toFixed(0)} <span className="text-[10px] font-normal">DT</span>
+                        {vacation.amount.toFixed(2)} <span className="text-[10px] font-normal">DT</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>

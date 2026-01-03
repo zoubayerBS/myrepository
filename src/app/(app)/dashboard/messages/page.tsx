@@ -97,7 +97,7 @@ function SwipeableMessageItem({
     >
       <div
         className={cn(
-          "absolute inset-0 flex items-center justify-between px-6 rounded-3xl transition-all duration-300",
+          "absolute inset-0 flex items-center justify-between px-6 rounded-lg transition-all duration-300",
           swipeProgress > 0 ? "bg-amber-500/90" : "bg-rose-500/90",
           isSwiped ? "opacity-100" : "opacity-0"
         )}
@@ -111,7 +111,7 @@ function SwipeableMessageItem({
         style={{ x: isSwiped ? swipeProgress : 0 }}
         onClick={() => onClick(msg)}
         className={cn(
-          "relative z-10 p-4 transition-all duration-300 cursor-pointer rounded-3xl border",
+          "relative z-10 p-4 transition-all duration-300 cursor-pointer rounded-lg border",
           isSelected
             ? "bg-primary text-white border-primary shadow-xl shadow-primary/20"
             : "bg-white/40 dark:bg-white/5 border-zinc-200/50 dark:border-white/10 hover:bg-white/60 dark:hover:bg-white/10 hover:border-primary/20 shadow-sm",
@@ -282,7 +282,7 @@ export default function MessagesPage() {
         </div>
         <Button
           onClick={() => setIsModalOpen(true)}
-          className="w-full sm:w-auto rounded-2xl h-12 px-6 shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
+          className="w-full sm:w-auto rounded-lg h-12 px-6 shadow-xl shadow-primary/20 hover:scale-105 transition-transform"
         >
           <FilePlus className="mr-2 h-5 w-5" />
           Nouveau Message
@@ -295,13 +295,13 @@ export default function MessagesPage() {
           "lg:col-span-4 flex flex-col min-h-0 transition-all duration-500",
           selectedMessage ? "hidden lg:flex" : "flex"
         )}>
-          <div className="bg-white/30 dark:bg-zinc-900/30 backdrop-blur-xl rounded-[32px] border border-zinc-200 dark:border-white/5 shadow-2xl overflow-hidden flex flex-col h-full">
+          <div className="bg-white/30 dark:bg-zinc-900/30 backdrop-blur-xl rounded-lg border border-zinc-200 dark:border-white/5 shadow-2xl overflow-hidden flex flex-col h-full">
             <div className="p-6 border-b border-zinc-200 dark:border-white/5 space-y-6">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid w-full grid-cols-3 p-1.5 bg-zinc-100/50 dark:bg-zinc-950/50 rounded-2xl h-12">
-                  <TabsTrigger value="received" className="rounded-xl font-black text-[10px] uppercase tracking-widest">Reçus</TabsTrigger>
-                  <TabsTrigger value="sent" className="rounded-xl font-black text-[10px] uppercase tracking-widest">Envoyés</TabsTrigger>
-                  <TabsTrigger value="archived" className="rounded-xl font-black text-[10px] uppercase tracking-widest">Archivés</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 p-1.5 bg-zinc-100/50 dark:bg-zinc-950/50 rounded-lg h-12">
+                  <TabsTrigger value="received" className="rounded-lg font-black text-[10px] uppercase tracking-widest">Reçus</TabsTrigger>
+                  <TabsTrigger value="sent" className="rounded-lg font-black text-[10px] uppercase tracking-widest">Envoyés</TabsTrigger>
+                  <TabsTrigger value="archived" className="rounded-lg font-black text-[10px] uppercase tracking-widest">Archivés</TabsTrigger>
                 </TabsList>
               </Tabs>
 
@@ -311,7 +311,7 @@ export default function MessagesPage() {
                   placeholder="Rechercher..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-11 h-12 bg-white/50 dark:bg-zinc-950/50 border-zinc-200/50 dark:border-white/10 rounded-2xl font-medium"
+                  className="pl-11 h-12 bg-white/50 dark:bg-zinc-950/50 border-zinc-200/50 dark:border-white/10 rounded-lg font-medium"
                 />
               </div>
             </div>
@@ -341,7 +341,7 @@ export default function MessagesPage() {
                       animate={{ opacity: 1 }}
                       className="py-20 text-center"
                     >
-                      <div className="inline-flex p-4 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-dashed border-zinc-200 dark:border-white/10 mb-4">
+                      <div className="inline-flex p-4 rounded-lg bg-zinc-50 dark:bg-white/5 border border-dashed border-zinc-200 dark:border-white/10 mb-4">
                         <Inbox className="h-8 w-8 text-muted-foreground/20" />
                       </div>
                       <p className="text-xs font-black text-muted-foreground/30 uppercase tracking-widest">Aucun message</p>
@@ -358,7 +358,7 @@ export default function MessagesPage() {
           "lg:col-span-8 flex flex-col min-h-0 transition-all duration-500",
           !selectedMessage ? "hidden lg:flex" : "flex"
         )}>
-          <div className="bg-white/30 dark:bg-zinc-900/30 backdrop-blur-xl rounded-[32px] border border-zinc-200 dark:border-white/5 shadow-2xl overflow-hidden flex flex-col h-full relative">
+          <div className="bg-white/30 dark:bg-zinc-900/30 backdrop-blur-xl rounded-lg border border-zinc-200 dark:border-white/5 shadow-2xl overflow-hidden flex flex-col h-full relative">
             <AnimatePresence mode="wait">
               {selectedMessage ? (
                 <motion.div
@@ -374,7 +374,7 @@ export default function MessagesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="lg:hidden h-10 w-10 rounded-xl bg-zinc-100 dark:bg-white/5 active:scale-95 transition-transform"
+                          className="lg:hidden h-10 w-10 rounded-lg bg-zinc-100 dark:bg-white/5 active:scale-95 transition-transform"
                           onClick={() => setSelectedMessage(null)}
                         >
                           <ArrowLeft className="h-5 w-5" />
@@ -385,7 +385,7 @@ export default function MessagesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-12 w-12 rounded-2xl bg-zinc-100 hover:bg-zinc-200 dark:bg-white/5 dark:hover:bg-white/10 text-muted-foreground/60"
+                          className="h-12 w-12 rounded-lg bg-zinc-100 hover:bg-zinc-200 dark:bg-white/5 dark:hover:bg-white/10 text-muted-foreground/60"
                           onClick={() => handleArchiveToggle(selectedMessage.id, activeTab !== 'archived')}
                         >
                           {activeTab === 'archived' ? <ArchiveRestore className="h-5 w-5" /> : <Archive className="h-5 w-5" />}
@@ -393,7 +393,7 @@ export default function MessagesPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-12 w-12 rounded-2xl bg-zinc-100 hover:bg-rose-100 dark:bg-white/5 dark:hover:bg-rose-500/10 text-muted-foreground/60 hover:text-rose-600"
+                          className="h-12 w-12 rounded-lg bg-zinc-100 hover:bg-rose-100 dark:bg-white/5 dark:hover:bg-rose-500/10 text-muted-foreground/60 hover:text-rose-600"
                           onClick={() => setItemToDelete(selectedMessage)}
                         >
                           <Trash2 className="h-5 w-5" />
@@ -439,10 +439,10 @@ export default function MessagesPage() {
                   </ScrollArea>
 
                   <div className="p-6 bg-zinc-50/50 dark:bg-zinc-950/20 border-t border-zinc-200 dark:border-white/5 flex gap-4">
-                    <Button className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/10">
+                    <Button className="flex-1 h-14 rounded-lg font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/10">
                       Répondre <ArrowRight className="ml-2 h-4 w-4" />
                     </Button>
-                    <Button variant="outline" className="flex-1 h-14 rounded-2xl font-black uppercase tracking-widest text-[11px] border-zinc-200 dark:border-white/10">
+                    <Button variant="outline" className="flex-1 h-14 rounded-lg font-black uppercase tracking-widest text-[11px] border-zinc-200 dark:border-white/10">
                       Transférer
                     </Button>
                   </div>
@@ -451,8 +451,8 @@ export default function MessagesPage() {
                 <div className="flex flex-col items-center justify-center h-full text-center p-12">
                   <div className="relative">
                     <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-primary/10 to-transparent blur-3xl rounded-full" />
-                    <div className="h-32 w-32 rounded-[60px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 shadow-2xl flex items-center justify-center mb-10 relative z-10">
-                      <div className="h-20 w-20 rounded-[40px] bg-primary/5 flex items-center justify-center animate-pulse">
+                    <div className="h-32 w-32 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 shadow-2xl flex items-center justify-center mb-10 relative z-10">
+                      <div className="h-20 w-20 rounded-lg bg-primary/5 flex items-center justify-center animate-pulse">
                         <Inbox className="h-10 w-10 text-primary" />
                       </div>
                     </div>
@@ -471,7 +471,7 @@ export default function MessagesPage() {
       <NewMessageModal open={isModalOpen} onOpenChange={setIsModalOpen} onMessageSent={handleMessageSent} />
 
       <AlertDialog open={!!itemToArchive} onOpenChange={() => setItemToArchive(null)}>
-        <AlertDialogContent className="rounded-[32px] border-zinc-200 dark:border-white/10 shadow-2xl p-8 backdrop-blur-xl">
+        <AlertDialogContent className="rounded-lg border-zinc-200 dark:border-white/10 shadow-2xl p-8 backdrop-blur-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-black tracking-tight">Archiver le message ?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm font-medium text-muted-foreground/60 py-2">
@@ -479,9 +479,9 @@ export default function MessagesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 mt-4">
-            <AlertDialogCancel className="rounded-2xl h-12 border-zinc-100 dark:border-white/10 font-bold">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-lg h-12 border-zinc-100 dark:border-white/10 font-bold">Annuler</AlertDialogCancel>
             <AlertDialogAction
-              className="rounded-2xl h-12 bg-primary hover:bg-primary/90 font-bold"
+              className="rounded-lg h-12 bg-primary hover:bg-primary/90 font-bold"
               onClick={() => {
                 if (itemToArchive) handleArchiveToggle(itemToArchive.id, true);
                 setItemToArchive(null);
@@ -494,7 +494,7 @@ export default function MessagesPage() {
       </AlertDialog>
 
       <AlertDialog open={!!itemToDelete} onOpenChange={() => setItemToDelete(null)}>
-        <AlertDialogContent className="rounded-[32px] border-zinc-200 dark:border-white/10 shadow-2xl p-8 backdrop-blur-xl">
+        <AlertDialogContent className="rounded-lg border-zinc-200 dark:border-white/10 shadow-2xl p-8 backdrop-blur-xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-2xl font-black tracking-tight text-rose-500">Supprimer le message ?</AlertDialogTitle>
             <AlertDialogDescription className="text-sm font-medium text-muted-foreground/60 py-2">
@@ -502,13 +502,13 @@ export default function MessagesPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 mt-4">
-            <AlertDialogCancel className="rounded-2xl h-12 border-zinc-100 dark:border-white/10 font-bold">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-lg h-12 border-zinc-100 dark:border-white/10 font-bold">Annuler</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 if (itemToDelete) handleDelete(itemToDelete.id);
                 setItemToDelete(null);
               }}
-              className="rounded-2xl h-12 bg-rose-500 hover:bg-rose-600 font-bold border-none"
+              className="rounded-lg h-12 bg-rose-500 hover:bg-rose-600 font-bold border-none"
             >
               Supprimer définitivement
             </AlertDialogAction>

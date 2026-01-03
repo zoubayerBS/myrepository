@@ -177,7 +177,7 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
               </div>
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Total validé</p>
               <div className="text-4xl font-black text-primary">
-                {totalAmount.toLocaleString('fr-TN', { minimumFractionDigits: 0 })}
+                {totalAmount.toLocaleString('fr-TN', { minimumFractionDigits: 2 })}
                 <span className="text-lg ml-1">DT</span>
               </div>
               <p className="text-[10px] text-muted-foreground mt-4 font-medium italic">

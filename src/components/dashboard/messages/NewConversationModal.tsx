@@ -76,7 +76,7 @@ export function NewConversationModal({ open, onOpenChange, onConversationCreated
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[90vw] sm:w-[400px] p-0 overflow-hidden bg-white dark:bg-zinc-950 border-zinc-200 dark:border-white/10 rounded-3xl sm:rounded-[40px] shadow-2xl">
+      <DialogContent className="w-[90vw] sm:w-[400px] p-0 overflow-hidden bg-white dark:bg-zinc-950 border-zinc-200 dark:border-white/10 rounded-lg shadow-2xl">
         <AnimatePresence>
           {open && (
             <motion.div
@@ -105,13 +105,13 @@ export function NewConversationModal({ open, onOpenChange, onConversationCreated
                           <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Sélectionner un utilisateur</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger className="w-full h-16 bg-white/50 dark:bg-zinc-950/50 border-zinc-200/50 dark:border-white/10 rounded-2xl font-bold transition-all focus:ring-primary/20">
+                              <SelectTrigger className="w-full h-16 bg-white/50 dark:bg-zinc-950/50 border-zinc-200/50 dark:border-white/10 rounded-lg font-bold transition-all focus:ring-primary/20">
                                 <SelectValue placeholder="Chercher un nom..." />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="rounded-2xl border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-900 backdrop-blur-xl">
+                            <SelectContent className="rounded-lg border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-900 backdrop-blur-xl">
                               {users.map(u => (
-                                <SelectItem key={u.uid} value={u.uid} className="rounded-xl my-1 focus:bg-primary/5">
+                                <SelectItem key={u.uid} value={u.uid} className="rounded-lg my-1 focus:bg-primary/5">
                                   <div className="flex items-center gap-3 py-1">
                                     <Avatar className="h-8 w-8">
                                       <AvatarFallback className="text-[10px] font-black bg-primary/10 text-primary">
@@ -137,14 +137,14 @@ export function NewConversationModal({ open, onOpenChange, onConversationCreated
                         type="button"
                         variant="ghost"
                         onClick={() => onOpenChange(false)}
-                        className="h-14 px-8 rounded-2xl font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-zinc-100 dark:hover:bg-white/5"
+                        className="h-14 px-8 rounded-lg font-black uppercase tracking-widest text-[10px] text-muted-foreground hover:bg-zinc-100 dark:hover:bg-white/5"
                       >
                         Annuler
                       </Button>
                       <Button
                         type="submit"
                         disabled={isLoading}
-                        className="h-14 px-10 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                        className="h-14 px-10 rounded-lg font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
                       >
                         {isLoading ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin text-white" />

@@ -169,13 +169,13 @@ export default function AdminPage() {
                                 <div className="grid grid-cols-2 gap-4 mt-2">
                                     <div className="border-r border-zinc-200 dark:border-zinc-800 pr-2">
                                         <div className="text-xl font-black tracking-tight">
-                                            {totalValidatedAmount.toFixed(0)} <span className="text-[10px] font-normal">DT</span>
+                                            {totalValidatedAmount.toFixed(2)} <span className="text-[10px] font-normal">DT</span>
                                         </div>
                                         <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1 capitalize">{format(startDate, 'MMMM yyyy', { locale: fr })}</div>
                                     </div>
                                     <div className="pl-2">
                                         <div className="text-xl font-black tracking-tight">
-                                            {totalValidatedAmountGlobal.toFixed(0)} <span className="text-[10px] font-normal">DT</span>
+                                            {totalValidatedAmountGlobal.toFixed(2)} <span className="text-[10px] font-normal">DT</span>
                                         </div>
                                         <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider mt-1">Total Global</div>
                                     </div>

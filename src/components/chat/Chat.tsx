@@ -202,7 +202,7 @@ const Chat = () => {
   }
 
   return (
-    <div className="relative h-[calc(100vh-180px)] w-full max-w-7xl mx-auto overflow-hidden rounded-[32px] border border-zinc-200 dark:border-zinc-800 bg-white/30 dark:bg-zinc-900/30 backdrop-blur-xl shadow-2xl flex">
+    <div className="relative h-[calc(100vh-180px)] w-full max-w-7xl mx-auto overflow-hidden rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white/30 dark:bg-zinc-900/30 backdrop-blur-xl shadow-2xl flex">
       {/* Background blobs for chat */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[20%] right-[10%] w-[30%] h-[30%] bg-primary/5 rounded-full blur-[100px]" />
@@ -228,7 +228,7 @@ const Chat = () => {
                   onClick={() => setIsSearchModalOpen(true)}
                   variant="ghost"
                   size="icon"
-                  className="rounded-2xl bg-primary/5 hover:bg-primary/10 text-primary h-10 w-10"
+                  className="rounded-lg bg-primary/5 hover:bg-primary/10 text-primary h-10 w-10"
                 >
                   <Plus className="h-5 w-5" />
                 </Button>
@@ -240,7 +240,7 @@ const Chat = () => {
                   placeholder="Rechercher une conversation..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-11 h-12 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-2xl focus:ring-primary/20 transition-all font-medium"
+                  className="pl-11 h-12 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-primary/20 transition-all font-medium"
                 />
               </div>
 
@@ -256,7 +256,7 @@ const Chat = () => {
                           if (isMobileView) setIsSidebarOpen(false);
                         }}
                         className={cn(
-                          "w-full p-4 flex items-center gap-4 rounded-3xl transition-all duration-300 group relative overflow-hidden",
+                          "w-full p-4 flex items-center gap-4 rounded-lg transition-all duration-300 group relative overflow-hidden",
                           activeConversation?.id === conv.id
                             ? "bg-primary text-white shadow-xl shadow-primary/20"
                             : "hover:bg-white/60 dark:hover:bg-white/5"
@@ -299,7 +299,7 @@ const Chat = () => {
                     ))
                   ) : (
                     <div className="py-20 text-center">
-                      <div className="inline-flex p-4 rounded-3xl bg-zinc-50 dark:bg-white/5 border border-dashed border-zinc-200 dark:border-zinc-800 mb-4">
+                      <div className="inline-flex p-4 rounded-lg bg-zinc-50 dark:bg-white/5 border border-dashed border-zinc-200 dark:border-zinc-800 mb-4">
                         <Inbox className="h-8 w-8 text-muted-foreground/20" />
                       </div>
                       <p className="text-sm font-bold text-muted-foreground/40 uppercase tracking-widest">Aucune discussion</p>
@@ -327,7 +327,7 @@ const Chat = () => {
               <div className="p-6 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-white/40 dark:bg-zinc-900/40 backdrop-blur-xl">
                 <div className="flex items-center gap-4">
                   {isMobileView && (
-                    <Button variant="ghost" size="icon" onClick={backToSidebar} className="rounded-2xl -ml-2">
+                    <Button variant="ghost" size="icon" onClick={backToSidebar} className="rounded-lg -ml-2">
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                   )}
@@ -348,7 +348,7 @@ const Chat = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button variant="ghost" size="icon" className="rounded-2xl text-muted-foreground/40 hover:text-primary transition-colors">
+                  <Button variant="ghost" size="icon" className="rounded-lg text-muted-foreground/40 hover:text-primary transition-colors">
                     <MoreVertical className="h-5 w-5" />
                   </Button>
                 </div>
@@ -381,7 +381,7 @@ const Chat = () => {
                                 initial={{ scale: 0.9, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
                                 className={cn(
-                                  "p-4 rounded-[24px] text-sm font-medium shadow-sm transition-all relative overflow-hidden",
+                                  "p-4 rounded-lg text-sm font-medium shadow-sm transition-all relative overflow-hidden",
                                   isMe
                                     ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-950 rounded-tr-none"
                                     : "bg-white dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-tl-none"
@@ -402,7 +402,7 @@ const Chat = () => {
                     })
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full pt-20 text-center">
-                      <div className="h-20 w-20 rounded-[40px] bg-primary/5 flex items-center justify-center mb-6 animate-bounce">
+                      <div className="h-20 w-20 rounded-lg bg-primary/5 flex items-center justify-center mb-6 animate-bounce">
                         <MessageSquare className="h-10 w-10 text-primary" />
                       </div>
                       <h4 className="text-xl font-black tracking-tight mb-2">Commencez la discussion</h4>
@@ -422,7 +422,7 @@ const Chat = () => {
                       placeholder="Écrivez votre message..."
                       value={newMessage}
                       onChange={(e) => setNewMessage(e.target.value)}
-                      className="h-14 pl-6 pr-14 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-3xl focus:ring-primary/20 transition-all font-medium text-base shadow-inner"
+                      className="h-14 pl-6 pr-14 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-lg focus:ring-primary/20 transition-all font-medium text-base shadow-inner"
                     />
                     <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                       {/* Optional emoji/attachment buttons here */}
@@ -431,7 +431,7 @@ const Chat = () => {
                   <Button
                     type="submit"
                     disabled={!newMessage.trim() || isSending}
-                    className="h-14 w-14 rounded-3xl p-0 flex items-center justify-center shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 flex-shrink-0"
+                    className="h-14 w-14 rounded-lg p-0 flex items-center justify-center shadow-xl shadow-primary/20 hover:scale-105 active:scale-95 transition-all duration-300 flex-shrink-0"
                   >
                     {isSending ? (
                       <Loader2 className="h-6 w-6 animate-spin" />
@@ -450,8 +450,8 @@ const Chat = () => {
                 className="relative"
               >
                 <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-primary/5 to-transparent blur-2xl rounded-full" />
-                <div className="h-32 w-32 rounded-[60px] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex items-center justify-center mb-10 relative z-10">
-                  <div className="h-20 w-20 rounded-[40px] bg-primary/10 flex items-center justify-center">
+                <div className="h-32 w-32 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex items-center justify-center mb-10 relative z-10">
+                  <div className="h-20 w-20 rounded-lg bg-primary/10 flex items-center justify-center">
                     <MessageSquare className="h-10 w-10 text-primary" />
                   </div>
                 </div>
@@ -462,11 +462,11 @@ const Chat = () => {
               </p>
               {!isMobileView && (
                 <div className="grid grid-cols-2 gap-4 max-w-sm mx-auto">
-                  <div className="p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-zinc-100 dark:border-zinc-800">
+                  <div className="p-6 rounded-lg bg-white/40 dark:bg-white/5 border border-zinc-100 dark:border-zinc-800">
                     <div className="text-primary font-black text-2xl mb-1">{conversations.length}</div>
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Discussions</div>
                   </div>
-                  <div className="p-6 rounded-3xl bg-white/40 dark:bg-white/5 border border-zinc-100 dark:border-zinc-800">
+                  <div className="p-6 rounded-lg bg-white/40 dark:bg-white/5 border border-zinc-100 dark:border-zinc-800">
                     <div className="text-primary font-black text-2xl mb-1">{messages.filter(m => m.read === 0).length}</div>
                     <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Non lus</div>
                   </div>
@@ -490,12 +490,12 @@ const Chat = () => {
               initial={{ scale: 0.9, y: 20, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-[32px] shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
+              className="w-full max-w-md bg-white dark:bg-zinc-900 rounded-lg shadow-2xl border border-zinc-200 dark:border-zinc-800 overflow-hidden"
             >
               <div className="p-8">
                 <div className="flex items-center justify-between mb-6">
                   <h3 className="text-2xl font-black tracking-tight">Nouveau message</h3>
-                  <Button variant="ghost" size="icon" onClick={() => setIsSearchModalOpen(false)} className="rounded-xl">
+                  <Button variant="ghost" size="icon" onClick={() => setIsSearchModalOpen(false)} className="rounded-lg">
                     <ArrowLeft className="h-5 w-5" />
                   </Button>
                 </div>
@@ -506,7 +506,7 @@ const Chat = () => {
                     placeholder="Rechercher un collègue..."
                     value={userSearchQuery}
                     onChange={(e) => setUserSearchQuery(e.target.value)}
-                    className="pl-11 h-12 bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-2xl"
+                    className="pl-11 h-12 bg-zinc-50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 rounded-lg"
                     autoFocus
                   />
                 </div>
@@ -518,7 +518,7 @@ const Chat = () => {
                         <button
                           key={user.uid}
                           onClick={() => startConversation(user.uid)}
-                          className="w-full p-3 flex items-center gap-4 rounded-2xl hover:bg-primary/5 transition-all group"
+                          className="w-full p-3 flex items-center gap-4 rounded-lg hover:bg-primary/5 transition-all group"
                         >
                           <Avatar className="h-10 w-10 border-2 border-transparent group-hover:border-primary/20 transition-all">
                             <AvatarFallback className="bg-primary/10 text-primary font-black text-sm">

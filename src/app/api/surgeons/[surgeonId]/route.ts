@@ -2,8 +2,8 @@
 import { NextResponse } from 'next/server';
 import { deleteSurgeon } from '@/lib/local-data';
 
-export async function DELETE(request: Request, { params }: { params: { surgeonId: string } }) {
-  const { surgeonId } = params;
+export async function DELETE(request: Request, { params }: { params: Promise<{ surgeonId: string }> }) {
+  const { surgeonId } = await params;
   try {
     await deleteSurgeon(parseInt(surgeonId));
     return NextResponse.json({ message: 'Surgeon deleted' });

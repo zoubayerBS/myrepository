@@ -5,9 +5,9 @@ const supabase = getDb();
 
 export async function PUT(
   request: Request,
-  { params }: { params: { messageId: string } }
+  { params }: { params: Promise<{ messageId: string }> }
 ) {
-  const { messageId } = params;
+  const { messageId } = await params;
 
   try {
     const { error } = await supabase

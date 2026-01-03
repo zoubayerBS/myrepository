@@ -2,9 +2,8 @@
 import { NextResponse } from 'next/server';
 import { updateVacation, deleteVacation } from '@/lib/local-data';
 
-export async function PUT(request: Request, { params }: { params: { vacationId: string } }) {
-  const awaitedParams = await params;
-  const { vacationId } = awaitedParams;
+export async function PUT(request: Request, { params }: { params: Promise<{ vacationId: string }> }) {
+  const { vacationId } = await params;
   try {
     const updatedVacation = await request.json();
     const result = await updateVacation({ ...updatedVacation, id: vacationId });
@@ -16,10 +15,9 @@ export async function PUT(request: Request, { params }: { params: { vacationId: 
   }
 }
 
-export async function DELETE(request: Request, { params }: { params: { vacationId: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ vacationId: string }> }) {
   try {
-    const awaitedParams = await params;
-    const { vacationId } = awaitedParams;
+    const { vacationId } = await params;
     await deleteVacation(vacationId);
     return new Response(null, { status: 204 });
   } catch (error) {

@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
 import { updateVacationStatus } from '@/lib/local-data';
 
-export async function PUT(request: Request, { params }: { params: { vacationId: string } }) {
-  const awaitedParams = await params;
-  const { vacationId } = awaitedParams;
+export async function PUT(request: Request, { params }: { params: Promise<{ vacationId: string }> }) {
+  const { vacationId } = await params;
 
   try {
     const { status } = await request.json();
