@@ -184,10 +184,10 @@ export function SurgeonManager() {
         </div>
       </div>
       <AlertDialog open={!!surgeonToDelete} onOpenChange={(open) => !open && setSurgeonToDelete(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="!bg-white !text-zinc-950 shadow-2xl border-zinc-200 rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Êtes-vous sûr ?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-zinc-900 font-bold">Êtes-vous sûr ?</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-600">
               Cette action est irréversible et supprimera définitivement le chirurgien.
             </AlertDialogDescription>
           </AlertDialogHeader>

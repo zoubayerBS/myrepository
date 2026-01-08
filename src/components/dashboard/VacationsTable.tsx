@@ -385,18 +385,18 @@ export function VacationsTable({
       )}
 
       <AlertDialog open={!!vacationToDelete} onOpenChange={(open) => !open && setVacationToDelete(null)}>
-        <AlertDialogContent className="glass">
+        <AlertDialogContent className="bg-white !text-zinc-950 shadow-2xl border-zinc-200 rounded-3xl">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-red-500 flex items-center gap-2">
               <Trash2 className="h-5 w-5" />
               Confirmer la suppression
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Cette action est irréversible. La vacation pour <strong>{vacationToDelete?.patientName}</strong> sera définitivement supprimée.
+            <AlertDialogDescription className="text-zinc-600">
+              Cette action est irréversible. La vacation pour <strong className="text-zinc-900">{vacationToDelete?.patientName}</strong> sera définitivement supprimée.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="glass border-primary/20">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="border-zinc-200 dark:border-zinc-800 rounded-xl">Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20">
               Supprimer définitivement
             </AlertDialogAction>

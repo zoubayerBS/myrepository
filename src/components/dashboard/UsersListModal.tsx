@@ -130,11 +130,11 @@ export function UsersListModal({ isOpen, onClose, users, onUserDelete }: UsersLi
                               <Trash2 className="h-4.5 w-4.5" />
                             </Button>
                           </AlertDialogTrigger>
-                          <AlertDialogContent className="glass-card border-none">
+                          <AlertDialogContent className="!bg-white !text-zinc-950 shadow-2xl border border-zinc-200 rounded-3xl">
                             <AlertDialogHeader>
-                              <AlertDialogTitle className="text-2xl font-black">Confirmation de suppression</AlertDialogTitle>
-                              <AlertDialogDescription className="font-medium text-muted-foreground">
-                                Vous êtes sur le point de supprimer définitivement <span className="font-bold text-foreground">"{user.prenom} {user.nom}"</span>. Toutes ses données associées seront inaccessibles.
+                              <AlertDialogTitle className="text-2xl font-black text-zinc-900">Confirmation de suppression</AlertDialogTitle>
+                              <AlertDialogDescription className="font-medium text-zinc-600">
+                                Vous êtes sur le point de supprimer définitivement <span className="font-bold text-zinc-900">"{user.prenom} {user.nom}"</span>. Toutes ses données associées seront inaccessibles.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter className="mt-6">

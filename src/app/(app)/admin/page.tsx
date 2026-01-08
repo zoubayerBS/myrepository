@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { redirect } from 'next/navigation';
+import { redirect, useRouter } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Users, Clock, CheckCircle, Hourglass, BarChart, FileText, Settings, Stethoscope } from 'lucide-react';
@@ -24,6 +24,7 @@ import { fr } from 'date-fns/locale';
 import { PulseLoader } from '@/components/ui/motion-loader';
 
 export default function AdminPage() {
+    const router = useRouter();
     const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
     const [allVacations, setAllVacations] = useState<Vacation[]>([]);
     const [allUsers, setAllUsers] = useState<AppUser[]>([]);
@@ -65,6 +66,26 @@ export default function AdminPage() {
         }
         fetchData();
     }, []);
+
+    const handleMutation = () => {
+        // Refetch everything to update counters and charts
+        const fetchData = async () => {
+            try {
+                const [vacationsResponse, users] = await Promise.all([
+                    fetch(`/api/vacations?includeArchived=true&limit=5000&t=${Date.now()}`),
+                    getAllUsers(),
+                ]);
+                if (vacationsResponse.ok) {
+                    const { vacations } = await vacationsResponse.json();
+                    setAllVacations(vacations);
+                }
+                setAllUsers(users);
+            } catch (error) {
+                console.error("Failed to refresh admin data:", error);
+            }
+        };
+        fetchData();
+    };
 
     useEffect(() => {
         const filtered = allVacations.filter(v => {
@@ -340,6 +361,7 @@ export default function AdminPage() {
                         initialVacations={[]}
                         allUsers={allUsers}
                         isAdminView={true}
+                        onMutation={handleMutation}
                     />
                 </motion.div>
 

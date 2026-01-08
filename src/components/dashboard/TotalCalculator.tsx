@@ -27,9 +27,10 @@ const formSchema = z.object({
 
 interface TotalCalculatorProps {
   userId: string;
+  refreshKey?: number;
 }
 
-export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps) {
+export function TotalCalculator({ userId: initialUserId, refreshKey }: TotalCalculatorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [totalAmount, setTotalAmount] = useState<number | null>(null);
   const { toast } = useToast();
@@ -42,6 +43,12 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
     }
   }, [user]);
 
+  useEffect(() => {
+    if (totalAmount !== null && userId) {
+      onSubmit(form.getValues() as z.infer<typeof formSchema>, true);
+    }
+  }, [refreshKey]);
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -52,7 +59,7 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>, isBackground = false) {
     if (!userId) {
       toast({
         variant: 'destructive',
@@ -62,30 +69,37 @@ export function TotalCalculator({ userId: initialUserId }: TotalCalculatorProps)
       return;
     }
 
-    setIsLoading(true);
-    setTotalAmount(null);
+    if (!isBackground) {
+      setIsLoading(true);
+      setTotalAmount(null);
+    }
+
     try {
-      const { vacations: allVacations } = await findVacationsByUserId(userId);
+      const response = await fetch(`/api/vacations?userId=${userId}&limit=9999&t=${Date.now()}`);
+      if (!response.ok) throw new Error('Fetch failed');
+      const { vacations: allVacations } = await response.json();
       const { from, to } = values.dateRange;
 
-      const filteredVacations = allVacations.filter(v => {
+      const filteredVacations = (allVacations || []).filter((v: any) => {
         const vacationDate = new Date(v.date);
         const dateMatch = isWithinInterval(vacationDate, { start: from, end: to });
         const statusMatch = v.status === 'Validée';
         return dateMatch && statusMatch;
       });
 
-      const total = filteredVacations.reduce((sum, v) => sum + v.amount, 0);
+      const total = filteredVacations.reduce((sum: number, v: any) => sum + v.amount, 0);
       setTotalAmount(total);
     } catch (error) {
       console.error('Erreur lors du calcul des totaux:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Erreur',
-        description: 'Impossible de calculer le total.',
-      });
+      if (!isBackground) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur',
+          description: 'Impossible de calculer le total.',
+        });
+      }
     } finally {
-      setIsLoading(false);
+      if (!isBackground) setIsLoading(false);
     }
   }
 

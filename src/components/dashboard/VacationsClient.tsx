@@ -78,9 +78,10 @@ interface VacationsClientProps {
   historyMode?: boolean;
   archiveMode?: boolean;
   pendingMode?: boolean;
+  onMutation?: () => void;
 }
 
-export function VacationsClient({ isAdminView, initialVacations, allUsers = [], historyMode = false, archiveMode = false, pendingMode = false }: VacationsClientProps) {
+export function VacationsClient({ isAdminView, initialVacations, allUsers = [], historyMode = false, archiveMode = false, pendingMode = false, onMutation }: VacationsClientProps) {
   const { user, userData } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -141,6 +142,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       toast({ title: 'Succès', description: 'Vacation supprimée.' });
       // Refetch current page after deletion
       await fetchVacations(currentPage);
+      onMutation?.();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: 'Impossible de supprimer la vacation.' });
     }
@@ -167,6 +169,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       // Optimistic update
       setVacations(prev => prev.map(v => (v.id === vacationId ? { ...v, status } : v)));
       toast({ title: 'Succès', description: 'Statut mis à jour.' });
+      onMutation?.();
 
       const subject = `Mise à jour du statut de votre vacation`;
       const content = `Votre demande de vacation pour le ${format(new Date(vacation.date), 'dd/MM/yyyy', { locale: fr })} a été ${status.toLowerCase()} par ${userData.username}.`;
@@ -198,6 +201,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       }
       toast({ title: 'Succès', description: 'Vacation archivée.' });
       await fetchVacations(currentPage);
+      onMutation?.();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: "Impossible d'archiver la vacation." });
     }
@@ -215,6 +219,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       }
       toast({ title: 'Succès', description: 'Vacation désarchivée.' });
       await fetchVacations(currentPage);
+      onMutation?.();
     } catch (error) {
       toast({ variant: 'destructive', title: 'Erreur', description: "Impossible de désarchiver la vacation." });
     }
@@ -234,6 +239,7 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       });
       if (startDate) params.append('startDate', startDate.toISOString());
       if (endDate) params.append('endDate', endDate.toISOString());
+      params.append('t', String(Date.now()));
 
       let urlBase = '/api/vacations';
       if (archiveMode) {
@@ -303,6 +309,10 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
   const handleFormSuccess = async () => {
     setIsFormOpen(false);
     await fetchVacations(currentPage);
+    // Tiny delay to ensure DB consistency before parent refresh
+    setTimeout(() => {
+      onMutation?.();
+    }, 100);
   };
 
   const exportValidatedToCSV = () => {
@@ -720,15 +730,15 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
       </Dialog>
 
       <AlertDialog open={!!vacationToDelete} onOpenChange={(open) => !open && setVacationToDelete(null)}>
-        <AlertDialogContent className="glass shadow-2xl border-white/20">
+        <AlertDialogContent className="!bg-white !text-zinc-950 shadow-2xl border-zinc-200 rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold">Confirmation de suppression</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-xl font-bold text-zinc-900">Confirmation de suppression</AlertDialogTitle>
+            <AlertDialogDescription className="text-zinc-600">
               Cette action est irréversible. Voulez-vous vraiment supprimer cette vacation et l'effacer de votre historique ?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="glass border-white/10">Annuler</AlertDialogCancel>
+            <AlertDialogCancel className="border-zinc-200 dark:border-zinc-800 rounded-xl">Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20 transition-all">
               Confirmer la suppression
             </AlertDialogAction>

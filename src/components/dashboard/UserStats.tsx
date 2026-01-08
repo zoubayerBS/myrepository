@@ -12,6 +12,7 @@ import type { Vacation } from '@/types';
 
 interface UserStatsProps {
     userId: string;
+    refreshKey?: number;
 }
 
 const containerVars = {
@@ -29,9 +30,8 @@ const itemVars = {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } }
 } as const;
 
-export function UserStats({ userId: initialUserId }: UserStatsProps) {
+export function UserStats({ userId, refreshKey }: UserStatsProps) {
     const { user } = useAuth();
-    const [userId, setUserId] = useState(initialUserId);
     const [stats, setStats] = useState({
         validatedAmount: 0,
         pending: 0,
@@ -42,32 +42,35 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (user) {
-            setUserId(user.uid);
+        if (!userId) {
+            setLoading(false);
+            return;
         }
-    }, [user]);
 
-    useEffect(() => {
-        if (!userId) return;
-
-        const fetchAndComputeStats = async () => {
-            setLoading(true);
-            const { vacations: allVacations } = await findVacationsByUserId(userId, { limit: 9999 });
+        const fetchAndComputeStats = async (isInitial = false) => {
+            if (isInitial) setLoading(true);
+            const response = await fetch(`/api/vacations?userId=${userId}&limit=9999&t=${Date.now()}`);
+            if (!response.ok) {
+                if (isInitial) setLoading(false);
+                return;
+            }
+            const { vacations: allVacations } = await response.json();
             const now = new Date();
 
             const startOfCurrentMonth = startOfMonth(now);
             const endOfCurrentMonth = endOfMonth(now);
 
-            const totalPending = allVacations.filter(v => v.status === 'En attente').length;
-            const allValidatedVacations = allVacations.filter(v => v.status === 'Validée');
+            const safeVacations = (allVacations || []) as Vacation[];
+            const totalPending = safeVacations.filter((v: Vacation) => v?.status === 'En attente').length;
+            const allValidatedVacations = safeVacations.filter((v: Vacation) => v?.status === 'Validée');
             const totalValidatedCount = allValidatedVacations.length;
 
-            const monthlyValidatedVacations = allValidatedVacations.filter(v =>
-                isWithinInterval(new Date(v.date), { start: startOfCurrentMonth, end: endOfCurrentMonth })
+            const monthlyValidatedVacations = allValidatedVacations.filter((v: Vacation) =>
+                v?.date && isWithinInterval(new Date(v.date), { start: startOfCurrentMonth, end: endOfCurrentMonth })
             );
             const monthlyValidatedCount = monthlyValidatedVacations.length;
-            const validatedAmountMonthly = monthlyValidatedVacations.reduce((sum, v) => sum + v.amount, 0);
-            const totalValidatedAmountGlobal = allValidatedVacations.reduce((sum, v) => sum + v.amount, 0);
+            const validatedAmountMonthly = monthlyValidatedVacations.reduce((sum: number, v: Vacation) => sum + (v?.amount || 0), 0);
+            const totalValidatedAmountGlobal = allValidatedVacations.reduce((sum: number, v: Vacation) => sum + (v?.amount || 0), 0);
 
             setStats({
                 validatedAmount: validatedAmountMonthly,
@@ -76,11 +79,11 @@ export function UserStats({ userId: initialUserId }: UserStatsProps) {
                 monthlyValidated: monthlyValidatedCount,
                 totalValidatedAmountGlobal: totalValidatedAmountGlobal
             });
-            setLoading(false);
+            if (isInitial) setLoading(false);
         };
 
-        fetchAndComputeStats();
-    }, [userId]);
+        fetchAndComputeStats(loading);
+    }, [userId, refreshKey]);
 
     if (!user || loading) {
         return (
