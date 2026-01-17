@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { redirect, useRouter } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,7 @@ import { isWithinInterval, startOfMonth, endOfMonth, format, subMonths } from 'd
 import { fr } from 'date-fns/locale';
 import { PulseLoader } from '@/components/ui/motion-loader';
 
-export default function AdminPage() {
+export default function AdminPage({ searchParams }: { searchParams: any }) {
     const router = useRouter();
     const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
     const [allVacations, setAllVacations] = useState<Vacation[]>([]);
@@ -362,6 +362,7 @@ export default function AdminPage() {
                         allUsers={allUsers}
                         isAdminView={true}
                         onMutation={handleMutation}
+                        searchParams={searchParams}
                     />
                 </motion.div>
 

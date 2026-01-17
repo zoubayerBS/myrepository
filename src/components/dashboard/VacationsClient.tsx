@@ -1,6 +1,8 @@
+'use client';
+
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { PulseLoader, SpinnerLoader } from '@/components/ui/motion-loader';
@@ -13,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Pagination } from '@/components/ui/pagination';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { VacationForm } from './VacationForm';
 import { ReportGenerator } from './ReportGenerator';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -78,12 +80,13 @@ interface VacationsClientProps {
   archiveMode?: boolean;
   pendingMode?: boolean;
   onMutation?: () => void;
+  searchParams?: { [key: string]: string | string[] | undefined };
 }
 
-export function VacationsClient({ isAdminView, initialVacations, allUsers = [], historyMode = false, archiveMode = false, pendingMode = false, onMutation }: VacationsClientProps) {
+function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [], historyMode = false, archiveMode = false, pendingMode = false, onMutation, searchParams: searchParamsProp = {} }: VacationsClientProps) {
   const { user, userData } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
+
   const [vacations, setVacations] = useState<Vacation[]>(initialVacations);
   const [isLoading, setIsLoading] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -92,17 +95,23 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
   const [vacationToDelete, setVacationToDelete] = useState<Vacation | null>(null);
   const [allMotifs, setAllMotifs] = useState<string[]>([]);
 
-  const [userFilter, setUserFilter] = useState<string>(searchParams.get('userFilter') || 'all');
-  const [typeFilter, setTypeFilter] = useState<string>(searchParams.get('typeFilter') || 'all');
-  const [statusFilter, setStatusFilter] = useState<string>(searchParams.get('statusFilter') || (historyMode ? 'Validée,Refusée' : 'all'));
-  const [motifFilter, setMotifFilter] = useState<string>(searchParams.get('motifFilter') || 'all');
-  const [searchQuery, setSearchQuery] = useState<string>(searchParams.get('searchQuery') || '');
+  // Helper to get param value from prop
+  const getParam = (key: string) => {
+    const val = searchParamsProp[key];
+    return Array.isArray(val) ? val[0] : val;
+  };
+
+  const [userFilter, setUserFilter] = useState<string>(getParam('userFilter') || 'all');
+  const [typeFilter, setTypeFilter] = useState<string>(getParam('typeFilter') || 'all');
+  const [statusFilter, setStatusFilter] = useState<string>(getParam('statusFilter') || (historyMode ? 'Validée,Refusée' : 'all'));
+  const [motifFilter, setMotifFilter] = useState<string>(getParam('motifFilter') || 'all');
+  const [searchQuery, setSearchQuery] = useState<string>(getParam('searchQuery') || '');
   const [startDate, setStartDate] = useState<Date | undefined>(
-    searchParams.get('startDate') ? new Date(searchParams.get('startDate')!) : undefined
+    getParam('startDate') ? new Date(getParam('startDate')!) : undefined
   );
   const [endDate, setEndDate] = useState<Date | undefined>(
-    searchParams.get('endDate')
-      ? new Date(searchParams.get('endDate')!)
+    getParam('endDate')
+      ? new Date(getParam('endDate')!)
       : undefined
   );
 
@@ -820,5 +829,32 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
         </div>
       )}
     </>
+  );
+}
+
+export function VacationsClient(props: VacationsClientProps) {
+  return (
+    <Suspense fallback={
+      <div className="space-y-8 w-full animate-pulse">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
+          <Skeleton className="h-10 w-64" />
+          <div className="flex gap-3">
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+        </div>
+        <Skeleton className="h-12 w-full rounded-xl mb-10" />
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md h-32">
+              <Skeleton className="h-full w-full" />
+            </Card>
+          ))}
+        </div>
+      </div>
+    }>
+      <VacationsClientInternal {...props} />
+    </Suspense>
   );
 }

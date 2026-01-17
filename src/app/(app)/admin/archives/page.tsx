@@ -1,10 +1,12 @@
 import { VacationsClient } from '@/components/dashboard/VacationsClient';
 import type { AppUser, Vacation } from '@/types';
 import { findArchivedVacations, getAllUsers } from '@/lib/local-data';
+import { Suspense } from 'react';
 
 export const revalidate = 0; // Disable caching
 
-export default async function ArchivedVacationsPage() {
+export default async function ArchivedVacationsPage({ searchParams }: { searchParams: Promise<any> }) {
+    const sParams = await searchParams;
     // Fetch initial data on the server
     const data = await findArchivedVacations();
     const initialVacations: Vacation[] = data.vacations;
@@ -17,6 +19,7 @@ export default async function ArchivedVacationsPage() {
                 allUsers={allUsers}
                 isAdminView={true}
                 archiveMode={true} // New prop to indicate this is the archive view
+                searchParams={sParams}
             />
         </div>
     );
