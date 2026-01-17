@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/card';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { Trash2 } from 'lucide-react';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -54,14 +54,16 @@ export function UsersListModal({ isOpen, onClose, users, onUserDelete }: UsersLi
     }
   };
 
-  const groupedUsers = users.reduce((acc, user) => {
-    const { fonction } = user;
-    if (!acc[fonction]) {
-      acc[fonction] = [];
-    }
-    acc[fonction].push(user);
-    return acc;
-  }, {} as Record<string, AppUser[]>);
+  const groupedUsers = useMemo(() => {
+    return users.reduce((acc, user) => {
+      const { fonction } = user;
+      if (!acc[fonction]) {
+        acc[fonction] = [];
+      }
+      acc[fonction].push(user);
+      return acc;
+    }, {} as Record<string, AppUser[]>);
+  }, [users]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

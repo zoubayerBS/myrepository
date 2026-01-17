@@ -45,7 +45,7 @@ export function TotalCalculator({ userId: initialUserId, refreshKey }: TotalCalc
 
   useEffect(() => {
     if (totalAmount !== null && userId) {
-      onSubmit(form.getValues() as z.infer<typeof formSchema>, true);
+      calculateTotal(form.getValues() as z.infer<typeof formSchema>, true);
     }
   }, [refreshKey]);
 
@@ -59,7 +59,7 @@ export function TotalCalculator({ userId: initialUserId, refreshKey }: TotalCalc
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>, isBackground = false) {
+  async function calculateTotal(values: z.infer<typeof formSchema>, isBackground = false) {
     if (!userId) {
       toast({
         variant: 'destructive',
@@ -75,19 +75,16 @@ export function TotalCalculator({ userId: initialUserId, refreshKey }: TotalCalc
     }
 
     try {
-      const response = await fetch(`/api/vacations?userId=${userId}&limit=9999&t=${Date.now()}`);
+      const fromStr = format(values.dateRange.from, 'yyyy-MM-dd');
+      const toStr = format(values.dateRange.to, 'yyyy-MM-dd');
+
+      const response = await fetch(
+        `/api/vacations?userId=${userId}&startDate=${fromStr}&endDate=${toStr}&statusFilter=Validée&limit=9999&t=${Date.now()}`
+      );
       if (!response.ok) throw new Error('Fetch failed');
-      const { vacations: allVacations } = await response.json();
-      const { from, to } = values.dateRange;
+      const { vacations: filteredVacations } = await response.json();
 
-      const filteredVacations = (allVacations || []).filter((v: any) => {
-        const vacationDate = new Date(v.date);
-        const dateMatch = isWithinInterval(vacationDate, { start: from, end: to });
-        const statusMatch = v.status === 'Validée';
-        return dateMatch && statusMatch;
-      });
-
-      const total = filteredVacations.reduce((sum: number, v: any) => sum + v.amount, 0);
+      const total = (filteredVacations || []).reduce((sum: number, v: any) => sum + v.amount, 0);
       setTotalAmount(total);
     } catch (error) {
       console.error('Erreur lors du calcul des totaux:', error);
@@ -118,7 +115,7 @@ export function TotalCalculator({ userId: initialUserId, refreshKey }: TotalCalc
       </CardHeader>
       <CardContent>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit((values) => calculateTotal(values))} className="space-y-6">
             <FormField
               control={form.control}
               name="dateRange"

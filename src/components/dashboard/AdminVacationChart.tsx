@@ -1,6 +1,7 @@
 
 'use client'
 
+import { useMemo } from 'react'
 import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import { fr } from 'date-fns/locale'
@@ -17,31 +18,33 @@ interface MonthlyData {
 }
 
 export function AdminVacationChart({ data }: AdminVacationChartProps) {
-  const monthlyData = data.reduce((acc, vacation) => {
-    const monthKey = format(parseISO(vacation.date), 'yyyy-MM');
-    if (!acc[monthKey]) {
-      acc[monthKey] = { validated: 0, refused: 0, pending: 0 };
-    }
-    if (vacation.status === 'Validée') {
-      acc[monthKey].validated++;
-    } else if (vacation.status === 'Refusée') {
-      acc[monthKey].refused++;
-    } else {
-      acc[monthKey].pending++;
-    }
-    return acc;
-  }, {} as Record<string, MonthlyData>);
+  const chartData = useMemo(() => {
+    const monthlyData = data.reduce((acc, vacation) => {
+      const monthKey = format(parseISO(vacation.date), 'yyyy-MM');
+      if (!acc[monthKey]) {
+        acc[monthKey] = { validated: 0, refused: 0, pending: 0 };
+      }
+      if (vacation.status === 'Validée') {
+        acc[monthKey].validated++;
+      } else if (vacation.status === 'Refusée') {
+        acc[monthKey].refused++;
+      } else {
+        acc[monthKey].pending++;
+      }
+      return acc;
+    }, {} as Record<string, MonthlyData>);
 
-  const chartData = Object.keys(monthlyData).map(monthKey => {
-    const [year, month] = monthKey.split('-');
-    return {
-      name: format(new Date(parseInt(year), parseInt(month) - 1), 'MMM yyyy', { locale: fr }),
-      date: new Date(parseInt(year), parseInt(month) - 1),
-      "Validées": monthlyData[monthKey].validated,
-      "Refusées": monthlyData[monthKey].refused,
-      "En attente": monthlyData[monthKey].pending,
-    };
-  }).sort((a, b) => a.date.getTime() - b.date.getTime());
+    return Object.keys(monthlyData).map(monthKey => {
+      const [year, month] = monthKey.split('-');
+      return {
+        name: format(new Date(parseInt(year), parseInt(month) - 1), 'MMM yyyy', { locale: fr }),
+        date: new Date(parseInt(year), parseInt(month) - 1),
+        "Validées": monthlyData[monthKey].validated,
+        "Refusées": monthlyData[monthKey].refused,
+        "En attente": monthlyData[monthKey].pending,
+      };
+    }).sort((a, b) => a.date.getTime() - b.date.getTime());
+  }, [data]);
 
 
   return (

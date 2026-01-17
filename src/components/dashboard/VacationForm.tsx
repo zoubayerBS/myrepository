@@ -160,6 +160,7 @@ export function VacationForm({
   }, [vacationToEdit]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (isLoading) return;
     setIsLoading(true);
     try {
       if (!currentUser) {
