@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, Suspense } from 'react';
+import { useState, useCallback, Suspense, use } from 'react';
 import { useAuth } from '@/lib/auth';
 import { useRouter } from 'next/navigation';
 import { VacationsClient } from '@/components/dashboard/VacationsClient';
@@ -11,10 +11,11 @@ import { motion } from 'framer-motion';
 import { PulseLoader } from '@/components/ui/motion-loader';
 
 
-export default function DashboardPage({ searchParams }: { searchParams: any }) {
+export default function DashboardPage({ searchParams }: { searchParams: Promise<any> }) {
     const { user, loading } = useAuth();
     const router = useRouter();
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+    const resolvedSearchParams = use(searchParams);
 
     const handleMutation = () => {
         setRefreshTrigger(prev => prev + 1);
@@ -54,7 +55,7 @@ export default function DashboardPage({ searchParams }: { searchParams: any }) {
                             initialVacations={[]}
                             isAdminView={false}
                             onMutation={handleMutation}
-                            searchParams={searchParams}
+                            searchParams={resolvedSearchParams}
                         />
                     </div>
                     <div className="lg:col-span-1 order-1 lg:order-2">
