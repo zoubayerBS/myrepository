@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Layers, Hourglass, HandCoins, CheckCheck, TrendingUp, CalendarDays } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Vacation } from '@/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface UserStatsProps {
     userId: string;
@@ -89,7 +90,24 @@ export function UserStats({ userId, refreshKey }: UserStatsProps) {
         return (
             <div className="grid gap-6 md:grid-cols-3 mb-10">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="h-32 rounded-2xl bg-muted/50 animate-pulse" />
+                    <Card key={i} className="glass-card overflow-hidden h-32">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-8 w-8 rounded-lg" />
+                        </CardHeader>
+                        <CardContent>
+                            <div className="flex items-end justify-between">
+                                <div className="space-y-2">
+                                    <Skeleton className="h-10 w-16" />
+                                    <Skeleton className="h-3 w-24" />
+                                </div>
+                                <div className="space-y-2 text-right">
+                                    <Skeleton className="h-6 w-12 ml-auto" />
+                                    <Skeleton className="h-2 w-8 ml-auto" />
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
                 ))}
             </div>
         )

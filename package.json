@@ -12,7 +12,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "archive": "tsx scripts/archive-old-vacations.ts"
+    "archive": "tsx scripts/archive-old-vacations.ts",
+    "backup": "tsx scripts/backup-db.ts"
   },
   "dependencies": {
     "@genkit-ai/googleai": "^1.14.1",

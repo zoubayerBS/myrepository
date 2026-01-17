@@ -8,6 +8,7 @@ import { format, isWithinInterval } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { CalendarIcon, Loader2, Wand2, Calculator, ArrowRightCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -101,7 +102,24 @@ export function TotalCalculator({ userId: initialUserId, refreshKey }: TotalCalc
   }
 
   if (!userId) {
-    return null;
+    return (
+      <Card className="glass-card">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl font-bold text-gradient flex items-center gap-2">
+            <Calculator className="h-5 w-5 text-primary" />
+            <Skeleton className="h-6 w-32" />
+          </CardTitle>
+          <Skeleton className="h-3 w-48 mt-1" />
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="space-y-2">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-11 w-full" />
+          </div>
+          <Skeleton className="h-11 w-full" />
+        </CardContent>
+      </Card>
+    );
   }
 
   return (

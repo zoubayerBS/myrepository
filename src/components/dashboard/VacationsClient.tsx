@@ -1,5 +1,4 @@
-'use client';
-
+import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import type { AppUser, Vacation, VacationStatus } from '@/types';
@@ -304,7 +303,28 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
     trackMouse: true,
   });
 
-  if (!user || !userData) return <div className="flex h-48 items-center justify-center">Chargement des données...</div>;
+  if (!user || !userData) {
+    return (
+      <div className="space-y-8 w-full">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mb-8">
+          <Skeleton className="h-10 w-64" />
+          <div className="flex gap-3">
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-10" />
+            <Skeleton className="h-10 w-40" />
+          </div>
+        </div>
+        <Skeleton className="h-12 w-full rounded-xl mb-10" />
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <Card key={i} className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md h-32">
+              <Skeleton className="h-full w-full" />
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   const handleFormSuccess = async () => {
     setIsFormOpen(false);
@@ -557,8 +577,45 @@ export function VacationsClient({ isAdminView, initialVacations, allUsers = [], 
 
         {/* Vacations */}
         {isLoading ? (
-          <div className="flex justify-center p-12">
-            <PulseLoader />
+          <div className="space-y-4">
+            {isMobile ? (
+              // Mobile Skeleton Cards
+              [1, 2, 3, 4, 5].map((i) => (
+                <Card key={i} className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md">
+                  <div className="flex justify-between items-center mb-4">
+                    <Skeleton className="h-5 w-1/2" />
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between"><Skeleton className="h-3 w-16" /><Skeleton className="h-3 w-24" /></div>
+                    <div className="flex justify-between"><Skeleton className="h-3 w-16" /><Skeleton className="h-3 w-32" /></div>
+                    <div className="flex justify-between items-center pt-2">
+                      <div className="flex gap-2">
+                        <Skeleton className="h-5 w-12" />
+                        <Skeleton className="h-5 w-16" />
+                      </div>
+                      <Skeleton className="h-6 w-20" />
+                    </div>
+                  </div>
+                </Card>
+              ))
+            ) : (
+              // Desktop Skeleton Table Rows
+              <Card className="glass overflow-hidden border-white/20">
+                <div className="p-6 space-y-4">
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <div key={i} className="flex items-center space-x-4 py-3 border-b border-white/5 last:border-0">
+                      <Skeleton className="h-4 w-[15%]" />
+                      <Skeleton className="h-4 w-[20%]" />
+                      <Skeleton className="h-4 w-[15%]" />
+                      <Skeleton className="h-4 w-[10%]" />
+                      <Skeleton className="h-4 w-[15%]" />
+                      <Skeleton className="h-4 w-[10%] ml-auto" />
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
           </div>
         ) : isMobile ? (
           <>

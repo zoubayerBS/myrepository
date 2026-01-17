@@ -20,16 +20,16 @@ export default function DashboardPage() {
         setRefreshTrigger(prev => prev + 1);
     };
 
-    if (loading) {
+    /* if (loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-dashboard-gradient">
                 <PulseLoader />
             </div>
         );
-    }
+    } */
 
-    if (!user) {
-        return null; // Should be handled by middleware/layout
+    if (!user && !loading) {
+        return null;
     }
 
     return (
@@ -46,7 +46,7 @@ export default function DashboardPage() {
                 transition={{ duration: 0.5 }}
                 className="container mx-auto p-4 md:p-8 max-w-full overflow-x-hidden relative z-10"
             >
-                <UserStats userId={user.uid} refreshKey={refreshTrigger} />
+                <UserStats userId={user?.uid ?? ''} refreshKey={refreshTrigger} />
 
                 <div className="grid gap-8 lg:grid-cols-3 mt-8">
                     <div className="lg:col-span-2 order-2 lg:order-1">
@@ -58,7 +58,7 @@ export default function DashboardPage() {
                     </div>
                     <div className="lg:col-span-1 order-1 lg:order-2">
                         <div className="sticky top-24">
-                            <TotalCalculator userId={user.uid} refreshKey={refreshTrigger} />
+                            <TotalCalculator userId={user?.uid ?? ''} refreshKey={refreshTrigger} />
                         </div>
                     </div>
                 </div>
