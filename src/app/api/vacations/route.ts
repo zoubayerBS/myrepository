@@ -5,6 +5,9 @@ import { findAllVacations, findVacationsByUserId, addVacation, findArchivedVacat
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+import { createClient } from '@/lib/supabase/server';
+import { findUserById } from '@/lib/local-data';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
@@ -32,12 +35,10 @@ export async function GET(request: Request) {
     }
 
     if (archivedOnly) {
-      // Assuming findArchivedVacations will be updated to handle filters too
       const { vacations, total } = await findArchivedVacations(options);
       return NextResponse.json({ vacations, total });
     }
 
-    // Assuming findAllVacations will be updated to handle filters
     const { vacations, total } = await findAllVacations({ ...options, includeArchived });
     return NextResponse.json({ vacations, total });
   } catch (error) {

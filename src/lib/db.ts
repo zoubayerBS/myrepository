@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
+import { createAdminClient } from './supabase/admin';
 
 export function getDb() {
-    return supabase;
+    return createAdminClient();
 }

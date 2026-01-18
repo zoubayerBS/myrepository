@@ -1,7 +1,6 @@
-
 import { NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import { findUserById, findUserByUsername, addUser, getAllUsers } from '@/lib/local-data';
+import { createClient } from '@/lib/supabase/server';
+import { findUserById, findUserByUsername, getAllUsers, addUser } from '@/lib/local-data';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);

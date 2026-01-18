@@ -1,17 +1,19 @@
 'use server';
 
-import { getDb } from './db';
+import { createAdminClient } from '@/lib/supabase/admin';
 import type { AppUser, Vacation, VacationStatus, Surgeon, VacationAmount } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-const supabase = getDb();
+// Helper to get DB client
+const getDb = async () => createAdminClient();
 
 // --- User Functions ---
 
 export async function findUserById(uid: string): Promise<AppUser | null> {
     try {
+        const supabase = await getDb();
         const { data, error } = await supabase.from('users').select('*, password').eq('uid', uid).single();
         if (error && error.code !== 'PGRST116') throw error;
         return data as AppUser | null;
@@ -23,6 +25,7 @@ export async function findUserById(uid: string): Promise<AppUser | null> {
 
 export async function findUserByUsername(username: string): Promise<AppUser | null> {
     try {
+        const supabase = await getDb();
         const { data, error } = await supabase.from('users').select('*, password').ilike('username', username).single();
         if (error && error.code !== 'PGRST116') throw error; // Throw if it's a real error, not just no rows
         return data as AppUser | null;
@@ -32,19 +35,80 @@ export async function findUserByUsername(username: string): Promise<AppUser | nu
     }
 }
 
+export async function getProfileAndSync(uid: string, metadataUsername?: string): Promise<AppUser | null> {
+    try {
+        let user = await findUserById(uid);
+        let oldUid: string | null = null;
+        let finalUser: AppUser | null = user;
+
+        // If not found by UID, try by username (lazy migration fallback)
+        if (!user && metadataUsername) {
+            console.log(`[AUTH DEBUG] User not found by UID ${uid}. Attempting fallback via username: ${metadataUsername}`);
+            const legacyUser = await findUserByUsername(metadataUsername);
+            if (legacyUser) {
+                console.log(`[AUTH DEBUG] Legacy user found! Syncing UID ${legacyUser.uid} -> ${uid}`);
+                oldUid = legacyUser.uid;
+                finalUser = { ...legacyUser, uid };
+            }
+        }
+        // PROACTIVE FIX: Even if user found by UID, if we have metadata, check if there's an old ID to clean up
+        else if (user && metadataUsername) {
+            const supabase = await getDb();
+            const { data: legacyCandidate } = await supabase.from('users')
+                .select('uid')
+                .ilike('username', metadataUsername)
+                .neq('uid', uid)
+                .maybeSingle();
+
+            if (legacyCandidate) {
+                console.log(`[AUTH DEBUG] Orphean data detected for legacy ID: ${legacyCandidate.uid}. Merging to ${uid}`);
+                oldUid = legacyCandidate.uid;
+            }
+        }
+
+        if (oldUid) {
+            const { createAdminClient } = await import('@/lib/supabase/admin');
+            const supabaseAdmin = createAdminClient();
+
+            console.log(`[AUTH DEBUG] Starting atomic DB sync for all tables (including messages)...`);
+            const results = await Promise.all([
+                supabaseAdmin.from('users').update({ uid: uid }).eq('uid', oldUid),
+                supabaseAdmin.from('vacations').update({ userId: uid }).eq('userId', oldUid),
+                supabaseAdmin.from('notifications').update({ userId: uid }).eq('userId', oldUid),
+                supabaseAdmin.from('messages').update({ senderId: uid }).eq('senderId', oldUid),
+                supabaseAdmin.from('messages').update({ receiverId: uid }).eq('receiverId', oldUid)
+            ]);
+
+            results.forEach((res, index) => {
+                const tables = ['users', 'vacations', 'notifications', 'messages(sender)', 'messages(receiver)'];
+                if (res.error) console.error(`[AUTH DEBUG] Sync error [${tables[index]}]:`, res.error.message);
+                else console.log(`[AUTH DEBUG] Sync success [${tables[index]}]`);
+            });
+        }
+
+        return finalUser;
+    } catch (error) {
+        console.error("getProfileAndSync failed:", error);
+        return null;
+    }
+}
+
 export async function addUser(user: AppUser): Promise<AppUser> {
+    const supabase = await getDb();
     const { data, error } = await supabase.from('users').insert({ ...user }).select().single();
     if (error) throw error;
     return data as AppUser;
 }
 
 export async function getAllUsers(): Promise<AppUser[]> {
+    const supabase = await getDb();
     const { data, error } = await supabase.from('users').select('uid, username, email, role, nom, prenom, fonction');
     if (error) throw error;
     return data as AppUser[];
 }
 
 export async function deleteUser(userId: string): Promise<void> {
+    const supabase = await getDb();
     const { error } = await supabase.from('users').delete().eq('uid', userId);
     if (error) throw error;
 }
@@ -52,6 +116,7 @@ export async function deleteUser(userId: string): Promise<void> {
 // --- Vacation Functions ---
 
 async function getVacationWithUser(vacationId: string): Promise<Vacation | null> {
+    const supabase = await getDb();
     const { data: vacationData, error: vacationError } = await supabase.from('vacations').select('*, user:users(*)').eq('id', vacationId).single();
     if (vacationError && vacationError.code !== 'PGRST116') throw vacationError;
     return vacationData as Vacation | null;
@@ -75,7 +140,7 @@ export async function findAllVacations(
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase.from('vacations').select('*, user:users(*)', { count: 'exact' });
+    let query = (await getDb()).from('vacations').select('*, user:users(*)', { count: 'exact' });
 
     if (!includeArchived) {
         query = query.or('isArchived.is.null,isArchived.eq.false');
@@ -141,6 +206,7 @@ export async function findArchivedVacations(
     const { page = 1, limit = 10, status, type, motif, userFilter, startDate, endDate, searchQuery } = options;
     const from = (page - 1) * limit;
     const to = from + limit - 1;
+    const supabase = await getDb();
 
     let query = supabase
         .from('vacations')
@@ -210,6 +276,7 @@ export async function findVacationsByUserId(
     const { page = 1, limit = 10, status, type, motif, startDate, endDate, searchQuery, userDefaultView = false } = options;
     const from = (page - 1) * limit;
     const to = from + limit - 1;
+    const supabase = await getDb();
 
     let query = supabase
         .from('vacations')
@@ -275,6 +342,7 @@ export async function findPendingPreviousMonthVacations(filters: {
     searchQuery?: string;
 } = {}): Promise<Vacation[]> {
     const { startDate, endDate, userFilter, typeFilter, searchQuery } = filters;
+    const supabase = await getDb();
     let query = supabase
         .from('vacations')
         .select('*, user:users(*)')
@@ -319,8 +387,10 @@ export async function findPendingPreviousMonthVacations(filters: {
 
 
 export async function addVacation(vacation: Omit<Vacation, 'id'>): Promise<Vacation> {
+    const supabase = await getDb();
     const newId = `${Date.now()}-${Math.random()}`;
     const newVacation = { ...vacation, id: newId };
+
     const { data, error } = await supabase.from('vacations').insert(newVacation).select().single();
     if (error) throw error;
     const result = await getVacationWithUser(newId);
@@ -329,8 +399,13 @@ export async function addVacation(vacation: Omit<Vacation, 'id'>): Promise<Vacat
 }
 
 export async function updateVacation(updatedVacation: Vacation): Promise<Vacation> {
-    const { id, user, ...updateData } = updatedVacation;
-    const { data, error } = await supabase.from('vacations').update(updateData).eq('id', id).select().single();
+    const supabase = await getDb();
+
+    const { id, user: ignoredUser, ...updateData } = updatedVacation;
+    const cleanUpdateData = { ...updateData };
+    delete (cleanUpdateData as any).userId;
+
+    const { data, error } = await supabase.from('vacations').update(cleanUpdateData).eq('id', id).select().single();
     if (error) {
         console.error("Supabase update error:", error);
         throw error;
@@ -341,11 +416,14 @@ export async function updateVacation(updatedVacation: Vacation): Promise<Vacatio
 }
 
 export async function deleteVacation(vacationId: string): Promise<void> {
+    const supabase = await getDb();
     const { error } = await supabase.from('vacations').delete().eq('id', vacationId);
     if (error) throw error;
 }
 
 export async function updateVacationStatus(vacationId: string, status: VacationStatus): Promise<Vacation> {
+    const supabase = await getDb();
+
     const { data: existingVacation, error: existingVacationError } = await supabase.from('vacations').select('userId, patientName, status, date').eq('id', vacationId).single();
 
     if (existingVacationError && existingVacationError.code !== 'PGRST116') throw existingVacationError;
@@ -389,6 +467,7 @@ export async function updateVacationStatus(vacationId: string, status: VacationS
 }
 
 export async function updateVacationArchivedStatus(vacationId: string, isArchived: boolean): Promise<Vacation> {
+    const supabase = await getDb();
     const { error: updateError } = await supabase.from('vacations').update({ isArchived }).eq('id', vacationId);
     if (updateError) throw updateError;
 
@@ -404,18 +483,21 @@ export async function updateVacationArchivedStatus(vacationId: string, isArchive
 // --- Surgeon Functions ---
 
 export async function getAllSurgeons(): Promise<Surgeon[]> {
+    const supabase = await getDb();
     const { data, error } = await supabase.from('surgeons').select('*').order('name');
     if (error) throw error;
     return data as Surgeon[];
 }
 
 export async function addSurgeon(name: string): Promise<Surgeon> {
+    const supabase = await getDb();
     const { data, error } = await supabase.from('surgeons').insert({ name }).select().single();
     if (error) throw error;
     return data as Surgeon;
 }
 
 export async function deleteSurgeon(id: number): Promise<void> {
+    const supabase = await getDb();
     const { error } = await supabase.from('surgeons').delete().eq('id', id);
     if (error) throw error;
 }
@@ -423,12 +505,14 @@ export async function deleteSurgeon(id: number): Promise<void> {
 // --- Vacation Amount Functions ---
 
 export async function getVacationAmounts(): Promise<VacationAmount[]> {
+    const supabase = await getDb();
     const { data, error } = await supabase.from('vacation_amounts_full').select('*');
     if (error) throw error;
     return data as VacationAmount[];
 }
 
 export async function updateVacationAmounts(amounts: VacationAmount[]): Promise<void> {
+    const supabase = await getDb();
     const { error } = await supabase.from('vacation_amounts_full').upsert(amounts);
     if (error) throw error;
 }
@@ -445,6 +529,7 @@ export async function updateSettings(amounts: VacationAmount[]): Promise<void> {
 
 // --- Vacation Reason Functions ---
 export async function getVacationReasons(): Promise<string[]> {
+    const supabase = await getDb();
     const { data, error } = await supabase.from('vacations').select('reason');
     if (error) {
         console.error("getVacationReasons failed:", error);

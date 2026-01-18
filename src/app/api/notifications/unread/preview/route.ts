@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-
-const supabase = getDb();
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,8 +7,10 @@ export async function GET(request: Request) {
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') as string, 10) : 5; // Default limit to 5
 
   if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'userId is required' }, { status: 400 });
   }
+
+  const supabase = createAdminClient();
 
   try {
     const { data: notifications, error } = await supabase

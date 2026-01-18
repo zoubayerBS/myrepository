@@ -12,16 +12,12 @@ export default function Home() {
   useEffect(() => {
     if (!loading) {
       if (user) {
-        if (userData?.role === 'admin') {
-          router.push('/admin');
-        } else {
-          router.push('/dashboard');
-        }
+        router.push(user.role === 'admin' ? '/admin' : '/dashboard');
       } else {
         router.push('/login');
       }
     }
-  }, [user, userData, loading, router]);
+  }, [user, loading, router]);
 
   return (
     <div className="flex h-screen w-full flex-col items-center justify-center">

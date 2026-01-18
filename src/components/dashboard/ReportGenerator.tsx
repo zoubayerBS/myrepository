@@ -72,9 +72,10 @@ interface ReportGeneratorProps {
   currentUser: AppUser;
   isAdmin: boolean;
   allVacations?: Vacation[];
+  defaultDateRange?: { from: Date; to: Date };
 }
 
-export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations }: ReportGeneratorProps) {
+export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations, defaultDateRange }: ReportGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const [reportVacations, setReportVacations] = useState<Vacation[]>([]);
@@ -120,7 +121,7 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations }
       userId: isAdmin ? 'all' : currentUser.uid,
       status: 'all',
       motif: 'all',
-      dateRange: {
+      dateRange: defaultDateRange || {
         from: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
         to: new Date(),
       },

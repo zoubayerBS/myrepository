@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-
-const supabase = getDb();
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function PUT(request: Request) {
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
 
   if (!userId) {
-    return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    return NextResponse.json({ error: 'userId is required' }, { status: 400 });
   }
+
+  const supabase = createAdminClient();
 
   try {
     const { count, error } = await supabase

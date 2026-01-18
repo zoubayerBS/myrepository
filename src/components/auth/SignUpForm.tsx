@@ -67,41 +67,34 @@ export function SignUpForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const existingUserResponse = await fetch(`/api/users?username=${values.username}`);
-      const existingUser: AppUser = await existingUserResponse.json();
-
-      if (existingUser) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur d\'inscription',
-          description: 'Ce nom d\'utilisateur est déjà pris.',
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      const newUser: AppUser = {
-        uid: `${Date.now()}-${values.username}`,
+      const newUser = {
         username: values.username,
         password: values.password,
         email: `${values.username}@vacationease.app`,
-        role: 'user',
         prenom: values.prenom,
         nom: values.nom,
         fonction: values.fonction,
       };
 
-      const addUserResponse = await fetch('/api/users', {
+      const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newUser),
       });
 
-      if (!addUserResponse.ok) {
-        throw new Error('Failed to add user');
+      if (!response.ok) {
+        const errorData = await response.json();
+        toast({
+          variant: 'destructive',
+          title: 'Erreur d\'inscription',
+          description: errorData.error || 'Une erreur est survenue lors de l\'inscription.',
+        });
+        setIsLoading(false);
+        return;
       }
 
-      login(newUser);
+      const addedUser: AppUser = await response.json();
+      login(addedUser);
       router.push('/dashboard');
     } catch (error: any) {
       toast({

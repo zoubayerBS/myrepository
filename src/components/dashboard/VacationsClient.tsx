@@ -267,6 +267,15 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
       } else if (isAdminView) {
         params.set('includeArchived', 'false');
         params.set('userFilter', userFilter);
+      } else if (historyMode) {
+        params.set('userId', user.uid);
+        // HISTORY MODE: defaults to vacations BEFORE the current month if no range is chosen
+        if (!endDate) {
+          const today = new Date();
+          const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+          const lastDayOfPrevMonth = new Date(firstDayOfCurrentMonth.getTime() - 1);
+          params.set('endDate', lastDayOfPrevMonth.toISOString());
+        }
       } else {
         params.set('userId', user.uid);
         // For user view, if no filters are on, get default set (current month or pending)
@@ -276,9 +285,11 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
       }
 
       const response = await fetch(`${urlBase}?${params.toString()}`);
+      console.log(`[VACATIONS DEBUG] Fetching from: ${urlBase}?${params.toString()}`);
 
       if (!response.ok) throw new Error('Failed to fetch vacations');
       const data = await response.json();
+      console.log(`[VACATIONS DEBUG] Received ${data.vacations?.length || 0} vacations`);
 
       setVacations(data.vacations || []);
       setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));
@@ -802,6 +813,10 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
               allUsers={isAdminView ? allUsers : (userData ? [userData] : [])}
               currentUser={userData}
               isAdmin={isAdminView}
+              defaultDateRange={historyMode ? {
+                from: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+                to: new Date(new Date().getFullYear(), new Date().getMonth(), 0, 23, 59, 59, 999)
+              } : undefined}
             />
           )}
         </DialogContent>

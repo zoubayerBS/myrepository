@@ -52,30 +52,24 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const userResponse = await fetch(`/api/users?username=${values.username}`);
-      const user: AppUser = await userResponse.json();
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
+      });
 
-      if (!user || !user.password) {
+      if (!response.ok) {
+        const errorData = await response.json();
         toast({
           variant: 'destructive',
           title: 'Erreur de connexion',
-          description: 'Nom d\'utilisateur ou mot de passe incorrect.',
+          description: errorData.error || 'Identifiant ou mot de passe incorrect.',
         });
         setIsLoading(false);
         return;
       }
 
-      const isPasswordValid = (values.password === user.password);
-
-      if (!isPasswordValid) {
-        toast({
-          variant: 'destructive',
-          title: 'Erreur de connexion',
-          description: 'Nom d\'utilisateur ou mot de passe incorrect.',
-        });
-        setIsLoading(false);
-        return;
-      }
+      const user: AppUser = await response.json();
 
       login(user);
       toast({

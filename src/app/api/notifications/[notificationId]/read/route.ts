@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-
-const supabase = getDb();
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ notificationId: string }> }
 ) {
+  const supabase = createAdminClient();
   const { notificationId } = await params;
 
   try {
