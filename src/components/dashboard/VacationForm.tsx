@@ -246,12 +246,14 @@ export function VacationForm({
         toast({ title: 'Succès', description: 'Vacation ajoutée et en attente de validation.' });
       }
       onSuccess();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'enregistrement de la vacation:", error);
       toast({
         variant: 'destructive',
         title: 'Erreur',
-        description: 'Impossible d\'enregistrer la vacation.',
+        description: error.message === 'Amount for function, reason, and type not found'
+          ? 'Le tarif pour votre fonction et ce motif n\'a pas été trouvé. Veuillez contacter l\'administrateur.'
+          : 'Impossible d\'enregistrer la vacation.',
       });
     } finally {
       setIsLoading(false);

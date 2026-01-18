@@ -1,16 +1,25 @@
 import { NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { findAllVacations, findVacationsByUserId, addVacation, findArchivedVacations } from '@/lib/local-data';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-import { createClient } from '@/lib/supabase/server';
-import { findUserById } from '@/lib/local-data';
-
 export async function GET(request: Request) {
+  const supabase = await createClient();
+
+  // Vérifier l'authentification
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json(
+      { error: 'Non authentifié' },
+      { status: 401 }
+    );
+  }
+
   const { searchParams } = new URL(request.url);
-  const userId = searchParams.get('userId');
   const includeArchived = searchParams.get('includeArchived') === 'true';
   const archivedOnly = searchParams.get('archivedOnly') === 'true';
   const page = searchParams.has('page') ? parseInt(searchParams.get('page')!, 10) : 1;
@@ -29,27 +38,64 @@ export async function GET(request: Request) {
   const options = { page, limit, status, type, motif, userFilter, startDate, endDate, searchQuery, userDefaultView };
 
   try {
-    if (userId) {
-      const { vacations, total } = await findVacationsByUserId(userId, options);
-      return NextResponse.json({ vacations, total });
-    }
+    // Vérifier si l'utilisateur est admin
+    const { data: profile } = await supabase
+      .from('users')
+      .select('role')
+      .eq('uid', user.id)
+      .single();
 
+    const isAdmin = profile?.role === 'admin';
+
+    // Les admins peuvent voir toutes les vacations, les users seulement les leurs
+    // RLS gère automatiquement l'isolation des données
     if (archivedOnly) {
       const { vacations, total } = await findArchivedVacations(options);
       return NextResponse.json({ vacations, total });
     }
 
-    const { vacations, total } = await findAllVacations({ ...options, includeArchived });
-    return NextResponse.json({ vacations, total });
-  } catch (error) {
-    console.error('Failed to fetch vacations:', error);
-    return NextResponse.json({ error: 'Failed to fetch vacations' }, { status: 500 });
+    if (isAdmin) {
+      const { vacations, total } = await findAllVacations({ ...options, includeArchived });
+      return NextResponse.json({ vacations, total });
+    } else {
+      // Pour les utilisateurs normaux, utiliser leur UID (RLS vérifie automatiquement)
+      const { vacations, total } = await findVacationsByUserId(user.id, options);
+      return NextResponse.json({ vacations, total });
+    }
+  } catch (error: any) {
+    console.error('[API VACATIONS] Fetch error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    });
+    return NextResponse.json({
+      error: 'Failed to fetch vacations',
+      details: error.message
+    }, { status: 500 });
   }
 }
 
 export async function POST(request: Request) {
+  const supabase = await createClient();
+
+  // Vérifier l'authentification
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json(
+      { error: 'Non authentifié' },
+      { status: 401 }
+    );
+  }
+
   try {
     const newVacation = await request.json();
+
+    // S'assurer que le userId correspond à l'utilisateur authentifié
+    // RLS vérifiera automatiquement cette contrainte
+    newVacation.userId = user.id;
+
     const addedVacation = await addVacation(newVacation);
 
     // Invalidate caches

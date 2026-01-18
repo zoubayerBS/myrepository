@@ -1,5 +1,5 @@
-import { createAdminClient } from './supabase/admin';
+import { createClient } from './supabase/server';
 
-export function getDb() {
-    return createAdminClient();
+export async function getDb() {
+    return await createClient();
 }

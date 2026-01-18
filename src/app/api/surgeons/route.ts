@@ -17,8 +17,16 @@ export async function POST(request: Request) {
     const { name } = await request.json();
     const newSurgeon = await addSurgeon(name);
     return NextResponse.json(newSurgeon, { status: 201 });
-  } catch (error) {
-    console.error('Failed to add surgeon:', error);
-    return NextResponse.json({ error: 'Failed to add surgeon' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[API SURGEONS] Add error details:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    });
+    return NextResponse.json({
+      error: 'Failed to add surgeon',
+      details: error.message
+    }, { status: 500 });
   }
 }

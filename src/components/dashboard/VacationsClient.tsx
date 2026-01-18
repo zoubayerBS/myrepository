@@ -285,11 +285,9 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
       }
 
       const response = await fetch(`${urlBase}?${params.toString()}`);
-      console.log(`[VACATIONS DEBUG] Fetching from: ${urlBase}?${params.toString()}`);
 
       if (!response.ok) throw new Error('Failed to fetch vacations');
       const data = await response.json();
-      console.log(`[VACATIONS DEBUG] Received ${data.vacations?.length || 0} vacations`);
 
       setVacations(data.vacations || []);
       setTotalPages(Math.ceil((data.total || 0) / itemsPerPage));

@@ -1,14 +1,14 @@
-
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import type { AppUser } from '@/types';
 
 interface AuthContextType {
   user: AppUser | null;
   loading: boolean;
   login: (user: AppUser) => void;
-  logout: () => void;
+  logout: () => Promise<void>;
   userData: AppUser | null;
 }
 
@@ -16,39 +16,75 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   login: () => { },
-  logout: () => { },
+  logout: async () => { },
   userData: null,
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const supabase = createClient();
 
   useEffect(() => {
-    // Basic initialization - restored from localStorage for "classic" feel
-    const savedUser = localStorage.getItem('vacation_user');
-    if (savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        console.log('[AUTH DEBUG] Restoring user from localStorage:', parsed.username, parsed.uid);
-        setUser(parsed);
-      } catch (e) {
-        console.error('[AUTH DEBUG] Failed to parse saved user', e);
+    // Récupérer la session initiale
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        loadUserProfile(session.user.id);
+      } else {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    });
+
+    // Écouter les changements de session
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        await loadUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const login = (userData: AppUser) => {
-    console.log('[AUTH DEBUG] Login called:', userData.username, userData.uid);
-    setUser(userData);
-    localStorage.setItem('vacation_user', JSON.stringify(userData));
+  const loadUserProfile = async (uid: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('uid, email, username, role, nom, prenom, fonction')
+        .eq('uid', uid)
+        .single();
+
+      if (error) {
+        // Si RLS bloque l'accès, c'est que l'utilisateur n'est pas encore migré
+        // On déconnecte pour forcer une nouvelle connexion
+        console.error('Error loading user profile (RLS may be blocking):', error);
+        await supabase.auth.signOut();
+        setUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setUser(data as AppUser);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+      await supabase.auth.signOut();
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const logout = () => {
-    console.log('[AUTH DEBUG] Logout called');
+  const login = (userData: AppUser) => {
+    setUser(userData);
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('vacation_user');
   };
 
   const value = { user, userData: user, loading, login, logout };

@@ -69,7 +69,20 @@ export function LoginForm() {
         return;
       }
 
-      const user: AppUser = await response.json();
+      const responseData = await response.json();
+      console.log('[LOGIN] Response data:', responseData);
+
+      const { user } = responseData;
+
+      if (!user) {
+        toast({
+          variant: 'destructive',
+          title: 'Erreur de connexion',
+          description: 'Impossible de récupérer les informations utilisateur.',
+        });
+        setIsLoading(false);
+        return;
+      }
 
       login(user);
       toast({

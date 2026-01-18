@@ -1,13 +1,14 @@
 'use server';
 
+import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { AppUser, Vacation, VacationStatus, Surgeon, VacationAmount } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 
-// Helper to get DB client
-const getDb = async () => createAdminClient();
+// Helper to get DB client (uses standard client for RLS enforcement)
+const getDb = async () => await createClient();
 
 // --- User Functions ---
 
@@ -451,7 +452,9 @@ export async function updateVacationStatus(vacationId: string, status: VacationS
     const notificationMessage = `Votre vacation du ${formattedDate} (Patient: ${existingVacation.patientName}) a été ${statusText}.`;
     const notificationType = 'vacation_status_change';
 
-    const { error: notificationError } = await supabase.from('notifications').insert({
+    // Use admin client for notification creation (system operation)
+    const supabaseAdmin = createAdminClient();
+    const { error: notificationError } = await supabaseAdmin.from('notifications').insert({
         id: notificationId,
         userId: existingVacation.userId,
         type: notificationType,
