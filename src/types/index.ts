@@ -15,7 +15,7 @@ export interface Vacation {
   id: string;
   userId: string;
   // Date is stored as a string to be serializable and compatible with local data
-  date: string; 
+  date: string;
   time: string;
   patientName: string;
   matricule: string;
@@ -28,6 +28,8 @@ export interface Vacation {
   isCec?: boolean;
   cecType?: 'Assistance CEC' | 'CEC Clinique';
   isArchived?: boolean; // Added for archiving feature
+  needsReview?: boolean; // Flag for admin attention
+  specialNote?: string; // Reason for the flag
   user?: { // Optional, denormalized for admin view
     username?: string;
     nom?: string; // Added
@@ -36,8 +38,8 @@ export interface Vacation {
 }
 
 export interface Surgeon {
-    id: number;
-    name: string;
+  id: number;
+  name: string;
 }
 
 // DTO is no longer needed as we're not using Firestore Timestamps

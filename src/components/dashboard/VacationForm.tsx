@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, Loader2, Beaker, ChevronsUpDown, Check } from 'lucide-react';
+import { CalendarIcon, Loader2, Beaker, ChevronsUpDown, Check, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -60,6 +60,8 @@ const formSchema = z.object({
   exceptionalAmount: z.number().optional(),
   isCec: z.boolean().optional(),
   cecType: z.enum(['Assistance CEC', 'CEC Clinique']).optional(),
+  needsReview: z.boolean().optional(),
+  specialNote: z.string().optional(),
 }).refine(data => {
   if (data.isCec) {
     return !!data.cecType;
@@ -68,6 +70,14 @@ const formSchema = z.object({
 }, {
   message: "Le type CEC est requis.",
   path: ["cecType"],
+}).refine(data => {
+  if (data.needsReview && (!data.specialNote || data.specialNote.trim() === '')) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Une note explicative est requise pour les cas particuliers.",
+  path: ["specialNote"],
 });
 
 interface VacationFormProps {
@@ -90,6 +100,8 @@ export function VacationForm({
   const [surgeons, setSurgeons] = React.useState<Surgeon[]>([]);
   const [currentUser, setCurrentUser] = React.useState<AppUser | null>(null);
   const [vacationAmounts, setVacationAmounts] = React.useState<VacationAmount[]>([]);
+  const [surgeonSearchValue, setSurgeonSearchValue] = React.useState('');
+  const [isAddingSurgeon, setIsAddingSurgeon] = React.useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -105,6 +117,8 @@ export function VacationForm({
       exceptionalAmount: vacationToEdit?.amount,
       isCec: vacationToEdit?.isCec ?? false,
       cecType: vacationToEdit?.cecType,
+      needsReview: vacationToEdit?.needsReview ?? false,
+      specialNote: vacationToEdit?.specialNote ?? '',
     },
   });
 
@@ -141,6 +155,8 @@ export function VacationForm({
         exceptionalAmount: vacationToEdit.amount,
         isCec: vacationToEdit.isCec ?? false,
         cecType: vacationToEdit.cecType ?? undefined,
+        needsReview: vacationToEdit.needsReview ?? false,
+        specialNote: vacationToEdit.specialNote ?? '',
       });
     } else {
       form.reset({
@@ -155,6 +171,8 @@ export function VacationForm({
         exceptionalAmount: undefined,
         isCec: false,
         cecType: undefined,
+        needsReview: false,
+        specialNote: '',
       });
     }
   }, [vacationToEdit]);
@@ -237,6 +255,42 @@ export function VacationForm({
       });
     } finally {
       setIsLoading(false);
+    }
+  }
+
+  async function handleAddSurgeon(name: string) {
+    if (isAddingSurgeon || name.trim().length < 3) return;
+
+    setIsAddingSurgeon(true);
+    try {
+      const response = await fetch('/api/surgeons', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add surgeon');
+      }
+
+      const newSurgeon = await response.json();
+      setSurgeons((prev) => [...prev, newSurgeon].sort((a, b) => a.name.localeCompare(b.name)));
+      form.setValue('surgeon', newSurgeon.name);
+      setSurgeonSearchValue('');
+
+      toast({
+        title: 'Succès',
+        description: `Le chirurgien "${newSurgeon.name}" a été ajouté.`,
+      });
+    } catch (error) {
+      console.error('Failed to add surgeon:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Erreur',
+        description: 'Impossible d\'ajouter le chirurgien. Il existe peut-être déjà.',
+      });
+    } finally {
+      setIsAddingSurgeon(false);
     }
   }
 
@@ -386,10 +440,46 @@ export function VacationForm({
                         <CommandInput
                           placeholder="Rechercher un chirurgien..."
                           className="h-12 border-none focus:ring-0 bg-transparent font-medium"
-                          onInput={(e: React.ChangeEvent<HTMLInputElement>) => field.onChange(e.target.value)}
+                          onValueChange={(value) => {
+                            setSurgeonSearchValue(value);
+                            field.onChange(value);
+                          }}
                         />
                         <CommandList className="max-h-[300px]">
-                          <CommandEmpty className="p-4 text-sm font-medium opacity-50">Aucun chirurgien trouvé.</CommandEmpty>
+                          <CommandEmpty className="p-4">
+                            {surgeonSearchValue.trim().length >= 3 ? (
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium text-muted-foreground">
+                                  Aucun chirurgien trouvé.
+                                </p>
+                                <Button
+                                  type="button"
+                                  onClick={() => handleAddSurgeon(surgeonSearchValue)}
+                                  disabled={isAddingSurgeon}
+                                  className="w-full h-10 font-bold text-xs uppercase tracking-wider rounded-xl shadow-md hover:shadow-lg transition-all"
+                                  size="sm"
+                                >
+                                  {isAddingSurgeon ? (
+                                    <>
+                                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                      Ajout en cours...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <PlusCircle className="mr-2 h-4 w-4" />
+                                      Ajouter "{surgeonSearchValue}"
+                                    </>
+                                  )}
+                                </Button>
+                              </div>
+                            ) : (
+                              <p className="text-sm font-medium text-muted-foreground opacity-50">
+                                {surgeonSearchValue.length > 0
+                                  ? "Le nom doit contenir au moins 3 caractères."
+                                  : "Aucun chirurgien trouvé."}
+                              </p>
+                            )}
+                          </CommandEmpty>
                           <CommandGroup>
                             <ScrollArea className="h-[250px]">
                               {surgeons.map((surgeon) => (
@@ -574,6 +664,61 @@ export function VacationForm({
               />
             </div>
           )}
+
+          <div className="space-y-4 p-5 rounded-2xl bg-amber-50/50 dark:bg-amber-950/10 border border-amber-100 dark:border-amber-900/50">
+            <FormField
+              control={form.control}
+              name="needsReview"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-4 space-y-0 rounded-xl border border-amber-200 dark:border-amber-900/50 p-4 transition-colors hover:bg-amber-100/50 dark:hover:bg-amber-900/20">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                      className="h-5 w-5 border-amber-400 dark:border-amber-700 rounded-md data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500 text-white"
+                    />
+                  </FormControl>
+                  <div className="space-y-1">
+                    <FormLabel className="text-sm font-black uppercase tracking-widest cursor-pointer text-amber-700 dark:text-amber-500">
+                      Signaler un cas particulier
+                    </FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Cochez cette case si le montant doit être ajusté par l'administrateur
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <AnimatePresence>
+              {form.watch('needsReview') && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden pt-2"
+                >
+                  <FormField
+                    control={form.control}
+                    name="specialNote"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className={cn(labelStyles, "text-amber-700 dark:text-amber-500")}>Note pour l'administrateur</FormLabel>
+                        <FormControl>
+                          <textarea
+                            placeholder="Expliquez pourquoi le montant doit être revu (ex: Durée exceptionnelle, complication...)"
+                            {...field}
+                            className={cn("min-h-[100px] w-full p-3 font-medium text-sm resize-none", inputStyles)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           <div className="pt-6 flex items-center justify-end gap-3 py-4">
             <Button

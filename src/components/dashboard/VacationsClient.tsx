@@ -162,12 +162,23 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
     }
   };
 
+  const [vacationToValidate, setVacationToValidate] = useState<Vacation | null>(null);
+
   const handleStatusChange = async (vacationId: string, status: VacationStatus) => {
     const vacation = vacations.find(v => v.id === vacationId);
     if (!vacation || !user || !userData) return;
 
+    if (status === 'Validée' && vacation.needsReview) {
+      setVacationToValidate(vacation);
+      return;
+    }
+
+    await processStatusChange(vacation, status, userData);
+  };
+
+  const processStatusChange = async (vacation: Vacation, status: VacationStatus, adminUser: AppUser) => {
     try {
-      const response = await fetch(`/api/vacations/${vacationId}/status`, {
+      const response = await fetch(`/api/vacations/${vacation.id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -175,15 +186,16 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
       if (!response.ok) throw new Error('Failed to update status');
 
       // Optimistic update
-      setVacations(prev => prev.map(v => (v.id === vacationId ? { ...v, status } : v)));
+      setVacations(prev => prev.map(v => (v.id === vacation.id ? { ...v, status } : v)));
       toast({ title: 'Succès', description: 'Statut mis à jour.' });
       onMutation?.();
+      setVacationToValidate(null);
 
       const subject = `Mise à jour du statut de votre vacation`;
-      const content = `Votre demande de vacation pour le ${format(new Date(vacation.date), 'dd/MM/yyyy', { locale: fr })} a été ${status.toLowerCase()} par ${userData.username}.`;
+      const content = `Votre demande de vacation pour le ${format(new Date(vacation.date), 'dd/MM/yyyy', { locale: fr })} a été ${status.toLowerCase()} par ${adminUser.username}.`;
 
       await sendMessage({
-        senderId: user.uid,
+        senderId: adminUser.uid,
         receiverId: vacation.userId,
         subject,
         content,
@@ -798,15 +810,63 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
       <AlertDialog open={!!vacationToDelete} onOpenChange={(open) => !open && setVacationToDelete(null)}>
         <AlertDialogContent className="!bg-white !text-zinc-950 shadow-2xl border-zinc-200 rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-bold text-zinc-900">Confirmation de suppression</AlertDialogTitle>
+            <AlertDialogTitle className="text-red-500 flex items-center gap-2">
+              <Trash2 className="h-5 w-5" />
+              Confirmer la suppression
+            </AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-600">
-              Cette action est irréversible. Voulez-vous vraiment supprimer cette vacation et l'effacer de votre historique ?
+              Cette action est irréversible. La vacation pour <strong className="text-zinc-900">{vacationToDelete?.patientName}</strong> sera définitivement supprimée.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="border-zinc-200 dark:border-zinc-800 rounded-xl">Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20 transition-all">
-              Confirmer la suppression
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive hover:bg-destructive/90 text-white shadow-lg shadow-destructive/20">
+              Supprimer définitivement
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!vacationToValidate} onOpenChange={(open) => !open && setVacationToValidate(null)}>
+        <AlertDialogContent className="bg-white dark:bg-zinc-900 shadow-2xl border-zinc-200 dark:border-zinc-800 rounded-3xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-amber-600 dark:text-amber-500 flex items-center gap-2 text-xl">
+              <div className="p-2 rounded-full bg-amber-100 dark:bg-amber-900/40">
+                <FilePenLine className="h-5 w-5" />
+              </div>
+              Cas Particulier Signalé
+            </AlertDialogTitle>
+            <div className="pt-2 text-zinc-600 dark:text-zinc-400">
+              <AlertDialogDescription asChild>
+                <span>L'utilisateur a signalé cette vacation comme nécessitant une attention particulière :</span>
+              </AlertDialogDescription>
+              <div className="mt-3 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 rounded-xl text-amber-800 dark:text-amber-200 font-medium italic">
+                "{vacationToValidate?.specialNote}"
+              </div>
+              <p className="mt-4">
+                Le montant actuel est de <strong className="text-zinc-900 dark:text-zinc-100">{vacationToValidate?.amount.toFixed(2)} DT</strong>.
+              </p>
+            </div>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="border-zinc-200 dark:border-zinc-800 rounded-xl mt-0">Annuler</AlertDialogCancel>
+            <Button
+              variant="outline"
+              className="border-primary/20 hover:bg-primary/5 text-primary font-bold rounded-xl"
+              onClick={() => {
+                if (vacationToValidate) {
+                  handleEdit(vacationToValidate);
+                  setVacationToValidate(null);
+                }
+              }}
+            >
+              Modifier le montant
+            </Button>
+            <AlertDialogAction
+              onClick={() => vacationToValidate && userData && processStatusChange(vacationToValidate, 'Validée', userData)}
+              className="bg-green-600 hover:bg-green-700 text-white shadow-lg shadow-green-600/20 rounded-xl"
+            >
+              Valider quand même
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -121,7 +121,9 @@ export function VacationsTable({
                 <Card className="glass-card overflow-hidden">
                   <div className={cn(
                     "absolute left-0 top-0 bottom-0 w-1.5",
-                    getStatusConfig(vacation.status).className.split(' ')[0].replace('/10', '')
+                    vacation.needsReview
+                      ? "bg-amber-500"
+                      : getStatusConfig(vacation.status).className.split(' ')[0].replace('/10', '')
                   )} />
                   <CardHeader className="p-4 flex flex-row items-start justify-between gap-3 relative overflow-hidden">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -135,13 +137,18 @@ export function VacationsTable({
                       </div>
 
                       <div className="flex flex-col min-w-0 pt-0.5">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <CardTitle className="text-lg font-bold truncate leading-none">
                             {vacation.patientName}
                           </CardTitle>
                           {vacation.isCec && (
                             <Badge className="bg-emerald-500 hover:bg-emerald-600 dark:bg-emerald-500 dark:hover:bg-emerald-600 text-white border-0 text-[9px] font-black px-1.5 py-0 h-4 shadow-sm shadow-emerald-500/20">
                               CEC
+                            </Badge>
+                          )}
+                          {vacation.needsReview && (
+                            <Badge className="bg-amber-500 hover:bg-amber-600 dark:bg-amber-500 dark:hover:bg-amber-600 text-white border-0 text-[9px] font-black px-1.5 py-0 h-4 shadow-sm">
+                              Cas Particulier
                             </Badge>
                           )}
                         </div>
@@ -261,12 +268,18 @@ export function VacationsTable({
                       transition={{ delay: index * 0.03 }}
                       className={cn(
                         "group hover:bg-primary/5 transition-colors border-white/10",
-                        vacation.isCec && 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20'
+                        vacation.isCec && 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20',
+                        vacation.needsReview && 'bg-amber-500/5 dark:bg-amber-500/10 border-amber-500/20'
                       )}
                     >
                       {isAdminView && (
                         <TableCell className="font-semibold">
                           <div className="flex items-center gap-2">
+                            {vacation.needsReview && (
+                              <div title={`Note: ${vacation.specialNote}`} className="cursor-help">
+                                <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+                              </div>
+                            )}
                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-[10px]">
                               {vacation.user?.prenom?.[0]}{vacation.user?.nom?.[0]}
                             </div>
@@ -291,6 +304,11 @@ export function VacationsTable({
                               CEC
                             </Badge>
                           )}
+                          {vacation.needsReview && (
+                            <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] font-black px-1.5 py-0 shadow-sm cursor-help" title={vacation.specialNote}>
+                              À Revoir
+                            </Badge>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -309,6 +327,11 @@ export function VacationsTable({
                       </TableCell>
                       <TableCell className="text-right font-black text-primary">
                         {vacation.amount.toFixed(2)} <span className="text-[10px] font-normal">DT</span>
+                        {vacation.needsReview && (
+                          <div className="text-[10px] text-amber-600 dark:text-amber-500 font-medium mt-0.5">
+                            Suggéré
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -318,6 +341,14 @@ export function VacationsTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="glass shadow-2xl">
+                            {vacation.needsReview && isAdminView && (
+                              <>
+                                <DropdownMenuLabel className="text-amber-600 dark:text-amber-500 font-bold bg-amber-50 dark:bg-amber-950/20 px-2 py-1.5 rounded-md mb-1 text-xs">
+                                  Note: {vacation.specialNote}
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             {archiveMode ? (
                               <DropdownMenuItem onClick={() => onUnarchive(vacation.id)}>
