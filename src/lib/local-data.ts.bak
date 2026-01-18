@@ -3,8 +3,6 @@
 import { getDb } from './db';
 import type { AppUser, Vacation, VacationStatus, Surgeon, VacationAmount } from '@/types';
 import { v4 as uuidv4 } from 'uuid';
-import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 
 const supabase = getDb();
 
@@ -58,9 +56,9 @@ async function getVacationWithUser(vacationId: string): Promise<Vacation | null>
 }
 
 export async function findAllVacations(
-    options: {
-        includeArchived?: boolean;
-        page?: number;
+    options: { 
+        includeArchived?: boolean; 
+        page?: number; 
         limit?: number;
         status?: string;
         type?: string;
@@ -84,24 +82,24 @@ export async function findAllVacations(
         query = query.eq('userId', userFilter);
     }
     if (status && status !== 'all') {
-        const statuses = status.split(',');
-        if (statuses.length > 1) {
-            query = query.in('status', statuses);
-        } else {
-            query = query.ilike('status', `%${status}%`);
-        }
+      const statuses = status.split(',');
+      if (statuses.length > 1) {
+        query = query.in('status', statuses);
+      } else {
+        query = query.ilike('status', `%${status}%`);
+      }
     }
     if (type && type !== 'all') {
-        query = query.ilike('type', `%${type}%`);
+      query = query.ilike('type', `%${type}%`);
     }
     if (motif && motif !== 'all') {
-        query = query.ilike('reason', `%${motif}%`);
+      query = query.ilike('reason', `%${motif}%`);
     }
     if (startDate) {
-        query = query.gte('date', startDate);
+      query = query.gte('date', startDate);
     }
     if (endDate) {
-        query = query.lte('date', endDate);
+      query = query.lte('date', endDate);
     }
     if (searchQuery) {
         const orQuery = [
@@ -117,17 +115,17 @@ export async function findAllVacations(
         ].join(',');
         query = query.or(orQuery, { referencedTable: 'users' });
     }
-
+    
     const { data, error, count } = await query.order('date', { ascending: false }).range(from, to);
-
+    
     if (error) throw error;
-
+    
     return { vacations: data as Vacation[], total: count ?? 0 };
 }
 
 export async function findArchivedVacations(
-    options: {
-        page?: number;
+    options: { 
+        page?: number; 
         limit?: number;
         status?: string;
         type?: string;
@@ -151,24 +149,24 @@ export async function findArchivedVacations(
         query = query.eq('userId', userFilter);
     }
     if (status && status !== 'all') {
-        const statuses = status.split(',');
-        if (statuses.length > 1) {
-            query = query.in('status', statuses);
-        } else {
-            query = query.ilike('status', `%${status}%`);
-        }
+      const statuses = status.split(',');
+      if (statuses.length > 1) {
+        query = query.in('status', statuses);
+      } else {
+        query = query.ilike('status', `%${status}%`);
+      }
     }
     if (type && type !== 'all') {
-        query = query.ilike('type', `%${type}%`);
+      query = query.ilike('type', `%${type}%`);
     }
     if (motif && motif !== 'all') {
-        query = query.ilike('reason', `%${motif}%`);
+      query = query.ilike('reason', `%${motif}%`);
     }
     if (startDate) {
-        query = query.gte('date', startDate);
+      query = query.gte('date', startDate);
     }
     if (endDate) {
-        query = query.lte('date', endDate);
+      query = query.lte('date', endDate);
     }
     if (searchQuery) {
         const orQuery = [
@@ -194,18 +192,18 @@ export async function findArchivedVacations(
 }
 
 export async function findVacationsByUserId(
-    userId: string,
-    options: {
-        page?: number;
-        limit?: number;
-        status?: string;
-        type?: string;
-        motif?: string;
-        startDate?: string;
-        endDate?: string;
-        searchQuery?: string;
-        userDefaultView?: boolean;
-    } = {}
+  userId: string, 
+  options: { 
+    page?: number; 
+    limit?: number;
+    status?: string;
+    type?: string;
+    motif?: string;
+    startDate?: string;
+    endDate?: string;
+    searchQuery?: string;
+    userDefaultView?: boolean;
+  } = {}
 ): Promise<{ vacations: Vacation[], total: number }> {
     const { page = 1, limit = 10, status, type, motif, startDate, endDate, searchQuery, userDefaultView = false } = options;
     const from = (page - 1) * limit;
@@ -223,37 +221,37 @@ export async function findVacationsByUserId(
         query = query.or(`status.eq.En attente,and(date.gte.${firstDayOfMonth},date.lte.${lastDayOfMonth})`);
     } else {
         if (status && status !== 'all') {
-            const statuses = status.split(',');
-            if (statuses.length > 1) {
-                query = query.in('status', statuses);
-            } else {
-                query = query.ilike('status', `%${status}%`);
-            }
+          const statuses = status.split(',');
+          if (statuses.length > 1) {
+            query = query.in('status', statuses);
+          } else {
+            query = query.ilike('status', `%${status}%`);
+          }
         }
         if (startDate) {
-            query = query.gte('date', startDate);
+          query = query.gte('date', startDate);
         }
         if (endDate) {
-            query = query.lte('date', endDate);
+          query = query.lte('date', endDate);
         }
     }
 
     if (type && type !== 'all') {
-        query = query.ilike('type', `%${type}%`);
+      query = query.ilike('type', `%${type}%`);
     }
     if (motif && motif !== 'all') {
-        query = query.ilike('reason', `%${motif}%`);
+      query = query.ilike('reason', `%${motif}%`);
     }
     if (searchQuery) {
-        const orQuery = [
-            `patientName.ilike.%${searchQuery}%`,
-            `matricule.ilike.%${searchQuery}%`,
-            `surgeon.ilike.%${searchQuery}%`,
-            `operation.ilike.%${searchQuery}%`,
-            `reason.ilike.%${searchQuery}%`,
-            `type.ilike.%${searchQuery}%`
-        ].join(',');
-        query = query.or(orQuery);
+      const orQuery = [
+        `patientName.ilike.%${searchQuery}%`,
+        `matricule.ilike.%${searchQuery}%`,
+        `surgeon.ilike.%${searchQuery}%`,
+        `operation.ilike.%${searchQuery}%`,
+        `reason.ilike.%${searchQuery}%`,
+        `type.ilike.%${searchQuery}%`
+      ].join(',');
+      query = query.or(orQuery);
     }
 
     const { data, error, count } = await query
@@ -336,7 +334,7 @@ export async function updateVacation(updatedVacation: Vacation): Promise<Vacatio
         throw error;
     }
     const updated = await getVacationWithUser(id);
-    if (!updated) throw new Error('Could not retrieve updated vacation');
+    if(!updated) throw new Error('Could not retrieve updated vacation');
     return updated;
 }
 
@@ -346,7 +344,7 @@ export async function deleteVacation(vacationId: string): Promise<void> {
 }
 
 export async function updateVacationStatus(vacationId: string, status: VacationStatus): Promise<Vacation> {
-    const { data: existingVacation, error: existingVacationError } = await supabase.from('vacations').select('userId, patientName, status, date').eq('id', vacationId).single();
+    const { data: existingVacation, error: existingVacationError } = await supabase.from('vacations').select('userId, patientName, status').eq('id', vacationId).single();
 
     if (existingVacationError && existingVacationError.code !== 'PGRST116') throw existingVacationError;
     if (!existingVacation) {
@@ -363,14 +361,7 @@ export async function updateVacationStatus(vacationId: string, status: VacationS
 
     // --- Create Notification ---
     const notificationId = uuidv4();
-    const formattedDate = format(new Date(existingVacation.date), 'dd/MM/yyyy', { locale: fr });
-
-    let statusText;
-    if (status === 'Validée') statusText = 'validée ✅';
-    else if (status === 'Refusée') statusText = 'refusée ❌';
-    else statusText = 'remise en attente ⏳';
-
-    const notificationMessage = `Votre vacation du ${formattedDate} (Patient: ${existingVacation.patientName}) a été ${statusText}.`;
+    const notificationMessage = `Votre demande de vacation pour ${existingVacation.patientName} a été ${status === 'Validée' ? 'validée' : 'refusée'}.`;
     const notificationType = 'vacation_status_change';
 
     const { error: notificationError } = await supabase.from('notifications').insert({
@@ -451,7 +442,7 @@ export async function getVacationReasons(): Promise<string[]> {
         return [];
     }
     if (!data) return [];
-
+    
     const uniqueReasons = Array.from(new Set(data.map(v => v.reason ? v.reason.trim() : null))).filter(Boolean);
     return uniqueReasons as string[];
 }
