@@ -2,9 +2,10 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
 // This is a comment to force git to recognize the change.
-const supabase = getDb();
+
 
 export async function GET(request: Request) {
+  const supabase = await getDb();
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
 

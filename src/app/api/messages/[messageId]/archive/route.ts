@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-const supabase = getDb();
+
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ messageId: string }> }
 ) {
   try {
+    const supabase = await getDb();
     const { messageId } = await params;
     const { isArchived } = await request.json(); // Expecting { isArchived: true } or { isArchived: false }
 

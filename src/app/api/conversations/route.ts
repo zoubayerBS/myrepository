@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
-const supabase = getDb();
+
 
 // GET all conversations for a user
 export async function GET(request: Request) {
+  const supabase = await getDb();
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
 
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
 
 // POST a new conversation
 export async function POST(request: Request) {
+  const supabase = await getDb();
   try {
     const { participant1Id, participant2Id } = await request.json();
 
@@ -57,13 +59,13 @@ export async function POST(request: Request) {
     if (error) throw error;
 
     const { data: otherParticipant, error: otherParticipantError } = await supabase.from('users').select('username').eq('uid', participant2Id).single();
-    if(otherParticipantError) throw otherParticipantError;
+    if (otherParticipantError) throw otherParticipantError;
 
-    return NextResponse.json({ 
-        ...data, 
-        otherParticipantName: otherParticipant.username,
-        lastMessage: null,
-        lastMessageTimestamp: null
+    return NextResponse.json({
+      ...data,
+      otherParticipantName: otherParticipant.username,
+      lastMessage: null,
+      lastMessageTimestamp: null
     });
 
   } catch (error) {

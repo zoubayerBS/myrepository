@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-const supabase = getDb();
+
 
 export async function GET(request: Request) {
+  const supabase = await getDb();
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
   const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit') as string, 10) : 5; // Default limit to 5
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
       subject: message.subject,
       content: message.content,
       createdAt: message.createdAt,
-      senderName: message.sender.username,
+      senderName: (message.sender as any)?.username || (Array.isArray(message.sender) ? (message.sender[0] as any)?.username : ''),
     }));
 
     return NextResponse.json(formattedMessages);

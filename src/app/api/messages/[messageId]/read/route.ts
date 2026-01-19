@@ -1,12 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-const supabase = getDb();
+
 
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ messageId: string }> }
 ) {
+  const supabase = await getDb();
   const { messageId } = await params;
 
   try {

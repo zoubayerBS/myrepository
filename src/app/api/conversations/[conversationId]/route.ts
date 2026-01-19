@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 
-const supabase = getDb();
+
 
 // GET a single conversation with its messages
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ conversationId: string }> }
 ) {
+  const supabase = await getDb();
   const { conversationId } = await params;
 
   try {

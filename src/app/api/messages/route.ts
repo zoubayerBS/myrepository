@@ -2,10 +2,11 @@ import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
-const supabase = getDb();
+
 
 // GET all messages for a user (inbox)
 export async function GET(request: Request) {
+  const supabase = await getDb();
   const { searchParams } = new URL(request.url);
   const userId = searchParams.get('userId');
   const type = searchParams.get('type') || 'received'; // Default to received
@@ -26,8 +27,8 @@ export async function GET(request: Request) {
         read,
         isArchived,
         createdAt,
-        sender:users!senderId(username),
-        receiver:users!receiverId(username)
+        sender:users!messages_sender_fkey(username),
+        receiver:users!messages_receiver_fkey(username)
       `);
 
     switch (type) {
@@ -64,6 +65,7 @@ export async function GET(request: Request) {
 
 // POST a new message
 export async function POST(request: Request) {
+  const supabase = await getDb();
   try {
     const { senderId, receiverId, subject, content, conversationId } = await request.json();
 
