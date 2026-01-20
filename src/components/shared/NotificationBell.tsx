@@ -2,7 +2,7 @@
 
 import { Bell, BellDot, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth';
 import useSWR from 'swr';
 import { format } from 'date-fns';
@@ -17,6 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 import type { Notification } from '@/types';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 // Fetcher for SWR
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
@@ -30,19 +31,61 @@ export function NotificationBell() {
     const [isClearing, setIsClearing] = useState(false);
 
     // 1. Fetch unread count
+    // Removed refreshInterval in favor of Realtime subscription
     const { data: countData, mutate: mutateCount } = useSWR(
         userId ? `/api/notifications/unread/count?userId=${userId}` : null,
         fetcher,
-        { refreshInterval: 15000 } // Poll every 15s for "real-time" feel
+        {
+            revalidateOnFocus: false // Don't revalidate on window focus to save calls, Realtime handles updates
+        }
     );
     const unreadCount = countData?.count || 0;
 
     // 2. Fetch previews when open
     const { data: notificationsData, mutate: mutateNotifications } = useSWR<Notification[]>(
-        isOpen && userId ? `/api/notifications/unread/preview?userId=${userId}&limit=50` : null,
+        isOpen && userId ? `/api/notifications/unread/preview?userId=${userId}&limit=100` : null,
         fetcher
     );
     const notifications = notificationsData || [];
+
+    // 3. Realtime Subscription
+    useEffect(() => {
+        if (!userId) {
+            return;
+        }
+
+        const supabase = createClient();
+
+        const channel = supabase
+            .channel('notifications-changes')
+            .on(
+                'postgres_changes',
+                {
+                    event: '*',
+                    schema: 'public',
+                    table: 'notifications'
+                },
+                (payload: any) => {
+                    // Client-side filtering because server-side filter on quoted column "userId" is tricky
+                    const targetUserId = payload.new?.userId || payload.new?.uid; // Fallback just in case
+                    if (targetUserId && targetUserId !== userId) {
+                        return;
+                    }
+
+                    // Refresh data when changes form
+                    mutateCount();
+                    // Also refresh list if open
+                    if (isOpen) {
+                        mutateNotifications();
+                    }
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [userId, isOpen, mutateCount, mutateNotifications]);
 
     const handleMarkAsRead = async (notificationId: string) => {
         try {
@@ -88,7 +131,7 @@ export function NotificationBell() {
                 <Button variant="ghost" size="icon" className="relative group hover:bg-white/10 transition-colors duration-300">
                     <Bell className="h-5 w-5 opacity-70 group-hover:opacity-100 transition-opacity" />
                     {unreadCount > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-lg ring-2 ring-white/50 animate-bounce">
+                        <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-lg ring-2 ring-white/50 animate-bounce">
                             {unreadCount}
                         </span>
                     )}

@@ -418,8 +418,42 @@ export async function updateVacation(updatedVacation: Vacation): Promise<Vacatio
 
 export async function deleteVacation(vacationId: string): Promise<void> {
     const supabase = await getDb();
+
+    // 1. Get vacation details before deletion to know who to notify
+    const { data: existingVacation, error: existingError } = await supabase
+        .from('vacations')
+        .select('userId, patientName, date')
+        .eq('id', vacationId)
+        .single();
+
+    if (existingError && existingError.code !== 'PGRST116') throw existingError;
+
+    // 2. Delete the vacation
     const { error } = await supabase.from('vacations').delete().eq('id', vacationId);
     if (error) throw error;
+
+    // 3. Send notification if vacation existed
+    if (existingVacation) {
+        try {
+            const formattedDate = format(new Date(existingVacation.date), 'dd/MM/yyyy', { locale: fr });
+            const notificationId = uuidv4();
+            const notificationMessage = `Votre vacation du ${formattedDate} (Patient: ${existingVacation.patientName}) a été supprimée par un administrateur.`;
+
+            const supabaseAdmin = createAdminClient();
+            await supabaseAdmin.from('notifications').insert({
+                id: notificationId,
+                userId: existingVacation.userId,
+                type: 'vacation_status_change', // Reusing this type for now or could be 'vacation_deleted'
+                message: notificationMessage,
+                relatedId: vacationId, // Note: this ID no longer exists in vacations table, but useful for reference?
+                read: 0,
+                createdAt: new Date().toISOString()
+            });
+        } catch (notifError) {
+            console.error("Failed to send deletion notification:", notifError);
+            // Don't fail the whole operation if notification fails
+        }
+    }
 }
 
 export async function updateVacationStatus(vacationId: string, status: VacationStatus): Promise<Vacation> {

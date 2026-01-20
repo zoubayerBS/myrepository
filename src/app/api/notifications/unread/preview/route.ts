@@ -15,13 +15,15 @@ export async function GET(request: Request) {
   }
 
   try {
-    // RLS filtre automatiquement par auth.uid()
+    // Explicit filter by userId to ensure isolation
+    // user.id from Supabase Auth should match userId in notifications table
     const { data: notifications, error } = await supabase
       .from('notifications')
       .select('*')
+      .eq('userId', user.id)
       .eq('read', 0)
       .order('createdAt', { ascending: false })
-      .limit(5);
+      .limit(100);
 
     if (error) throw error;
 

@@ -15,10 +15,11 @@ export async function GET(request: Request) {
   }
 
   try {
-    // RLS filtre automatiquement par auth.uid()
+    // Explicit filter by userId to ensure isolation
     const { count, error } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
+      .eq('userId', user.id)
       .eq('read', 0);
 
     if (error) throw error;
