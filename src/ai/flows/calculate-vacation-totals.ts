@@ -11,8 +11,6 @@
 import { z } from 'zod';
 import { getDb } from '@/lib/db'; // Using direct DB access
 
-const supabase = getDb();
-
 const CalculateVacationTotalsInputSchema = z.object({
   userId: z.string().describe('The ID of the user.'),
   startDate: z.string().describe('The start date of the period (YYYY-MM-DD).'),
@@ -28,6 +26,7 @@ const CalculateVacationTotalsOutputSchema = z.object({
 export type CalculateVacationTotalsOutput = z.infer<typeof CalculateVacationTotalsOutputSchema>;
 
 export async function calculateVacationTotals(input: CalculateVacationTotalsInput): Promise<CalculateVacationTotalsOutput> {
+  const supabase = await getDb();
   const { userId, startDate, endDate } = input;
 
   try {
@@ -35,12 +34,12 @@ export async function calculateVacationTotals(input: CalculateVacationTotalsInpu
     const endIso = new Date(`${endDate}T23:59:59.999Z`).toISOString();
 
     const { data, error } = await supabase
-        .from('vacations')
-        .select('amount')
-        .eq('userId', userId)
-        .eq('status', 'Validée')
-        .gte('date', startIso)
-        .lte('date', endIso);
+      .from('vacations')
+      .select('amount')
+      .eq('userId', userId)
+      .eq('status', 'Validée')
+      .gte('date', startIso)
+      .lte('date', endIso);
 
     if (error) throw error;
 

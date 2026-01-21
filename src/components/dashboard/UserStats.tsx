@@ -161,8 +161,8 @@ export function UserStats({ userId, refreshKey }: UserStatsProps) {
                         </div>
                     </CardHeader>
                     <CardContent>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="border-r border-white/10 pr-2">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:gap-0">
+                            <div className="flex-1 sm:border-r border-white/10 sm:pr-2">
                                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                                     {stats.validatedAmount.toLocaleString('fr-TN', { minimumFractionDigits: 2 })} <span className="text-xs">DT</span>
                                 </div>
@@ -171,7 +171,7 @@ export function UserStats({ userId, refreshKey }: UserStatsProps) {
                                     {format(new Date(), 'MMMM yyyy', { locale: fr })}
                                 </p>
                             </div>
-                            <div className="pl-2">
+                            <div className="flex-1 sm:pl-4">
                                 <div className="text-2xl font-bold text-green-600 dark:text-green-400">
                                     {stats.totalValidatedAmountGlobal.toLocaleString('fr-TN', { minimumFractionDigits: 2 })} <span className="text-xs">DT</span>
                                 </div>

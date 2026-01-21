@@ -26,6 +26,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const supabase = createClient();
 
   useEffect(() => {
+    // Safety timeout to prevent infinite loading
+    const loadingTimeout = setTimeout(() => {
+      if (loading) {
+        console.warn('Auth loading timeout - forcing loading to false');
+        setLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
     // Récupérer la session initiale
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -33,6 +41,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         setLoading(false);
       }
+    }).catch((error) => {
+      console.error('Error getting session:', error);
+      setLoading(false);
     });
 
     // Écouter les changements de session
@@ -47,7 +58,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(loadingTimeout);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const loadUserProfile = async (uid: string) => {

@@ -21,13 +21,13 @@ export default function DashboardPage({ searchParams }: { searchParams: Promise<
         setRefreshTrigger(prev => prev + 1);
     };
 
-    /* if (loading) {
+    if (loading) {
         return (
             <div className="flex h-screen w-full items-center justify-center bg-dashboard-gradient">
                 <PulseLoader />
             </div>
         );
-    } */
+    }
 
     if (!user && !loading) {
         return null;
@@ -45,7 +45,7 @@ export default function DashboardPage({ searchParams }: { searchParams: Promise<
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="container mx-auto p-4 md:p-8 max-w-full overflow-x-hidden relative z-10"
+                className="container mx-auto p-4 md:p-8 relative z-10"
             >
                 <UserStats userId={user?.uid ?? ''} refreshKey={refreshTrigger} />
 

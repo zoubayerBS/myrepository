@@ -34,12 +34,15 @@ export async function middleware(request: NextRequest) {
         data: { user },
     } = await supabase.auth.getUser();
 
-    // Routes publiques (y compris les API routes)
+    // Routes publiques (y compris les API routes et fichiers PWA)
     if (
         request.nextUrl.pathname.startsWith('/api') ||
         request.nextUrl.pathname.startsWith('/login') ||
         request.nextUrl.pathname.startsWith('/signup') ||
-        request.nextUrl.pathname === '/'
+        request.nextUrl.pathname === '/' ||
+        request.nextUrl.pathname === '/manifest.json' ||
+        request.nextUrl.pathname === '/sw.js' ||
+        request.nextUrl.pathname.startsWith('/workbox-')
     ) {
         return supabaseResponse;
     }
@@ -71,6 +74,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
     matcher: [
-        '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+        '/((?!_next/static|_next/image|favicon.ico|manifest\\.json|sw\\.js|workbox-.*\\.js|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
     ],
 };

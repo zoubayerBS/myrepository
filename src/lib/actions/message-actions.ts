@@ -3,8 +3,6 @@
 import { getDb } from '../db';
 import { v4 as uuidv4 } from 'uuid';
 
-const supabase = getDb();
-
 interface SendMessageParams {
   senderId: string;
   receiverId: string;
@@ -13,6 +11,7 @@ interface SendMessageParams {
 }
 
 export async function sendMessage({ senderId, receiverId, subject, content }: SendMessageParams) {
+  const supabase = await getDb();
   const newMessage = {
     id: uuidv4(),
     conversationId: uuidv4(), // Unique for each message in this email-like system

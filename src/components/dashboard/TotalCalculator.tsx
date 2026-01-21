@@ -199,7 +199,7 @@ export function TotalCalculator({ userId: initialUserId, refreshKey }: TotalCalc
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="mt-8 p-6 rounded-2xl bg-primary/5 border border-primary/20 text-center relative overflow-hidden group"
+              className="mt-8 p-4 sm:p-6 rounded-2xl bg-primary/5 border border-primary/20 text-center relative overflow-hidden group"
             >
               <div className="absolute top-0 right-0 p-2 opacity-5 group-hover:opacity-10 transition-opacity">
                 <ArrowRightCircle className="h-12 w-12" />

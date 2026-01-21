@@ -319,9 +319,12 @@ export async function findVacationsByUserId(
             `surgeon.ilike.%${searchQuery}%`,
             `operation.ilike.%${searchQuery}%`,
             `reason.ilike.%${searchQuery}%`,
-            `type.ilike.%${searchQuery}%`
+            `type.ilike.%${searchQuery}%`,
+            `user.username.ilike.%${searchQuery}%`,
+            `user.nom.ilike.%${searchQuery}%`,
+            `user.prenom.ilike.%${searchQuery}%`
         ].join(',');
-        query = query.or(orQuery);
+        query = query.or(orQuery, { referencedTable: 'users' });
     }
 
     const { data, error, count } = await query

@@ -264,13 +264,16 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
       let urlBase = '/api/vacations';
       if (archiveMode) {
         params.set('archivedOnly', 'true');
+        if (isAdminView && userFilter && userFilter !== 'all') {
+          params.set('userFilter', userFilter);
+        }
       } else if (isAdminView) {
         params.set('includeArchived', 'false');
         params.set('userFilter', userFilter);
       } else if (historyMode) {
         params.set('userId', user.uid);
-        // HISTORY MODE: defaults to vacations BEFORE the current month if no range is chosen
-        if (!endDate) {
+        // HISTORY MODE: defaults to vacations BEFORE the current month if no range is chosen AND no search query is present
+        if (!endDate && !searchQuery) {
           const today = new Date();
           const firstDayOfCurrentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
           const lastDayOfPrevMonth = new Date(firstDayOfCurrentMonth.getTime() - 1);
@@ -654,11 +657,17 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
                 vacations.map(v => (
                   <Card key={v.id} className="p-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md overflow-hidden group">
                     <CardHeader className="p-0 pb-3 flex flex-row items-center justify-between border-b border-white/10 mb-3">
-                      <CardTitle className={cn("text-base font-bold truncate pr-2", isAdminView && "flex items-center")}>
-                        {isAdminView && <UserRound className="h-4 w-4 mr-2 text-primary" />}
-                        {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName).toUpperCase()}
+                      <CardTitle className={cn(
+                        "font-bold flex items-center min-w-0",
+                        (isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName)).length > 20 ? "text-sm" : "text-base",
+                        isAdminView && "flex"
+                      )}>
+                        {isAdminView && <UserRound className="h-4 w-4 mr-2 text-primary shrink-0" />}
+                        <span className="truncate">
+                          {isAdminView ? `${v.user?.prenom} ${v.user?.nom}` : String(v.patientName).toUpperCase()}
+                        </span>
                         {v.isCec && (
-                          <div className="inline-flex items-center ml-2">
+                          <div className="inline-flex items-center ml-2 shrink-0">
                             <Badge className="bg-emerald-500 text-white border-none text-[9px] font-black px-1.5 py-0 animate-pulse">
                               CEC
                             </Badge>
@@ -721,12 +730,12 @@ function VacationsClientInternal({ isAdminView, initialVacations, allUsers = [],
                       <div className="flex justify-between text-xs"><span className="text-muted-foreground">Date:</span> <span className="font-semibold text-foreground pr-2">{format(new Date(v.date), 'd MMM yyyy', { locale: fr })} à {v.time}</span></div>
                       <div className="flex justify-between text-xs"><span className="text-muted-foreground">Motif:</span> <span className="font-semibold text-foreground pr-2">{v.reason}</span></div>
                       <div className="flex justify-between text-xs"><span className="text-muted-foreground">Acte:</span> <span className="font-semibold text-foreground pr-2 line-clamp-1">{v.operation}</span></div>
-                      <div className="flex justify-between items-center py-1">
-                        <div className="flex gap-2">
-                          <Badge variant={v.type === 'acte' ? 'default' : 'secondary'} className="text-[10px] px-1.5 h-5">{v.type === 'acte' ? 'Acte' : 'Forfait'}</Badge>
-                          <Badge className={cn(getStatusClasses(v.status), "text-[10px] px-1.5 h-5")}>{v.status}</Badge>
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-1 gap-2 sm:gap-0">
+                        <div className="flex flex-wrap gap-2">
+                          <Badge variant={v.type === 'acte' ? 'default' : 'secondary'} className="text-[10px] px-1.5 h-5 whitespace-nowrap">{v.type === 'acte' ? 'Acte' : 'Forfait'}</Badge>
+                          <Badge className={cn(getStatusClasses(v.status), "text-[10px] px-1.5 h-5 whitespace-nowrap")}>{v.status}</Badge>
                         </div>
-                        <span className="font-black text-primary pr-2">{v.amount.toFixed(2)} DT</span>
+                        <span className="font-black text-primary pr-2 sm:text-right whitespace-nowrap">{v.amount.toFixed(2)} DT</span>
                       </div>
                     </CardContent>
                   </Card>
