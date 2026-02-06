@@ -101,6 +101,13 @@ export async function addUser(user: AppUser): Promise<AppUser> {
     return data as AppUser;
 }
 
+export async function addUserAdmin(user: AppUser): Promise<AppUser> {
+    const supabaseAdmin = createAdminClient();
+    const { data, error } = await supabaseAdmin.from('users').insert({ ...user }).select().single();
+    if (error) throw error;
+    return data as AppUser;
+}
+
 export async function getAllUsers(): Promise<AppUser[]> {
     const supabase = await getDb();
     const { data, error } = await supabase.from('users').select('uid, username, email, role, nom, prenom, fonction');

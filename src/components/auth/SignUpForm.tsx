@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -41,6 +41,7 @@ const formSchema = z.object({
   prenom: z.string().min(2, { message: "Le prénom doit contenir au moins 2 caractères." }),
   nom: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères." }),
   username: z.string().min(3, { message: "Le nom d'utilisateur doit contenir au moins 3 caractères." }),
+  email: z.string().email().optional(),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères." }),
   fonction: z.enum(['technicien d\'anesthesie', 'instrumentiste', 'panseur'], {
     errorMap: () => ({ message: "Veuillez sélectionner une fonction." }),
@@ -59,18 +60,36 @@ export function SignUpForm() {
       prenom: '',
       nom: '',
       username: '',
+      email: '',
       password: '',
       fonction: undefined,
     },
   });
 
+  const username = useWatch({
+    control: form.control,
+    name: "username",
+  });
+
+  useEffect(() => {
+    if (username && username.length >= 3) {
+      const sanitized = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.');
+      form.setValue('email', `${sanitized}@vacationease.app`);
+    } else {
+      form.setValue('email', '');
+    }
+  }, [username, form]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
+      const sanitized = values.username.trim().toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.');
+      const syntheticEmail = `${sanitized}@vacationease.app`.toLowerCase();
+
       const newUser = {
         username: values.username,
         password: values.password,
-        email: `${values.username}@vacationease.app`,
+        email: syntheticEmail,
         prenom: values.prenom,
         nom: values.nom,
         fonction: values.fonction,
@@ -169,7 +188,7 @@ export function SignUpForm() {
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 ml-1">Identifiant</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Choisissez un pseudo"
+                        placeholder="Choisissez un username"
                         className="h-11 bg-white/50 dark:bg-zinc-950/50 border-zinc-200 dark:border-zinc-800 focus:ring-primary/20 rounded-2xl transition-all duration-200 font-medium"
                         {...field}
                         autoComplete="off"
