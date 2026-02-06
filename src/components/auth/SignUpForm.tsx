@@ -8,6 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
+import { createClient } from '@/lib/supabase/client';
 import type { AppUser } from '@/types';
 import { motion } from 'framer-motion';
 
@@ -48,11 +49,13 @@ const formSchema = z.object({
   }),
 });
 
+
 export function SignUpForm() {
   const router = useRouter();
   const { toast } = useToast();
   const { login } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -81,10 +84,13 @@ export function SignUpForm() {
   }, [username, form]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    console.log('[SIGNUP] Starting submission...', values.username);
     setIsLoading(true);
     try {
       const sanitized = values.username.trim().toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.');
       const syntheticEmail = `${sanitized}@vacationapp.internal`.toLowerCase();
+
+      console.log('[SIGNUP] Synthetic email generated:', syntheticEmail);
 
       const newUser = {
         username: values.username,
@@ -95,6 +101,7 @@ export function SignUpForm() {
         fonction: values.fonction,
       };
 
+      console.log('[SIGNUP] Calling API /api/auth/signup...');
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,41 +109,51 @@ export function SignUpForm() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorMsg = 'Une erreur est survenue lors de l\'inscription.';
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch (e) {
+          console.error('[SIGNUP] Error parsing error response:', e);
+        }
+
+        console.error('[SIGNUP] API error:', errorMsg);
         toast({
           variant: 'destructive',
           title: 'Erreur d\'inscription',
-          description: errorData.error || 'Une erreur est survenue lors de l\'inscription.',
+          description: errorMsg,
         });
-        setIsLoading(false);
         return;
       }
 
+      console.log('[SIGNUP] API success, parsing response...');
       const addedUser: AppUser = await response.json();
 
       // 4. Se connecter côté client pour établir la session (indispensable pour RLS)
-      const { createClient } = await import('@/lib/supabase/client');
-      const supabase = createClient();
+      console.log('[SIGNUP] Attempting auto-login for session cookies...');
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email: syntheticEmail,
         password: values.password,
       });
 
       if (signInError) {
-        console.error('Auto-login error:', signInError.message);
-        // On continue quand même car le compte est créé, mais l'utilisateur devra peut-être se reconnecter
+        console.error('[SIGNUP] Auto-login error (non-fatal):', signInError.message);
+      } else {
+        console.log('[SIGNUP] Auto-login successful');
       }
 
+      console.log('[SIGNUP] Updating auth context and navigating...');
       login(addedUser);
       router.push('/dashboard');
     } catch (error: any) {
+      console.error('[SIGNUP] Unexpected error:', error);
       toast({
         variant: 'destructive',
         title: 'Erreur d\'inscription',
-        description: 'Une erreur est survenue.',
+        description: 'Une erreur inattendue est survenue.',
       });
-      console.error(error);
     } finally {
+      console.log('[SIGNUP] Submission finished');
       setIsLoading(false);
     }
   }
