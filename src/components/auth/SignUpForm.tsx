@@ -74,7 +74,7 @@ export function SignUpForm() {
   useEffect(() => {
     if (username && username.length >= 3) {
       const sanitized = username.trim().toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.');
-      form.setValue('email', `${sanitized}@vacationease.app`);
+      form.setValue('email', `${sanitized}@vacationapp.internal`);
     } else {
       form.setValue('email', '');
     }
@@ -84,7 +84,7 @@ export function SignUpForm() {
     setIsLoading(true);
     try {
       const sanitized = values.username.trim().toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.');
-      const syntheticEmail = `${sanitized}@vacationease.app`.toLowerCase();
+      const syntheticEmail = `${sanitized}@vacationapp.internal`.toLowerCase();
 
       const newUser = {
         username: values.username,
