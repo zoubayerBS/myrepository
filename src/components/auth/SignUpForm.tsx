@@ -113,6 +113,20 @@ export function SignUpForm() {
       }
 
       const addedUser: AppUser = await response.json();
+
+      // 4. Se connecter côté client pour établir la session (indispensable pour RLS)
+      const { createClient } = await import('@/lib/supabase/client');
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: syntheticEmail,
+        password: values.password,
+      });
+
+      if (signInError) {
+        console.error('Auto-login error:', signInError.message);
+        // On continue quand même car le compte est créé, mais l'utilisateur devra peut-être se reconnecter
+      }
+
       login(addedUser);
       router.push('/dashboard');
     } catch (error: any) {

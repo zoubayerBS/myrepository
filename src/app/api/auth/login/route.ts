@@ -39,7 +39,7 @@ export async function POST(request: Request) {
         }
 
         // 3. Générer email synthétique à partir du vrai username en base (pour correspondre à la migration)
-        const sanitizedUsername = localUser.username.trim().replace(/\s+/g, '.');
+        const sanitizedUsername = localUser.username.trim().toLowerCase().replace(/[^a-z0-9]/g, '.').replace(/\.+/g, '.');
         const syntheticEmail = `${sanitizedUsername}@vacationapp.internal`.toLowerCase();
 
         // 4. Tenter connexion Supabase Auth
