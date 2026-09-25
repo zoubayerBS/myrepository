@@ -26,7 +26,7 @@ const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], s
   doc.text(title, 14, startY);
   let tableStartY = startY + 8;
 
-  const tableColumn = ["Date", "Patient", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+  const tableColumn = ["Date", "Patient", "Matricule", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
   const tableRows: (string | number)[][] = [];
   let groupTotal = 0;
 
@@ -34,6 +34,7 @@ const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], s
     const vacationData = [
       format(new Date(vacation.date), 'dd/MM/yy'),
       vacation.patientName,
+      vacation.matricule || '-',
       vacation.operation,
       vacation.reason,
       vacation.type === 'acte' ? 'Acte' : 'Forfait',
@@ -50,7 +51,7 @@ const createVacationTable = (doc: jsPDF, title: string, vacations: Vacation[], s
     startY: tableStartY,
     theme: 'striped',
     headStyles: { fillColor: [41, 41, 41] },
-    foot: [[`Total pour ${title}`, '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
+    foot: [[`Total pour ${title}`, '', '', '', '', '', '', `${groupTotal.toFixed(2)} DT`]],
     footStyles: { fontStyle: 'bold', fillColor: [230, 230, 230], textColor: 0 },
   });
 
