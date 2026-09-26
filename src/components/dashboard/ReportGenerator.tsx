@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { CalendarIcon, Loader2, FileDown } from 'lucide-react';
+import { CalendarIcon, Loader2, FileDown, FileSpreadsheet } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -78,6 +78,7 @@ interface ReportGeneratorProps {
 
 export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations, defaultDateRange }: ReportGeneratorProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [exportType, setExportType] = useState<'pdf' | 'csv'>('pdf');
   const { toast } = useToast();
   const [reportVacations, setReportVacations] = useState<Vacation[]>([]);
   const [allMotifs, setAllMotifs] = useState<string[]>([]);
@@ -413,6 +414,41 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations, 
 
 
 
+  const generateCSV = (filteredData: Vacation[], selectedUser: AppUser | undefined, dateRange: { from: Date; to: Date }, status: string, motif: string) => {
+    const headers = ["Date", "Employé", "Patient", "Matricule", "Opération", "Motif", "Type", "Statut", "Montant (DT)"];
+
+    const rows = filteredData.map(v => {
+      const user = allUsers.find(u => u.uid === v.userId) || selectedUser;
+      const userName = user ? `${user.prenom} ${user.nom}` : '';
+      return [
+        format(new Date(v.date), 'dd/MM/yyyy'),
+        `"${userName}"`,
+        `"${v.patientName || ''}"`,
+        `"${v.matricule || '-'}"`,
+        `"${v.operation || ''}"`,
+        `"${v.reason || ''}"`,
+        v.type === 'acte' ? 'Acte' : 'Forfait',
+        v.status,
+        v.amount.toFixed(2)
+      ];
+    });
+
+    const csvContent = [
+      headers.join(';'),
+      ...rows.map(row => row.join(';'))
+    ].join('\n');
+
+    // UTF-8 BOM for Excel to detect encoding properly
+    const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `Rapport_Vacations_${format(new Date(), 'dd-MM-yyyy')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
 
     setIsLoading(true);
@@ -483,7 +519,11 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations, 
 
 
 
-      generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status, values.motif);
+      if (exportType === 'csv') {
+        generateCSV(filtered, selectedUser, { from, to: toEndOfDay }, values.status, values.motif);
+      } else {
+        generatePDF(filtered, selectedUser, { from, to: toEndOfDay }, values.status, values.motif);
+      }
 
 
 
@@ -656,14 +696,27 @@ export function ReportGenerator({ allUsers, currentUser, isAdmin, allVacations, 
             />
           </div>
 
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all duration-200 gap-3"
-          >
-            {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
-            Générer le Rapport PDF
-          </Button>
+          <div className="flex flex-col sm:flex-row gap-4 w-full">
+            <Button
+              type="submit"
+              onClick={() => setExportType('pdf')}
+              disabled={isLoading}
+              className="flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all duration-200 gap-3"
+            >
+              {isLoading && exportType === 'pdf' ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileDown className="h-5 w-5" />}
+              PDF
+            </Button>
+            <Button
+              type="submit"
+              onClick={() => setExportType('csv')}
+              disabled={isLoading}
+              variant="outline"
+              className="flex-1 h-12 rounded-2xl font-black uppercase tracking-widest text-xs border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 shadow-xl shadow-emerald-500/10 hover:scale-[1.01] active:scale-95 transition-all duration-200 gap-3"
+            >
+              {isLoading && exportType === 'csv' ? <Loader2 className="h-5 w-5 animate-spin" /> : <FileSpreadsheet className="h-5 w-5" />}
+              Excel (CSV)
+            </Button>
+          </div>
         </form>
       </Form>
     </div>
