@@ -4,11 +4,13 @@ import { useState, useEffect, useMemo, Suspense, use } from 'react';
 import { redirect, useRouter } from 'next/navigation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Clock, CheckCircle, Hourglass, BarChart, FileText, Settings, Stethoscope } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Users, Clock, CheckCircle, Hourglass, BarChart, FileText, Settings, Stethoscope, Database } from 'lucide-react';
 import { VacationsClient } from '@/components/dashboard/VacationsClient';
 import { AdminVacationChart } from '@/components/dashboard/AdminVacationChart';
 import { ReportGenerator } from '@/components/dashboard/ReportGenerator';
 import { UsersListModal } from '@/components/dashboard/UsersListModal';
+import { BackupModal } from '@/components/dashboard/BackupModal';
 import { useAuth } from '@/lib/auth';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +29,7 @@ export default function AdminPage({ searchParams }: { searchParams: Promise<any>
     const resolvedSearchParams = use(searchParams);
     const router = useRouter();
     const [isUsersModalOpen, setIsUsersModalOpen] = useState(false);
+    const [isBackupModalOpen, setIsBackupModalOpen] = useState(false);
     const [allVacations, setAllVacations] = useState<Vacation[]>([]);
     const [allUsers, setAllUsers] = useState<AppUser[]>([]);
     const [loading, setLoading] = useState(true);
@@ -281,7 +284,7 @@ export default function AdminPage({ searchParams }: { searchParams: Promise<any>
                 >
                     <Card className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl mb-12 overflow-hidden">
                         <CardHeader className="p-8 pb-4 relative overflow-hidden bg-zinc-50 dark:bg-zinc-900/50">
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-2xl bg-primary text-white shadow-lg shadow-primary/20">
                                         <FileText className="h-6 w-6" />
@@ -290,6 +293,16 @@ export default function AdminPage({ searchParams }: { searchParams: Promise<any>
                                         <CardTitle className="text-3xl font-black tracking-tight">Gestion & Utilitaires</CardTitle>
                                         <p className="text-sm font-medium text-muted-foreground mt-1">Configurez le système et générez des analyses croisées.</p>
                                     </div>
+                                </div>
+                                <div className="mt-4 md:mt-0 flex-shrink-0">
+                                    <Button
+                                        onClick={() => setIsBackupModalOpen(true)}
+                                        variant="outline"
+                                        className="w-full md:w-auto h-11 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 shadow-sm text-sm font-bold border-zinc-200 dark:border-zinc-700/50 text-foreground"
+                                    >
+                                        <Database className="w-4 h-4 mr-2" />
+                                        Sauvegarder la BD
+                                    </Button>
                                 </div>
                             </div>
                         </CardHeader>
@@ -372,6 +385,11 @@ export default function AdminPage({ searchParams }: { searchParams: Promise<any>
                     onClose={() => setIsUsersModalOpen(false)}
                     users={allUsers}
                     onUserDelete={handleUserDelete}
+                />
+
+                <BackupModal
+                    isOpen={isBackupModalOpen}
+                    onClose={() => setIsBackupModalOpen(false)}
                 />
             </div>
         </div>
